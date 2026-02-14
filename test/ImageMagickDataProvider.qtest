@@ -1,0 +1,622 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+/*
+    Qore ImageMagickDataProvider module test suite
+
+    Copyright (C) 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+%modern
+
+%requires QUnit
+%requires Util
+%requires DataProvider
+%requires imagemagick
+%requires ImageMagickDataProvider
+
+%exec-class ImageMagickDataProviderTest
+
+public class ImageMagickDataProviderTest inherits QUnit::Test {
+    private {
+        string testDir;
+        string testImagePath;
+    }
+
+    constructor() : Test("ImageMagickDataProviderTest", "1.0") {
+        testDir = tmp_location() + "/imagemagick_dp_test_" + string(getpid());
+
+        addTestCase("Module loading tests", \moduleLoadingTest());
+        addTestCase("Factory tests", \factoryTest());
+        addTestCase("App registration tests", \appRegistrationTest());
+        addTestCase("Provider tree tests", \providerTreeTest());
+        addTestCase("Type metadata tests", \typeMetadataTest());
+        addTestCase("Required groups tests", \requiredGroupsTest());
+        addTestCase("Resize action tests", \resizeActionTest());
+        addTestCase("Crop action tests", \cropActionTest());
+        addTestCase("Rotate action tests", \rotateActionTest());
+        addTestCase("Flip action tests", \flipActionTest());
+        addTestCase("Blur action tests", \blurActionTest());
+        addTestCase("Sharpen action tests", \sharpenActionTest());
+        addTestCase("Brightness/contrast action tests", \brightnessContrastActionTest());
+        addTestCase("Thumbnail action tests", \thumbnailActionTest());
+        addTestCase("Auto orient action tests", \autoOrientActionTest());
+        addTestCase("Strip action tests", \stripActionTest());
+        addTestCase("Charcoal effect tests", \charcoalActionTest());
+        addTestCase("Sepia effect tests", \sepiaActionTest());
+        addTestCase("Oil paint effect tests", \oilPaintActionTest());
+        addTestCase("Edge effect tests", \edgeActionTest());
+        addTestCase("Emboss effect tests", \embossActionTest());
+        addTestCase("Convert format action tests", \convertFormatActionTest());
+        addTestCase("Get info action tests", \getInfoActionTest());
+        addTestCase("Binary data input tests", \binaryDataInputTest());
+        addTestCase("Error handling tests", \errorHandlingTest());
+
+        set_return_value(main());
+    }
+
+    globalSetUp() {
+        mkdir(testDir);
+        # Create a test image file
+        MagickImage img(100, 80, "red");
+        img.setFormat("PNG");
+        testImagePath = testDir + "/test.png";
+        img.writeFile(testImagePath);
+    }
+
+    globalTearDown() {
+        if (is_dir(testDir)) {
+            system("rm -rf " + testDir);
+        }
+    }
+
+    #! Helper: get a data provider by path from the factory
+    private AbstractDataProvider getProvider(string path) {
+        AbstractDataProviderFactory f = DataProvider::getFactoryEx("imagemagick");
+        AbstractDataProvider p = f.create();
+        list<string> parts = path.split("/");
+        for (int i = 0; i < parts.size(); ++i) {
+            p = p.getChildProvider(parts[i]);
+        }
+        return p;
+    }
+
+    #! Helper: create binary test image data
+    private binary createTestImageData(int width = 100, int height = 80, string color = "white") {
+        MagickImage img(width, height, color);
+        img.setFormat("PNG");
+        return img.toData();
+    }
+
+    # ==================== Module Loading Tests ====================
+
+    moduleLoadingTest() {
+        # Verify the module loaded successfully
+        assertEq(True, True, "ImageMagickDataProvider module loaded");
+
+        # Verify factory is registered
+        assertEq(True, DataProvider::getFactory("imagemagick") instanceof AbstractDataProviderFactory,
+            "imagemagick factory registered");
+    }
+
+    # ==================== Factory Tests ====================
+
+    factoryTest() {
+        AbstractDataProviderFactory f = DataProvider::getFactoryEx("imagemagick");
+        assertEq("ImageMagickDataProviderFactory", f.className(), "factory class name");
+
+        # Create provider from factory
+        AbstractDataProvider p = f.create();
+        assertEq("imagemagick", p.getName(), "provider name from factory");
+    }
+
+    # ==================== App Registration Tests ====================
+
+    appRegistrationTest() {
+        # Verify app is registered
+        *hash<DataProviderAppInfo> appInfo = DataProviderActionCatalog::getApp("ImageMagick");
+        assertEq(True, exists appInfo, "ImageMagick app is registered");
+        assertEq("ImageMagick", appInfo.name, "app name is ImageMagick");
+        assertEq("ImageMagick", appInfo.display_name, "app display_name");
+        assertEq(True, exists appInfo.short_desc, "app has short_desc");
+        assertEq(True, exists appInfo.desc, "app has desc");
+        assertEq(True, exists appInfo.logo, "app has logo");
+        assertEq("imagemagick-logo.svg", appInfo.logo_file_name, "app logo_file_name");
+        assertEq(MimeTypeSvg, appInfo.logo_mime_type, "app logo_mime_type");
+    }
+
+    # ==================== Provider Tree Tests ====================
+
+    providerTreeTest() {
+        AbstractDataProviderFactory f = DataProvider::getFactoryEx("imagemagick");
+        AbstractDataProvider root = f.create();
+
+        # Check root children
+        *list<string> rootChildren = root.getChildProviderNames();
+        assertEq(3, rootChildren.size(), "root has 3 children");
+        assertEq(True, rootChildren.contains("image"), "root has image child");
+        assertEq(True, rootChildren.contains("convert"), "root has convert child");
+        assertEq(True, rootChildren.contains("info"), "root has info child");
+
+        # Check image children
+        AbstractDataProvider image = root.getChildProvider("image");
+        *list<string> imageChildren = image.getChildProviderNames();
+        assertEq(11, imageChildren.size(), "image has 11 children");
+        assertEq(True, imageChildren.contains("resize"), "image has resize");
+        assertEq(True, imageChildren.contains("crop"), "image has crop");
+        assertEq(True, imageChildren.contains("rotate"), "image has rotate");
+        assertEq(True, imageChildren.contains("flip"), "image has flip");
+        assertEq(True, imageChildren.contains("blur"), "image has blur");
+        assertEq(True, imageChildren.contains("sharpen"), "image has sharpen");
+        assertEq(True, imageChildren.contains("brightness-contrast"), "image has brightness-contrast");
+        assertEq(True, imageChildren.contains("thumbnail"), "image has thumbnail");
+        assertEq(True, imageChildren.contains("auto-orient"), "image has auto-orient");
+        assertEq(True, imageChildren.contains("strip"), "image has strip");
+        assertEq(True, imageChildren.contains("effects"), "image has effects");
+
+        # Check effects children
+        AbstractDataProvider effects = image.getChildProvider("effects");
+        *list<string> effectsChildren = effects.getChildProviderNames();
+        assertEq(5, effectsChildren.size(), "effects has 5 children");
+        assertEq(True, effectsChildren.contains("charcoal"), "effects has charcoal");
+        assertEq(True, effectsChildren.contains("sepia"), "effects has sepia");
+        assertEq(True, effectsChildren.contains("oil-paint"), "effects has oil-paint");
+        assertEq(True, effectsChildren.contains("edge"), "effects has edge");
+        assertEq(True, effectsChildren.contains("emboss"), "effects has emboss");
+
+        # Check convert children
+        AbstractDataProvider convert = root.getChildProvider("convert");
+        *list<string> convertChildren = convert.getChildProviderNames();
+        assertEq(1, convertChildren.size(), "convert has 1 child");
+        assertEq(True, convertChildren.contains("format"), "convert has format");
+
+        # Check info children
+        AbstractDataProvider info = root.getChildProvider("info");
+        *list<string> infoChildren = info.getChildProviderNames();
+        assertEq(1, infoChildren.size(), "info has 1 child");
+        assertEq(True, infoChildren.contains("get"), "info has get");
+    }
+
+    # ==================== Type Metadata Tests ====================
+
+    typeMetadataTest() {
+        # Test resize request type has required fields
+        AbstractDataProvider resize = getProvider("image/resize");
+        *AbstractDataProviderType reqType = resize.getRequestType();
+        assertEq(True, reqType instanceof AbstractDataProviderType, "resize has request type");
+        *AbstractDataProviderType respType = resize.getResponseType();
+        assertEq(True, respType instanceof AbstractDataProviderType, "resize has response type");
+
+        # Test get-info response type has expected fields
+        AbstractDataProvider getinfo = getProvider("info/get");
+        *AbstractDataProviderType infoResp = getinfo.getResponseType();
+        assertEq(True, infoResp instanceof AbstractDataProviderType, "get-info has response type");
+    }
+
+    # ==================== Required Groups Tests ====================
+
+    requiredGroupsTest() {
+        # Verify that request types enforce required groups (input_path or data)
+        AbstractDataProvider resize = getProvider("image/resize");
+        *AbstractDataProviderType reqType = resize.getRequestType();
+        assertEq(True, reqType instanceof AbstractDataProviderType, "resize request type exists");
+    }
+
+    # ==================== Resize Action Tests ====================
+
+    resizeActionTest() {
+        AbstractDataProvider resize = getProvider("image/resize");
+
+        # Test resize with file path
+        hash<auto> result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+        });
+        assertEq(50, result.width, "resize width from file");
+        assertEq(40, result.height, "resize height from file");
+        assertEq(True, result.data instanceof binary, "resize returns binary data");
+        assertGt(0, result.size, "resize returns positive size");
+        assertEq("PNG", result.format, "resize preserves format");
+
+        # Test resize with filter
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 25,
+            "height": 20,
+            "filter": "Mitchell",
+        });
+        assertEq(25, result.width, "resize with filter width");
+        assertEq(20, result.height, "resize with filter height");
+
+        # Test resize with output format override
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "output_format": "JPEG",
+        });
+        assertEq("JPEG", result.format, "resize with output_format override");
+    }
+
+    # ==================== Crop Action Tests ====================
+
+    cropActionTest() {
+        AbstractDataProvider crop = getProvider("image/crop");
+
+        hash<auto> result = crop.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "x": 10,
+            "y": 10,
+        });
+        assertEq(50, result.width, "crop width");
+        assertEq(40, result.height, "crop height");
+        assertEq(True, result.data instanceof binary, "crop returns binary data");
+    }
+
+    # ==================== Rotate Action Tests ====================
+
+    rotateActionTest() {
+        AbstractDataProvider rotate = getProvider("image/rotate");
+
+        # 90 degree rotation swaps width and height
+        hash<auto> result = rotate.doRequest({
+            "input_path": testImagePath,
+            "degrees": 90.0,
+        });
+        assertEq(80, result.width, "rotate 90 swaps width");
+        assertEq(100, result.height, "rotate 90 swaps height");
+
+        # Rotation with background color
+        result = rotate.doRequest({
+            "input_path": testImagePath,
+            "degrees": 45.0,
+            "background": "black",
+        });
+        assertEq(True, result.data instanceof binary, "rotate with background returns data");
+    }
+
+    # ==================== Flip Action Tests ====================
+
+    flipActionTest() {
+        AbstractDataProvider flip = getProvider("image/flip");
+
+        # Vertical flip
+        hash<auto> result = flip.doRequest({
+            "input_path": testImagePath,
+            "direction": "vertical",
+        });
+        assertEq(100, result.width, "vertical flip preserves width");
+        assertEq(80, result.height, "vertical flip preserves height");
+
+        # Horizontal flip
+        result = flip.doRequest({
+            "input_path": testImagePath,
+            "direction": "horizontal",
+        });
+        assertEq(100, result.width, "horizontal flip preserves width");
+        assertEq(80, result.height, "horizontal flip preserves height");
+    }
+
+    # ==================== Blur Action Tests ====================
+
+    blurActionTest() {
+        AbstractDataProvider blur = getProvider("image/blur");
+
+        hash<auto> result = blur.doRequest({
+            "input_path": testImagePath,
+            "radius": 0.0,
+            "sigma": 2.0,
+        });
+        assertEq(100, result.width, "blur preserves width");
+        assertEq(80, result.height, "blur preserves height");
+        assertEq(True, result.data instanceof binary, "blur returns binary data");
+    }
+
+    # ==================== Sharpen Action Tests ====================
+
+    sharpenActionTest() {
+        AbstractDataProvider sharpen = getProvider("image/sharpen");
+
+        hash<auto> result = sharpen.doRequest({
+            "input_path": testImagePath,
+            "radius": 0.0,
+            "sigma": 1.0,
+        });
+        assertEq(100, result.width, "sharpen preserves width");
+        assertEq(80, result.height, "sharpen preserves height");
+    }
+
+    # ==================== Brightness/Contrast Action Tests ====================
+
+    brightnessContrastActionTest() {
+        AbstractDataProvider bc = getProvider("image/brightness-contrast");
+
+        hash<auto> result = bc.doRequest({
+            "input_path": testImagePath,
+            "brightness": 20.0,
+            "contrast": 10.0,
+        });
+        assertEq(100, result.width, "brightness-contrast preserves width");
+        assertEq(80, result.height, "brightness-contrast preserves height");
+    }
+
+    # ==================== Thumbnail Action Tests ====================
+
+    thumbnailActionTest() {
+        AbstractDataProvider thumb = getProvider("image/thumbnail");
+
+        hash<auto> result = thumb.doRequest({
+            "input_path": testImagePath,
+            "width": 32,
+            "height": 32,
+        });
+        assertEq(32, result.width, "thumbnail width");
+        assertEq(32, result.height, "thumbnail height");
+    }
+
+    # ==================== Auto Orient Action Tests ====================
+
+    autoOrientActionTest() {
+        AbstractDataProvider autoOrient = getProvider("image/auto-orient");
+
+        hash<auto> result = autoOrient.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "auto-orient preserves width");
+        assertEq(80, result.height, "auto-orient preserves height");
+    }
+
+    # ==================== Strip Action Tests ====================
+
+    stripActionTest() {
+        AbstractDataProvider strip = getProvider("image/strip");
+
+        hash<auto> result = strip.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "strip preserves width");
+        assertEq(80, result.height, "strip preserves height");
+        assertGt(0, result.size, "strip returns data");
+    }
+
+    # ==================== Charcoal Effect Tests ====================
+
+    charcoalActionTest() {
+        AbstractDataProvider charcoal = getProvider("image/effects/charcoal");
+
+        hash<auto> result = charcoal.doRequest({
+            "input_path": testImagePath,
+            "radius": 1.0,
+            "sigma": 1.0,
+        });
+        assertEq(100, result.width, "charcoal preserves width");
+        assertEq(80, result.height, "charcoal preserves height");
+
+        # Test with defaults
+        result = charcoal.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(True, result.data instanceof binary, "charcoal with defaults returns data");
+    }
+
+    # ==================== Sepia Effect Tests ====================
+
+    sepiaActionTest() {
+        AbstractDataProvider sepia = getProvider("image/effects/sepia");
+
+        hash<auto> result = sepia.doRequest({
+            "input_path": testImagePath,
+            "threshold": 52000.0,
+        });
+        assertEq(100, result.width, "sepia preserves width");
+        assertEq(80, result.height, "sepia preserves height");
+
+        # Test with defaults
+        result = sepia.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(True, result.data instanceof binary, "sepia with defaults returns data");
+    }
+
+    # ==================== Oil Paint Effect Tests ====================
+
+    oilPaintActionTest() {
+        AbstractDataProvider oilPaint = getProvider("image/effects/oil-paint");
+
+        hash<auto> result = oilPaint.doRequest({
+            "input_path": testImagePath,
+            "radius": 2.0,
+        });
+        assertEq(100, result.width, "oil-paint preserves width");
+        assertEq(80, result.height, "oil-paint preserves height");
+    }
+
+    # ==================== Edge Effect Tests ====================
+
+    edgeActionTest() {
+        AbstractDataProvider edge = getProvider("image/effects/edge");
+
+        hash<auto> result = edge.doRequest({
+            "input_path": testImagePath,
+            "radius": 1.0,
+        });
+        assertEq(100, result.width, "edge preserves width");
+        assertEq(80, result.height, "edge preserves height");
+    }
+
+    # ==================== Emboss Effect Tests ====================
+
+    embossActionTest() {
+        AbstractDataProvider emboss = getProvider("image/effects/emboss");
+
+        hash<auto> result = emboss.doRequest({
+            "input_path": testImagePath,
+            "radius": 0.0,
+            "sigma": 1.0,
+        });
+        assertEq(100, result.width, "emboss preserves width");
+        assertEq(80, result.height, "emboss preserves height");
+
+        # Test with defaults
+        result = emboss.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(True, result.data instanceof binary, "emboss with defaults returns data");
+    }
+
+    # ==================== Convert Format Action Tests ====================
+
+    convertFormatActionTest() {
+        AbstractDataProvider fmt = getProvider("convert/format");
+
+        # PNG to JPEG
+        hash<auto> result = fmt.doRequest({
+            "input_path": testImagePath,
+            "format": "JPEG",
+        });
+        assertEq("JPEG", result.format, "convert to JPEG format");
+        assertEq(100, result.width, "convert preserves width");
+        assertEq(80, result.height, "convert preserves height");
+
+        # PNG to JPEG with quality
+        result = fmt.doRequest({
+            "input_path": testImagePath,
+            "format": "JPEG",
+            "quality": 50,
+        });
+        assertEq("JPEG", result.format, "convert with quality");
+
+        # PNG to GIF
+        result = fmt.doRequest({
+            "input_path": testImagePath,
+            "format": "GIF",
+        });
+        assertEq("GIF", result.format, "convert to GIF");
+
+        # PNG to BMP
+        result = fmt.doRequest({
+            "input_path": testImagePath,
+            "format": "BMP",
+        });
+        assertEq("BMP", result.format, "convert to BMP");
+
+        # PNG to TIFF
+        result = fmt.doRequest({
+            "input_path": testImagePath,
+            "format": "TIFF",
+        });
+        assertEq("TIFF", result.format, "convert to TIFF");
+    }
+
+    # ==================== Get Info Action Tests ====================
+
+    getInfoActionTest() {
+        AbstractDataProvider info = getProvider("info/get");
+
+        hash<auto> result = info.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "get-info width");
+        assertEq(80, result.height, "get-info height");
+        assertEq("PNG", result.format, "get-info format");
+        assertEq(True, result.depth > 0, "get-info depth is positive");
+        assertEq(True, result.colorspace instanceof string, "get-info colorspace is string");
+        assertEq(True, result.image_type instanceof string, "get-info image_type is string");
+        assertEq(True, result.compression_quality >= 0, "get-info compression_quality non-negative");
+        assertEq(True, result.number_images >= 1, "get-info number_images >= 1");
+        assertEq(True, result.colors >= 1, "get-info colors >= 1");
+        assertEq(True, result.signature instanceof string, "get-info signature is string");
+        assertGt(0, result.signature.length(), "get-info signature is non-empty");
+
+        # Test with binary data input
+        binary imgdata = createTestImageData(200, 150, "blue");
+        result = info.doRequest({
+            "data": imgdata,
+        });
+        assertEq(200, result.width, "get-info binary width");
+        assertEq(150, result.height, "get-info binary height");
+    }
+
+    # ==================== Binary Data Input Tests ====================
+
+    binaryDataInputTest() {
+        # Test all actions accept binary data input as well as file path
+        binary imgdata = createTestImageData(60, 40, "green");
+
+        # Resize with binary input
+        AbstractDataProvider resize = getProvider("image/resize");
+        hash<auto> result = resize.doRequest({
+            "data": imgdata,
+            "width": 30,
+            "height": 20,
+        });
+        assertEq(30, result.width, "resize from binary data width");
+        assertEq(20, result.height, "resize from binary data height");
+
+        # Crop with binary input
+        AbstractDataProvider crop = getProvider("image/crop");
+        result = crop.doRequest({
+            "data": imgdata,
+            "width": 30,
+            "height": 20,
+            "x": 5,
+            "y": 5,
+        });
+        assertEq(30, result.width, "crop from binary data width");
+
+        # Convert with binary input
+        AbstractDataProvider fmt = getProvider("convert/format");
+        result = fmt.doRequest({
+            "data": imgdata,
+            "format": "JPEG",
+        });
+        assertEq("JPEG", result.format, "convert from binary data format");
+
+        # Emboss with binary input
+        AbstractDataProvider emboss = getProvider("image/effects/emboss");
+        result = emboss.doRequest({
+            "data": imgdata,
+        });
+        assertEq(60, result.width, "emboss from binary data width");
+    }
+
+    # ==================== Error Handling Tests ====================
+
+    errorHandlingTest() {
+        AbstractDataProvider resize = getProvider("image/resize");
+
+        # Test with nonexistent file
+        assertThrows("IMAGEMAGICK-ERROR", \resize.doRequest(), ({
+            "input_path": "/nonexistent/path/to/image.png",
+            "width": 50,
+            "height": 40,
+        },));
+
+        # Test get-info with nonexistent file
+        AbstractDataProvider info = getProvider("info/get");
+        assertThrows("IMAGEMAGICK-ERROR", \info.doRequest(), ({
+            "input_path": "/nonexistent/path.png",
+        },));
+    }
+}

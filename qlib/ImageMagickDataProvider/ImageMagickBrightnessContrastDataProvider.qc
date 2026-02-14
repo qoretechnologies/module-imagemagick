@@ -1,0 +1,50 @@
+# -*- mode: qore; indent-tabs-mode: nil -*-
+/*  Copyright 2026 Qore Technologies, s.r.o.
+    MIT License - see LICENSE for details
+*/
+
+#! @file ImageMagickBrightnessContrastDataProvider.qc Brightness/contrast action
+
+public class ImageMagickBrightnessContrastDataProvider inherits ImageMagickImageActionBase {
+    public {
+        const ProviderInfo = <DataProviderInfo>{
+            "name": "brightness-contrast",
+            "desc": "Adjust image brightness and contrast",
+            "type": "ImageMagickBrightnessContrastDataProvider",
+            "supports_request": True,
+        };
+
+        static ImageMagickBrightnessContrastRequestDataType RequestType();
+        static ImageMagickImageResponseDataType ResponseType();
+    }
+
+    private {
+        *hash<auto> opts;
+    }
+
+    constructor(*hash<auto> opts) {
+        self.opts = opts;
+    }
+
+    string getName() {
+        return ProviderInfo.name;
+    }
+
+    private hash<DataProviderInfo> getStaticInfoImpl() {
+        return ProviderInfo;
+    }
+
+    private *AbstractDataProviderType getRequestTypeImpl() {
+        return RequestType;
+    }
+
+    private *AbstractDataProviderType getResponseTypeImpl() {
+        return ResponseType;
+    }
+
+    private auto doRequestImpl(auto req, *hash<auto> request_options) {
+        MagickImage img = ImageMagickImageActionBase::loadImage(req);
+        img.brightnessContrast(req.brightness ?? 0.0, req.contrast ?? 0.0);
+        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+    }
+}

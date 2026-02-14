@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="8" fill="#1a1a2e"/>
+  <path d="M12 20 L20 44 L28 28 L36 44 L44 20" stroke="#e94560" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="48" cy="20" r="4" fill="#0f3460"/>
+  <path d="M8 48 L56 48" stroke="#16213e" stroke-width="2"/>
+  <text x="32" y="58" text-anchor="middle" font-family="sans-serif" font-size="8" font-weight="bold" fill="#e94560">IM</text>
+</svg>

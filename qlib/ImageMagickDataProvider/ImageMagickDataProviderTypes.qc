@@ -1,0 +1,516 @@
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+/*  Copyright 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+#! @file ImageMagickDataProviderTypes.qc Type definitions for ImageMagick data providers
+
+public namespace ImageMagickDataProvider {
+    #! Common image response fields
+    const ImageResponseFields = {
+        "data": {
+            "type": BinaryType,
+            "display_name": "Output Image Data",
+            "short_desc": "The processed image data",
+            "desc": "Binary data of the processed image",
+        },
+        "width": {
+            "type": IntType,
+            "display_name": "Width",
+            "short_desc": "Image width in pixels",
+            "desc": "Width of the output image in pixels",
+        },
+        "height": {
+            "type": IntType,
+            "display_name": "Height",
+            "short_desc": "Image height in pixels",
+            "desc": "Height of the output image in pixels",
+        },
+        "format": {
+            "type": StringType,
+            "display_name": "Format",
+            "short_desc": "Image format",
+            "desc": "Format of the output image (e.g. PNG, JPEG)",
+        },
+        "size": {
+            "type": IntType,
+            "display_name": "Size",
+            "short_desc": "Image data size in bytes",
+            "desc": "Size of the output image data in bytes",
+        },
+    };
+
+    #! Common image input fields (data or input_path - required group)
+    const ImageInputFields = {
+        "input_path": {
+            "type": StringOrNothingType,
+            "display_name": "Input File Path",
+            "short_desc": "Path to input image file",
+            "desc": "File path to read the input image from. Either this or 'data' must be provided.",
+            "example_value": "/path/to/image.png",
+        },
+        "data": {
+            "type": BinaryOrNothingType,
+            "display_name": "Input Image Data",
+            "short_desc": "Binary image data",
+            "desc": "Binary data of the input image. Either this or 'input_path' must be provided.",
+        },
+        "output_format": {
+            "type": StringOrNothingType,
+            "display_name": "Output Format",
+            "short_desc": "Output image format",
+            "desc": "Format for the output image. If not specified, the input format is preserved.",
+            "allowed_values": ImageFormatAllowedValues,
+        },
+    };
+}
+
+#! Common image response type
+public class ImageMagickImageResponseDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageResponseFields);
+    }
+}
+
+#! Resize request type
+public class ImageMagickResizeRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Target width in pixels",
+                "desc": "Target width for the resized image in pixels",
+                "example_value": 800,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Target height in pixels",
+                "desc": "Target height for the resized image in pixels",
+                "example_value": 600,
+            },
+            "filter": {
+                "type": StringOrNothingType,
+                "display_name": "Filter",
+                "short_desc": "Resize filter algorithm",
+                "desc": "Filter algorithm to use for resizing. Default: Lanczos",
+                "default_value": "Lanczos",
+                "allowed_values": FilterTypeAllowedValues,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Crop request type
+public class ImageMagickCropRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Crop width in pixels",
+                "desc": "Width of the cropped region in pixels",
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Crop height in pixels",
+                "desc": "Height of the cropped region in pixels",
+            },
+            "x": {
+                "type": IntType,
+                "display_name": "X Offset",
+                "short_desc": "Left offset in pixels",
+                "desc": "Horizontal offset from the left edge",
+                "default_value": 0,
+            },
+            "y": {
+                "type": IntType,
+                "display_name": "Y Offset",
+                "short_desc": "Top offset in pixels",
+                "desc": "Vertical offset from the top edge",
+                "default_value": 0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Rotate request type
+public class ImageMagickRotateRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "degrees": {
+                "type": FloatType,
+                "display_name": "Degrees",
+                "short_desc": "Rotation angle in degrees",
+                "desc": "Clockwise rotation angle in degrees",
+                "example_value": 90.0,
+            },
+            "background": {
+                "type": StringOrNothingType,
+                "display_name": "Background Color",
+                "short_desc": "Background color for exposed areas",
+                "desc": "Color for areas exposed by rotation. Default: white",
+                "default_value": "white",
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Flip request type
+public class ImageMagickFlipRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "direction": {
+                "type": StringType,
+                "display_name": "Direction",
+                "short_desc": "Flip direction",
+                "desc": "Direction to flip: 'vertical' (top to bottom) or 'horizontal' (left to right)",
+                "default_value": "vertical",
+                "allowed_values": FlipDirectionAllowedValues,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Blur request type
+public class ImageMagickBlurRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "radius": {
+                "type": FloatOrNothingType,
+                "display_name": "Radius",
+                "short_desc": "Blur radius (0 for auto)",
+                "desc": "Blur radius in pixels. Use 0 for automatic selection.",
+                "default_value": 0.0,
+            },
+            "sigma": {
+                "type": FloatType,
+                "display_name": "Sigma",
+                "short_desc": "Blur standard deviation",
+                "desc": "Standard deviation of the Gaussian blur",
+                "example_value": 2.0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Sharpen request type
+public class ImageMagickSharpenRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "radius": {
+                "type": FloatOrNothingType,
+                "display_name": "Radius",
+                "short_desc": "Sharpen radius (0 for auto)",
+                "desc": "Sharpening radius in pixels. Use 0 for automatic selection.",
+                "default_value": 0.0,
+            },
+            "sigma": {
+                "type": FloatType,
+                "display_name": "Sigma",
+                "short_desc": "Sharpen standard deviation",
+                "desc": "Standard deviation of the sharpening",
+                "example_value": 1.0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Brightness/contrast request type
+public class ImageMagickBrightnessContrastRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "brightness": {
+                "type": FloatType,
+                "display_name": "Brightness",
+                "short_desc": "Brightness adjustment (-100 to 100)",
+                "desc": "Brightness adjustment value. Negative values darken, positive values brighten.",
+                "default_value": 0.0,
+            },
+            "contrast": {
+                "type": FloatType,
+                "display_name": "Contrast",
+                "short_desc": "Contrast adjustment (-100 to 100)",
+                "desc": "Contrast adjustment value. Negative values reduce, positive values increase contrast.",
+                "default_value": 0.0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Thumbnail request type
+public class ImageMagickThumbnailRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Thumbnail width in pixels",
+                "desc": "Target width for the thumbnail in pixels",
+                "example_value": 200,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Thumbnail height in pixels",
+                "desc": "Target height for the thumbnail in pixels",
+                "example_value": 200,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Auto orient request type
+public class ImageMagickAutoOrientRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Strip request type
+public class ImageMagickStripRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Charcoal effect request type
+public class ImageMagickCharcoalRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "radius": {
+                "type": FloatOrNothingType,
+                "display_name": "Radius",
+                "short_desc": "Effect radius",
+                "desc": "Charcoal effect radius in pixels",
+                "default_value": 1.0,
+            },
+            "sigma": {
+                "type": FloatOrNothingType,
+                "display_name": "Sigma",
+                "short_desc": "Standard deviation",
+                "desc": "Standard deviation for the charcoal effect",
+                "default_value": 1.0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Sepia effect request type
+public class ImageMagickSepiaRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "threshold": {
+                "type": FloatOrNothingType,
+                "display_name": "Threshold",
+                "short_desc": "Sepia threshold",
+                "desc": "Sepia tone threshold (try 80% of quantum range, e.g. 52000)",
+                "default_value": 52000.0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Oil paint effect request type
+public class ImageMagickOilPaintRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "radius": {
+                "type": FloatOrNothingType,
+                "display_name": "Radius",
+                "short_desc": "Effect radius",
+                "desc": "Oil painting effect radius",
+                "default_value": 3.0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Edge effect request type
+public class ImageMagickEdgeRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "radius": {
+                "type": FloatOrNothingType,
+                "display_name": "Radius",
+                "short_desc": "Edge detection radius",
+                "desc": "Edge detection radius in pixels",
+                "default_value": 1.0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Emboss effect request type
+public class ImageMagickEmbossRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "radius": {
+                "type": FloatOrNothingType,
+                "display_name": "Radius",
+                "short_desc": "Effect radius",
+                "desc": "Emboss effect radius",
+                "default_value": 0.0,
+            },
+            "sigma": {
+                "type": FloatOrNothingType,
+                "display_name": "Sigma",
+                "short_desc": "Standard deviation",
+                "desc": "Standard deviation for the emboss effect",
+                "default_value": 1.0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Convert format request type
+public class ImageMagickConvertFormatRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "format": {
+                "type": StringType,
+                "display_name": "Target Format",
+                "short_desc": "Target image format",
+                "desc": "Format to convert the image to",
+                "allowed_values": ImageFormatAllowedValues,
+                "example_value": "JPEG",
+            },
+            "quality": {
+                "type": IntOrNothingType,
+                "display_name": "Quality",
+                "short_desc": "Compression quality (0-100)",
+                "desc": "Compression quality for lossy formats (0-100). Higher is better quality.",
+                "default_value": 85,
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Get info request type
+public class ImageMagickGetInfoRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields({
+            "input_path": ImageInputFields."input_path",
+            "data": ImageInputFields."data",
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
+#! Get info response type
+public class ImageMagickGetInfoResponseDataType inherits HashDataType {
+    constructor() {
+        addQoreFields({
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Image width in pixels",
+                "desc": "Width of the image in pixels",
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Image height in pixels",
+                "desc": "Height of the image in pixels",
+            },
+            "format": {
+                "type": StringType,
+                "display_name": "Format",
+                "short_desc": "Image format",
+                "desc": "Image format (e.g. PNG, JPEG, GIF)",
+            },
+            "depth": {
+                "type": IntType,
+                "display_name": "Depth",
+                "short_desc": "Bits per channel",
+                "desc": "Image depth in bits per channel",
+            },
+            "colorspace": {
+                "type": StringType,
+                "display_name": "Colorspace",
+                "short_desc": "Image colorspace",
+                "desc": "Image colorspace (e.g. sRGB, CMYK, Gray)",
+            },
+            "image_type": {
+                "type": StringType,
+                "display_name": "Image Type",
+                "short_desc": "Image type classification",
+                "desc": "Image type (e.g. TrueColor, Palette, Grayscale)",
+            },
+            "compression_quality": {
+                "type": IntType,
+                "display_name": "Compression Quality",
+                "short_desc": "Compression quality",
+                "desc": "Compression quality (0-100, format dependent)",
+            },
+            "number_images": {
+                "type": IntType,
+                "display_name": "Number of Images",
+                "short_desc": "Number of images in the file",
+                "desc": "Number of images (for multi-image formats like animated GIF)",
+            },
+            "colors": {
+                "type": IntType,
+                "display_name": "Colors",
+                "short_desc": "Number of unique colors",
+                "desc": "Number of unique colors in the image",
+            },
+            "signature": {
+                "type": StringType,
+                "display_name": "Signature",
+                "short_desc": "Cryptographic signature",
+                "desc": "Cryptographic hash signature of the image",
+            },
+        });
+    }
+}
