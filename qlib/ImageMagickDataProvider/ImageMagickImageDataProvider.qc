@@ -49,7 +49,8 @@ public class ImageMagickImageDataProvider inherits AbstractDataProvider {
 
     private *list<string> getChildProviderNamesImpl() {
         return ("resize", "crop", "rotate", "flip", "blur", "sharpen",
-                "brightness-contrast", "thumbnail", "auto-orient", "strip", "effects");
+                "brightness-contrast", "composite", "annotate", "thumbnail",
+                "auto-orient", "strip", "effects");
     }
 
     private *AbstractDataProvider getChildProviderImpl(string name) {
@@ -61,6 +62,8 @@ public class ImageMagickImageDataProvider inherits AbstractDataProvider {
             case "blur": return new ImageMagickBlurDataProvider(opts);
             case "sharpen": return new ImageMagickSharpenDataProvider(opts);
             case "brightness-contrast": return new ImageMagickBrightnessContrastDataProvider(opts);
+            case "composite": return new ImageMagickCompositeDataProvider(opts);
+            case "annotate": return new ImageMagickAnnotateDataProvider(opts);
             case "thumbnail": return new ImageMagickThumbnailDataProvider(opts);
             case "auto-orient": return new ImageMagickAutoOrientDataProvider(opts);
             case "strip": return new ImageMagickStripDataProvider(opts);

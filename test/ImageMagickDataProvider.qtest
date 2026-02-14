@@ -67,6 +67,8 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         addTestCase("Emboss effect tests", \embossActionTest());
         addTestCase("Convert format action tests", \convertFormatActionTest());
         addTestCase("Get info action tests", \getInfoActionTest());
+        addTestCase("Composite action tests", \compositeActionTest());
+        addTestCase("Annotate action tests", \annotateActionTest());
         addTestCase("Binary data input tests", \binaryDataInputTest());
         addTestCase("Error handling tests", \errorHandlingTest());
 
@@ -159,7 +161,7 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         # Check image children
         AbstractDataProvider image = root.getChildProvider("image");
         *list<string> imageChildren = image.getChildProviderNames();
-        assertEq(11, imageChildren.size(), "image has 11 children");
+        assertEq(13, imageChildren.size(), "image has 13 children");
         assertEq(True, imageChildren.contains("resize"), "image has resize");
         assertEq(True, imageChildren.contains("crop"), "image has crop");
         assertEq(True, imageChildren.contains("rotate"), "image has rotate");
@@ -167,6 +169,8 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         assertEq(True, imageChildren.contains("blur"), "image has blur");
         assertEq(True, imageChildren.contains("sharpen"), "image has sharpen");
         assertEq(True, imageChildren.contains("brightness-contrast"), "image has brightness-contrast");
+        assertEq(True, imageChildren.contains("composite"), "image has composite");
+        assertEq(True, imageChildren.contains("annotate"), "image has annotate");
         assertEq(True, imageChildren.contains("thumbnail"), "image has thumbnail");
         assertEq(True, imageChildren.contains("auto-orient"), "image has auto-orient");
         assertEq(True, imageChildren.contains("strip"), "image has strip");
@@ -599,6 +603,89 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
             "data": imgdata,
         });
         assertEq(60, result.width, "emboss from binary data width");
+    }
+
+    # ==================== Composite Action Tests ====================
+
+    compositeActionTest() {
+        AbstractDataProvider dp = getProvider("image/composite");
+
+        # Create an overlay image
+        MagickImage overlay(30, 20, "blue");
+        overlay.setFormat("PNG");
+        binary overlayData = overlay.toData();
+
+        # Composite with coordinate placement
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "overlay_data": overlayData,
+            "operator": "Over",
+            "x": 10,
+            "y": 10,
+        });
+        assertEq(100, result.width, "composite preserves width");
+        assertEq(80, result.height, "composite preserves height");
+        assertGt(0, result.data.size(), "composite returns data");
+
+        # Composite with gravity placement
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "overlay_data": overlayData,
+            "operator": "Over",
+            "gravity": "Center",
+        });
+        assertEq(100, result.width, "composite with gravity preserves width");
+        assertEq(80, result.height, "composite with gravity preserves height");
+
+        # Composite with Multiply operator
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "overlay_data": overlayData,
+            "operator": "Multiply",
+            "x": 0,
+            "y": 0,
+        });
+        assertGt(0, result.data.size(), "composite multiply returns data");
+    }
+
+    # ==================== Annotate Action Tests ====================
+
+    annotateActionTest() {
+        AbstractDataProvider dp = getProvider("image/annotate");
+
+        # Basic annotation
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "text": "Test",
+            "x": 10.0,
+            "y": 30.0,
+        });
+        assertEq(100, result.width, "annotate preserves width");
+        assertEq(80, result.height, "annotate preserves height");
+        assertGt(0, result.data.size(), "annotate returns data");
+
+        # Annotation with font options
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "text": "Styled",
+            "x": 5.0,
+            "y": 50.0,
+            "font_size": 24.0,
+            "fill_color": "white",
+        });
+        assertEq(100, result.width, "annotate with options preserves width");
+        assertEq(80, result.height, "annotate with options preserves height");
+
+        # Annotation with angle
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "text": "Rotated",
+            "x": 20.0,
+            "y": 40.0,
+            "angle": 45.0,
+            "fill_color": "black",
+        });
+        assertGt(0, result.data.size(), "annotate with angle returns data");
     }
 
     # ==================== Error Handling Tests ====================

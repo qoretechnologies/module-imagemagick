@@ -436,6 +436,121 @@ public class ImageMagickConvertFormatRequestDataType inherits HashDataType {
     }
 }
 
+#! Composite request type
+public class ImageMagickCompositeRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "overlay_path": {
+                "type": StringOrNothingType,
+                "display_name": "Overlay File Path",
+                "short_desc": "Path to overlay image file",
+                "desc": "File path to read the overlay image from. Either this or 'overlay_data' must be provided.",
+            },
+            "overlay_data": {
+                "type": BinaryOrNothingType,
+                "display_name": "Overlay Image Data",
+                "short_desc": "Binary overlay image data",
+                "desc": "Binary data of the overlay image. Either this or 'overlay_path' must be provided.",
+            },
+            "operator": {
+                "type": StringOrNothingType,
+                "display_name": "Composite Operator",
+                "short_desc": "Blending operator",
+                "desc": "Composite blending operator. Default: Over",
+                "default_value": "Over",
+                "allowed_values": CompositeOpAllowedValues,
+            },
+            "gravity": {
+                "type": StringOrNothingType,
+                "display_name": "Gravity",
+                "short_desc": "Placement gravity",
+                "desc": "Gravity for placing the overlay image. If specified, x and y offsets are ignored.",
+                "allowed_values": GravityTypeAllowedValues,
+            },
+            "x": {
+                "type": IntOrNothingType,
+                "display_name": "X Offset",
+                "short_desc": "Horizontal offset in pixels",
+                "desc": "Horizontal offset for overlay placement (used when gravity is not specified)",
+                "default_value": 0,
+            },
+            "y": {
+                "type": IntOrNothingType,
+                "display_name": "Y Offset",
+                "short_desc": "Vertical offset in pixels",
+                "desc": "Vertical offset for overlay placement (used when gravity is not specified)",
+                "default_value": 0,
+            },
+        });
+        setRequiredGroups((("input_path", "data"), ("overlay_path", "overlay_data")));
+    }
+}
+
+#! Annotate request type
+public class ImageMagickAnnotateRequestDataType inherits HashDataType {
+    constructor() {
+        addQoreFields(ImageInputFields);
+        addQoreFields({
+            "text": {
+                "type": StringType,
+                "display_name": "Text",
+                "short_desc": "Text to draw on the image",
+                "desc": "The text string to annotate on the image",
+                "example_value": "Copyright 2026",
+            },
+            "x": {
+                "type": FloatType,
+                "display_name": "X Position",
+                "short_desc": "Horizontal text position",
+                "desc": "Horizontal position for the text in pixels",
+                "example_value": 10.0,
+            },
+            "y": {
+                "type": FloatType,
+                "display_name": "Y Position",
+                "short_desc": "Vertical text position",
+                "desc": "Vertical position for the text in pixels",
+                "example_value": 30.0,
+            },
+            "angle": {
+                "type": FloatOrNothingType,
+                "display_name": "Angle",
+                "short_desc": "Text rotation angle",
+                "desc": "Rotation angle for the text in degrees",
+                "default_value": 0.0,
+            },
+            "font": {
+                "type": StringOrNothingType,
+                "display_name": "Font",
+                "short_desc": "Font name",
+                "desc": "Font name or path to font file",
+            },
+            "font_size": {
+                "type": FloatOrNothingType,
+                "display_name": "Font Size",
+                "short_desc": "Font size in points",
+                "desc": "Font size in points",
+                "default_value": 12.0,
+            },
+            "fill_color": {
+                "type": StringOrNothingType,
+                "display_name": "Fill Color",
+                "short_desc": "Text fill color",
+                "desc": "Fill color for the text (e.g. 'black', 'white', '#FF0000')",
+                "default_value": "black",
+            },
+            "stroke_color": {
+                "type": StringOrNothingType,
+                "display_name": "Stroke Color",
+                "short_desc": "Text stroke color",
+                "desc": "Stroke (outline) color for the text",
+            },
+        });
+        setRequiredGroups((("input_path", "data"),));
+    }
+}
+
 #! Get info request type
 public class ImageMagickGetInfoRequestDataType inherits HashDataType {
     constructor() {

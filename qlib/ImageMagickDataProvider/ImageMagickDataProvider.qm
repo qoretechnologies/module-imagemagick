@@ -118,6 +118,25 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "path": "/image/composite",
+            "action": "composite",
+            "display_name": "Composite Images",
+            "short_desc": "Overlay one image onto another",
+            "desc": "Composite (overlay) one image onto another using various blending operators "
+                "and gravity-based or coordinate-based positioning",
+            "action_code": DPAT_API,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/annotate",
+            "action": "annotate",
+            "display_name": "Annotate Image",
+            "short_desc": "Add text annotation to an image",
+            "desc": "Draw text on an image with configurable font, size, color, and position",
+            "action_code": DPAT_API,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
             "path": "/image/thumbnail",
             "action": "thumbnail",
             "display_name": "Create Thumbnail",

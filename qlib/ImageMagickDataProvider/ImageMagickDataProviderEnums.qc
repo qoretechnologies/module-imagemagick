@@ -110,4 +110,92 @@ public namespace ImageMagickDataProvider {
             "desc": "Flip left to right (mirror)",
         },
     );
+
+    #! Gravity type allowed values for composite operations
+    public const GravityTypeAllowedValues = (
+        <AllowedValueInfo>{
+            "value": "NorthWest",
+            "display_name": "North West",
+            "desc": "Top-left corner",
+        },
+        <AllowedValueInfo>{
+            "value": "North",
+            "display_name": "North",
+            "desc": "Top center",
+        },
+        <AllowedValueInfo>{
+            "value": "NorthEast",
+            "display_name": "North East",
+            "desc": "Top-right corner",
+        },
+        <AllowedValueInfo>{
+            "value": "West",
+            "display_name": "West",
+            "desc": "Center left",
+        },
+        <AllowedValueInfo>{
+            "value": "Center",
+            "display_name": "Center",
+            "desc": "Center of the image",
+        },
+        <AllowedValueInfo>{
+            "value": "East",
+            "display_name": "East",
+            "desc": "Center right",
+        },
+        <AllowedValueInfo>{
+            "value": "SouthWest",
+            "display_name": "South West",
+            "desc": "Bottom-left corner",
+        },
+        <AllowedValueInfo>{
+            "value": "South",
+            "display_name": "South",
+            "desc": "Bottom center",
+        },
+        <AllowedValueInfo>{
+            "value": "SouthEast",
+            "display_name": "South East",
+            "desc": "Bottom-right corner",
+        },
+    );
+
+    #! Composite operator allowed values
+    public const CompositeOpAllowedValues = (
+        <AllowedValueInfo>{
+            "value": "Over",
+            "display_name": "Over",
+            "desc": "Standard overlay (respects alpha)",
+        },
+        <AllowedValueInfo>{
+            "value": "Multiply",
+            "display_name": "Multiply",
+            "desc": "Multiply blend (darkening effect)",
+        },
+        <AllowedValueInfo>{
+            "value": "Screen",
+            "display_name": "Screen",
+            "desc": "Screen blend (lightening effect)",
+        },
+        <AllowedValueInfo>{
+            "value": "Overlay",
+            "display_name": "Overlay",
+            "desc": "Overlay blend (contrast enhancement)",
+        },
+        <AllowedValueInfo>{
+            "value": "Add",
+            "display_name": "Add",
+            "desc": "Additive blend",
+        },
+        <AllowedValueInfo>{
+            "value": "Difference",
+            "display_name": "Difference",
+            "desc": "Absolute difference",
+        },
+        <AllowedValueInfo>{
+            "value": "Dissolve",
+            "display_name": "Dissolve",
+            "desc": "Dissolve blend",
+        },
+    );
 }

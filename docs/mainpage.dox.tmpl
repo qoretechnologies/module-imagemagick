@@ -5,7 +5,21 @@
     @section imagemagickintro ImageMagick Module Introduction
 
     The \c imagemagick module provides comprehensive image processing and manipulation capabilities
-    for %Qore by wrapping the ImageMagick MagickWand C API.
+    for %Qore by wrapping the ImageMagick MagickWand C API. It supports over 200 image formats and
+    offers a wide range of operations including:
+
+    - Image I/O: read and write images from files or in-memory binary data
+    - Format conversion: convert between PNG, JPEG, GIF, BMP, TIFF, WebP, and many other formats
+    - Resizing: multiple algorithms including Lanczos, Mitchell, and bilinear filtering
+    - Cropping, trimming, and canvas manipulation
+    - Transformations: rotation, flipping, shearing, deskewing, auto-orientation
+    - Blur and sharpen: Gaussian, adaptive, unsharp mask, motion blur, and more
+    - Color adjustments: brightness, contrast, gamma, levels, modulate, normalize
+    - Artistic effects: charcoal, sepia, oil paint, edge detection, emboss, and more
+    - Compositing: overlay images with various blending operators
+    - Drawing: vector shapes, text annotations, and custom drawing operations
+    - Metadata: read/write EXIF, ICC profiles, and image properties
+    - Multi-image support: animated GIF frames, multi-page TIFF
 
     To use this module, use the \c %%requires directive as follows:
     @code{.py}
@@ -15,107 +29,724 @@
     This module provides the following classes:
     - @ref Qore::ImageMagick::MagickImage "MagickImage": the main image class for loading,
       manipulating, and saving images
-    - @ref Qore::ImageMagick::MagickDrawing "MagickDrawing": vector graphics drawing class
+    - @ref Qore::ImageMagick::MagickDrawing "MagickDrawing": vector graphics drawing class for
+      shapes and text
+
+    And the following hashdecls:
+    - @ref Qore::ImageMagick::ImageInfo "ImageInfo": image metadata
+    - @ref Qore::ImageMagick::ImageResolutionInfo "ImageResolutionInfo": image resolution (DPI)
+    - @ref Qore::ImageMagick::PointInfo "PointInfo": x/y coordinate pair
 
     @section imagemagickreq ImageMagick Module Requirements
 
     This module requires:
     - %Qore 2.0+
     - ImageMagick 7.0+ with MagickWand development libraries
+      - Ubuntu/Debian: \c libmagickwand-dev
+      - Alpine: \c imagemagick-dev
+      - Fedora/RHEL: \c ImageMagick-devel
 
     @section imagemagickquickstart Quick Start
 
-    @par Loading and resizing an image:
+    @subsection imagemagick_loading Loading and Saving Images
+
+    @par Loading from file:
     @code{.py}
 %requires imagemagick
 
-MagickImage img("photo.jpg");
-img.resize(800, 600, "Lanczos");
-img.writeFile("photo_resized.jpg");
+# Load from file
+MagickImage img("/path/to/photo.jpg");
+
+# Load from binary data
+binary data = ReadOnlyFile::readBinaryFile("photo.png");
+MagickImage img2(data);
+
+# Load with explicit format
+MagickImage img3(raw_data, "RGB");
+
+# Create a blank canvas
+MagickImage canvas(800, 600, "white");
     @endcode
 
-    @par Format conversion:
+    @par Saving images:
     @code{.py}
-MagickImage img("document.png");
+MagickImage img("/path/to/photo.jpg");
+
+# Save to file (format inferred from extension)
+img.writeFile("/path/to/output.png");
+
+# Get as binary data
+binary png_data = img.toData();
+
+# Get as binary data in a specific format
 binary jpeg_data = img.toData("JPEG");
+binary webp_data = img.toData("WEBP");
     @endcode
 
-    @par Applying effects:
-    @code{.py}
-MagickImage img("photo.jpg");
-img.charcoal(1.0, 0.5);
-img.writeFile("charcoal.jpg");
-    @endcode
+    @subsection imagemagick_info Getting Image Information
 
-    @par Drawing shapes and text:
     @code{.py}
-MagickDrawing dw();
-dw.setFillColor("blue");
-dw.rectangle(10.0, 10.0, 100.0, 100.0);
-dw.setFillColor("red");
-dw.setFontSize(24.0);
-dw.annotation(50.0, 150.0, "Hello!");
+MagickImage img("/path/to/photo.jpg");
 
-MagickImage img(300, 300, "white");
-img.draw(dw);
-img.writeFile("drawing.png");
-    @endcode
+# Individual properties
+printf("Dimensions: %dx%d\n", img.width(), img.height());
+printf("Format: %s, Depth: %d-bit\n", img.format(), img.depth());
+printf("Colorspace: %s\n", img.colorspace());
+printf("Type: %s\n", img.imageType());
 
-    @par Creating thumbnails:
-    @code{.py}
-MagickImage img("photo.jpg");
-img.thumbnail(200, 200);
-img.sharpen(0.0, 1.0);
-img.setCompressionQuality(85);
-img.writeFile("thumb.jpg");
-    @endcode
+# Resolution
+hash<ImageResolutionInfo> res = img.resolution();
+printf("Resolution: %.0fx%.0f DPI\n", res.x, res.y);
 
-    @par Working with metadata:
-    @code{.py}
-MagickImage img("photo.jpg");
+# Signature
+printf("Signature: %s\n", img.signature());
+
+# All info at once
 hash<ImageInfo> info = img.getInfo();
-printf("Size: %dx%d, Format: %s\n", info.width, info.height, info.format);
+printf("Colors: %d, Images: %d\n", info.colors, info.number_images);
+
+# Identify string (detailed ImageMagick report)
+printf("%s\n", img.identify());
+    @endcode
+
+    @subsection imagemagick_metadata Reading EXIF and Metadata
+
+    @code{.py}
+MagickImage img("/path/to/photo.jpg");
+
+# Get specific EXIF properties
+*string camera = img.getProperty("exif:Make");
+*string model = img.getProperty("exif:Model");
+*string date = img.getProperty("exif:DateTimeOriginal");
+
+# List all EXIF properties
+hash<auto> exif = img.getProperties("exif:*");
+map printf("%s: %s\n", $1.key, $1.value), exif.pairIterator();
+
+# Get ICC profile
+*binary icc = img.getProfile("icc");
+
+# Set a custom property
+img.setProperty("comment", "Processed by Qore");
+
+# Strip all metadata (for privacy)
+img.strip();
+    @endcode
+
+    @subsection imagemagick_resize Resizing Images
+
+    @code{.py}
+MagickImage img("/path/to/photo.jpg");
+
+# Simple resize with default Lanczos filter
+img.resize(800, 600);
+
+# Resize with explicit filter
+img.resize(1920, 1080, "Lanczos");
+
+# Create thumbnail (fast, optimized for small sizes)
+MagickImage thumb = img.copy();
+thumb.thumbnail(150, 150);
+
+# Scale (fast, simple algorithm)
+MagickImage scaled = img.copy();
+scaled.scale(400, 300);
+
+# Adaptive resize (good for small changes)
+MagickImage adaptive = img.copy();
+adaptive.adaptiveResize(750, 500);
+
+# Sample (nearest neighbor, very fast)
+MagickImage sampled = img.copy();
+sampled.sample(200, 150);
+
+# Resample (change DPI)
+MagickImage resampled = img.copy();
+resampled.resample(300.0, 300.0, "Lanczos");
+
+# Liquid rescale (content-aware resizing)
+MagickImage liquid = img.copy();
+liquid.liquidRescale(600, 400);
+
+img.writeFile("/path/to/resized.jpg");
+    @endcode
+
+    @subsection imagemagick_crop Cropping and Trimming
+
+    @code{.py}
+MagickImage img("/path/to/photo.jpg");
+
+# Crop a 300x200 region starting at (50, 100)
+img.crop(300, 200, 50, 100);
+
+# Trim whitespace borders
+MagickImage img2("/path/to/scanned.png");
+img2.trim(10.0);  # fuzz factor for near-white
+
+# Extend canvas with padding
+MagickImage img3("/path/to/logo.png");
+img3.extent(1000, 800, -100, -50);
+
+# Shave pixels from edges
+MagickImage img4("/path/to/photo.jpg");
+img4.shave(20, 20);  # remove 20px from each side
+    @endcode
+
+    @subsection imagemagick_transform Rotation, Flipping, and Orientation
+
+    @code{.py}
+MagickImage img("/path/to/photo.jpg");
+
+# Rotate 90 degrees clockwise
+img.rotate(90.0);
+
+# Rotate 45 degrees with colored background
+MagickImage img2("/path/to/photo.jpg");
+img2.rotate(45.0, "transparent");
+
+# Mirror horizontally (left-right)
+MagickImage img3("/path/to/photo.jpg");
+img3.flop();
+
+# Mirror vertically (top-bottom)
+MagickImage img4("/path/to/photo.jpg");
+img4.flip();
+
+# Transpose (rotate 90 + flip)
+MagickImage img5("/path/to/photo.jpg");
+img5.transpose();
+
+# Shear
+MagickImage img6("/path/to/photo.jpg");
+img6.shear(10.0, 0.0);
+
+# Auto-orient based on EXIF orientation tag
+MagickImage photo("/path/to/camera-photo.jpg");
+photo.autoOrient();
+photo.writeFile("/path/to/oriented.jpg");
+    @endcode
+
+    @subsection imagemagick_blur Blur and Sharpen
+
+    @code{.py}
+MagickImage img("/path/to/photo.jpg");
+
+# Gaussian blur (radius=0 auto-selects, sigma controls strength)
+img.gaussianBlur(0.0, 3.0);
+
+# Simple blur
+MagickImage img2("/path/to/photo.jpg");
+img2.blur(0.0, 2.0);
+
+# Sharpen
+MagickImage sharp("/path/to/photo.jpg");
+sharp.sharpen(0.0, 1.5);
+
+# Unsharp mask (common for print preparation)
+MagickImage print_img("/path/to/photo.jpg");
+print_img.unsharpMask(0.0, 1.0, 1.5, 0.05);
+
+# Motion blur at 45-degree angle
+MagickImage motion("/path/to/photo.jpg");
+motion.motionBlur(0.0, 12.0, 45.0);
+
+# Adaptive blur (preserves edges)
+MagickImage adaptive("/path/to/photo.jpg");
+adaptive.adaptiveBlur(0.0, 2.0);
+
+# Adaptive sharpen (sharpens details without amplifying noise)
+MagickImage asharp("/path/to/photo.jpg");
+asharp.adaptiveSharpen(0.0, 1.5);
+
+# Rotational blur
+MagickImage rotblur("/path/to/photo.jpg");
+rotblur.rotationalBlur(5.0);
+    @endcode
+
+    @subsection imagemagick_color Color Adjustments
+
+    @code{.py}
+MagickImage img("/path/to/photo.jpg");
+
+# Adjust brightness (+20%) and contrast (+10%)
+img.brightnessContrast(20.0, 10.0);
+
+# Gamma correction
+MagickImage img2("/path/to/photo.jpg");
+img2.gamma(1.2);
+
+# Levels adjustment (black point, gamma, white point)
+MagickImage img3("/path/to/photo.jpg");
+img3.level(10.0, 1.0, 90.0);
+
+# Adjust hue/saturation/lightness via modulate
+# (brightness%, saturation%, hue-rotation)
+MagickImage img4("/path/to/photo.jpg");
+img4.modulate(100.0, 130.0, 100.0);  # boost saturation 30%
+
+# Auto-enhance
+MagickImage dark("/path/to/dark-photo.jpg");
+dark.autoLevel();
+dark.autoGamma();
+
+# Normalize (stretch histogram to full range)
+MagickImage img5("/path/to/photo.jpg");
+img5.normalize();
+
+# Equalize histogram
+MagickImage img6("/path/to/photo.jpg");
+img6.equalize();
+
+# Invert colors
+MagickImage img7("/path/to/photo.jpg");
+img7.negate();
+
+# Sigmoidal contrast (more subtle than brightnessContrast)
+MagickImage img8("/path/to/photo.jpg");
+img8.sigmoidalContrast(True, 3.0, 50.0);
+
+# White balance
+MagickImage img9("/path/to/photo.jpg");
+img9.whiteBalance();
+
+# Transform colorspace
+MagickImage img10("/path/to/photo.jpg");
+img10.transformColorspace("Gray");
+    @endcode
+
+    @subsection imagemagick_effects Artistic Effects
+
+    @code{.py}
+MagickImage img("/path/to/photo.jpg");
+
+# Charcoal drawing effect
+MagickImage charcoal = img.copy();
+charcoal.charcoal(1.0, 0.5);
+charcoal.writeFile("charcoal.png");
+
+# Sepia tone (vintage look)
+MagickImage sepia = img.copy();
+sepia.sepiaTone(80.0);
+sepia.writeFile("sepia.jpg");
+
+# Oil painting effect
+MagickImage oil = img.copy();
+oil.oilPaint(4.0);
+oil.writeFile("oil-paint.jpg");
+
+# Edge detection
+MagickImage edges = img.copy();
+edges.edge(2.0);
+edges.writeFile("edges.png");
+
+# Emboss (3D relief effect)
+MagickImage embossed = img.copy();
+embossed.emboss(0.0, 1.5);
+embossed.writeFile("embossed.jpg");
+
+# Vignette (darkened edges)
+MagickImage vignette = img.copy();
+vignette.vignette(0.0, 10.0, 20, 20);
+vignette.writeFile("vignette.jpg");
+
+# Swirl distortion
+MagickImage swirl = img.copy();
+swirl.swirl(90.0);
+swirl.writeFile("swirl.jpg");
+
+# Wave distortion
+MagickImage wave = img.copy();
+wave.wave(5.0, 50.0);
+wave.writeFile("wave.jpg");
+
+# Posterize (reduce color palette)
+MagickImage poster = img.copy();
+poster.posterize(4);
+poster.writeFile("posterized.png");
+
+# Sketch effect
+MagickImage sketch = img.copy();
+sketch.sketch(0.0, 10.0, 45.0);
+sketch.writeFile("sketch.jpg");
+
+# Solarize
+MagickImage solar = img.copy();
+solar.solarize(50.0);
+solar.writeFile("solarized.jpg");
+
+# Add noise
+MagickImage noisy = img.copy();
+noisy.addNoise("Gaussian", 0.5);
+noisy.writeFile("noisy.jpg");
+
+# Reduce noise / denoise
+MagickImage denoised = img.copy();
+denoised.waveletDenoise(10.0);
+denoised.writeFile("denoised.jpg");
+
+# Despeckle
+MagickImage despeckled = img.copy();
+despeckled.despeckle();
+despeckled.writeFile("despeckled.jpg");
+    @endcode
+
+    @subsection imagemagick_composite Compositing (Watermarks and Overlays)
+
+    @code{.py}
+# Add a watermark overlay
+MagickImage photo("/path/to/photo.jpg");
+MagickImage watermark("/path/to/watermark.png");
+
+# Composite at specific position
+photo.composite(watermark, "Over", 50, 50);
+
+# Or use gravity for automatic positioning
+MagickImage photo2("/path/to/photo.jpg");
+photo2.compositeGravity(watermark, "Over", "SouthEast");
+photo2.writeFile("watermarked.jpg");
+
+# Multiply blend (darkroom effect)
+MagickImage base("/path/to/base.jpg");
+MagickImage texture("/path/to/texture.jpg");
+base.composite(texture, "Multiply", 0, 0);
+base.writeFile("blended.jpg");
+    @endcode
+
+    @subsection imagemagick_drawing Drawing Shapes and Text
+
+    @code{.py}
+# Create a blank canvas and draw on it
+MagickImage canvas(800, 600, "white");
+MagickDrawing draw();
+
+# Draw a red rectangle
+draw.setFillColor("red");
+draw.setStrokeColor("black");
+draw.setStrokeWidth(2.0);
+draw.rectangle(50.0, 50.0, 200.0, 150.0);
+
+# Draw a blue circle
+draw.setFillColor("blue");
+draw.circle(400.0, 300.0, 400.0, 200.0);
+
+# Draw a rounded rectangle
+draw.setFillColor("green");
+draw.roundRectangle(500.0, 50.0, 700.0, 200.0, 15.0, 15.0);
+
+# Draw a line
+draw.setStrokeColor("purple");
+draw.setStrokeWidth(3.0);
+draw.line(50.0, 400.0, 750.0, 400.0);
+
+# Add text
+draw.setFillColor("black");
+draw.setFontSize(36.0);
+draw.annotation(300.0, 500.0, "Hello, World!");
+
+# Apply drawing to canvas
+canvas.draw(draw);
+canvas.writeFile("drawing.png");
+    @endcode
+
+    @subsection imagemagick_annotate Adding Text Annotations to Photos
+
+    @code{.py}
+MagickImage photo("/path/to/photo.jpg");
+
+# Simple annotation
+photo.annotate("Copyright 2026", 10.0, float(photo.height()) - 20.0, 0.0,
+    "Arial", 14.0, "white", "gray");
+photo.writeFile("annotated.jpg");
+    @endcode
+
+    @subsection imagemagick_convert Format Conversion with Quality Control
+
+    @code{.py}
+# PNG to JPEG with quality setting
+MagickImage img("/path/to/image.png");
+img.setFormat("JPEG");
+img.setCompressionQuality(85);
+img.writeFile("/path/to/output.jpg");
+
+# Get binary data in a specific format
+binary webp_data = img.toData("WEBP");
+binary tiff_data = img.toData("TIFF");
+binary bmp_data = img.toData("BMP");
+    @endcode
+
+    @subsection imagemagick_inmemory In-Memory Processing (Web Service Pattern)
+
+    @code{.py}
+# Process image received as binary data (e.g., from HTTP request)
+binary input_data = get_image_from_request();
+MagickImage img(input_data);
+
+# Resize for web
+img.resize(800, 600, "Lanczos");
+img.setCompressionQuality(80);
+img.strip();  # remove metadata for privacy
+
+# Return as JPEG binary
+binary output = img.toData("JPEG");
+send_response(output, "image/jpeg");
+    @endcode
+
+    @subsection imagemagick_multiframe Working with Multi-Frame Images
+
+    @code{.py}
+# Read animated GIF
+MagickImage gif("/path/to/animated.gif");
+printf("Frames: %d\n", gif.numberImages());
+
+# Navigate frames
+gif.resetIterator();
+int i = 0;
+while (gif.hasNextImage()) {
+    gif.nextImage();
+    printf("Frame %d: %dx%d\n", i++, gif.width(), gif.height());
+}
+
+# Jump to a specific frame
+gif.setIteratorIndex(3);
+printf("Frame 3 index: %d\n", gif.iteratorIndex());
+    @endcode
+
+    @subsection imagemagick_batch Batch Processing
+
+    @code{.py}
+%requires imagemagick
+
+# Process all JPEGs in a directory
+list<string> files = glob("/path/to/photos/*.jpg");
+foreach string file in (files) {
+    MagickImage img(file);
+    img.autoOrient();
+    img.resize(1920, 1080, "Lanczos");
+    img.setCompressionQuality(85);
+    img.strip();
+    string outfile = regex_subst(file, "\\.jpg$", "_web.jpg");
+    img.writeFile(outfile);
+    printf("Processed: %s -> %s\n", file, outfile);
+}
+    @endcode
+
+    @subsection imagemagick_pixel Pixel Access
+
+    @code{.py}
+MagickImage img(100, 100, "white");
+
+# Set individual pixel colors
+img.setPixelColor(50, 50, "red");
+img.setPixelColor(51, 50, "green");
+img.setPixelColor(52, 50, "blue");
+
+# Read pixel color
+string color = img.getPixelColor(50, 50);
+printf("Pixel color: %s\n", color);  # e.g., "srgb(255,0,0)"
     @endcode
 
     @section imagemagickformats Supported Image Formats
 
-    ImageMagick supports over 200 image formats including PNG, JPEG, GIF, BMP, TIFF, WebP,
-    SVG, PDF, and many more. The available formats depend on your ImageMagick installation
-    and its configured delegates.
+    ImageMagick supports over 200 image formats. The most commonly used formats include:
+
+    | Format | Read | Write | Description |
+    |--------|------|-------|-------------|
+    | PNG | Yes | Yes | Portable Network Graphics (lossless, supports transparency) |
+    | JPEG | Yes | Yes | Joint Photographic Experts Group (lossy, good for photos) |
+    | GIF | Yes | Yes | Graphics Interchange Format (256 colors, supports animation) |
+    | BMP | Yes | Yes | Windows Bitmap (uncompressed) |
+    | TIFF | Yes | Yes | Tagged Image File Format (high quality, supports layers) |
+    | WebP | Yes | Yes | Google WebP (good lossy and lossless compression) |
+    | SVG | Yes | Yes | Scalable Vector Graphics |
+    | PDF | Yes | Yes | Portable Document Format |
+    | ICO | Yes | Yes | Windows Icon format |
+    | PSD | Yes | No | Adobe Photoshop Document |
+    | EXR | Yes | Yes | OpenEXR (HDR imaging) |
+
+    The available formats depend on your ImageMagick installation and its configured delegates.
 
     @section imagemagickfilters Filter Types
 
-    The following filter types are available for resize operations:
-    | Filter | Description |
-    |--------|-------------|
-    | Lanczos | High quality (default, recommended for most uses) |
-    | Mitchell | Balanced sharpness and ringing |
-    | Catrom | Catmull-Rom spline (good for reduction) |
-    | Gaussian | Gaussian curve |
-    | Box | Nearest neighbor (for pixel art upscaling) |
-    | Triangle | Bilinear interpolation |
-    | Point | Nearest neighbor (fastest) |
-    | Cubic | Cubic interpolation |
+    The following filter types are available for resize operations via
+    @ref Qore::ImageMagick::MagickImage::resize() "MagickImage::resize()" and
+    @ref Qore::ImageMagick::MagickImage::resample() "MagickImage::resample()":
+
+    | Constant | Filter | Description | Best For |
+    |----------|--------|-------------|----------|
+    | \c IM_FILTER_LANCZOS | Lanczos | High quality sinc-windowed filter | General purpose (default) |
+    | \c IM_FILTER_MITCHELL | Mitchell | Balanced sharpness and ringing | Photo downscaling |
+    | \c IM_FILTER_CATROM | Catrom | Catmull-Rom spline interpolation | Image reduction |
+    | \c IM_FILTER_GAUSSIAN | Gaussian | Gaussian curve smoothing | Smooth scaling |
+    | \c IM_FILTER_BOX | Box | Nearest neighbor averaging | Pixel art upscaling |
+    | \c IM_FILTER_TRIANGLE | Triangle | Bilinear interpolation | Fast moderate quality |
+    | \c IM_FILTER_POINT | Point | Nearest neighbor (no interpolation) | Fastest, pixel-perfect |
+    | \c IM_FILTER_CUBIC | Cubic | Cubic interpolation | General purpose |
 
     @section imagemagickcolorspaces Colorspaces
 
-    Supported colorspaces include: sRGB, RGB, CMYK, Gray, HSL, HSV, Lab, LCH, YCbCr,
-    and many others.
+    Supported colorspaces for
+    @ref Qore::ImageMagick::MagickImage::transformColorspace() "MagickImage::transformColorspace()":
+
+    | Colorspace | Description |
+    |------------|-------------|
+    | sRGB | Standard RGB (default for web) |
+    | RGB | Linear RGB |
+    | CMYK | Cyan, Magenta, Yellow, Key (print) |
+    | Gray | Grayscale |
+    | HSL | Hue, Saturation, Lightness |
+    | HSV | Hue, Saturation, Value |
+    | Lab | CIE L*a*b* (perceptual) |
+    | LCH | Lightness, Chroma, Hue |
+    | YCbCr | Luminance + Chrominance (video) |
+    | Transparent | Transparent colorspace |
+
+    @section imagemagickcomposite Composite Operators
+
+    Available blending operators for
+    @ref Qore::ImageMagick::MagickImage::composite() "MagickImage::composite()" and
+    @ref Qore::ImageMagick::MagickImage::compositeGravity() "MagickImage::compositeGravity()":
+
+    | Operator | Description |
+    |----------|-------------|
+    | Over | Standard overlay (respects alpha channel) |
+    | Multiply | Multiply blend (darkening, like darkroom double exposure) |
+    | Screen | Screen blend (lightening effect) |
+    | Overlay | Overlay blend (contrast enhancement) |
+    | Add | Additive blend |
+    | Difference | Absolute difference of colors |
+    | Dissolve | Dissolve blend |
+    | HardLight | Hard light blend |
+    | SoftLight | Soft light blend |
+    | ColorBurn | Color burn blend |
+    | ColorDodge | Color dodge blend |
+    | Exclusion | Exclusion blend |
+
+    @section imagemagickgravity Gravity Types
+
+    Gravity types for positioning in
+    @ref Qore::ImageMagick::MagickImage::compositeGravity() "MagickImage::compositeGravity()":
+
+    | Gravity | Position |
+    |---------|----------|
+    | NorthWest | Top-left corner |
+    | North | Top center |
+    | NorthEast | Top-right corner |
+    | West | Center left |
+    | Center | Center of image |
+    | East | Center right |
+    | SouthWest | Bottom-left corner |
+    | South | Bottom center |
+    | SouthEast | Bottom-right corner |
+
+    @section imagemagicknoise Noise Types
+
+    Noise types for @ref Qore::ImageMagick::MagickImage::addNoise() "MagickImage::addNoise()":
+
+    | Noise Type | Description |
+    |------------|-------------|
+    | Uniform | Uniform random noise |
+    | Gaussian | Gaussian (normal distribution) noise |
+    | Multiplicative | Multiplicative Gaussian noise |
+    | Impulse | Impulse (salt and pepper) noise |
+    | Laplacian | Laplacian noise |
+    | Poisson | Poisson noise |
 
     @section imagemagickdataprovider Data Provider API
 
     The \c ImageMagickDataProvider module provides integration with the %Qore data provider
-    framework for use with Qorus. See @ref imagemagickdataproviderintro for details.
+    framework for use with Qorus. It registers the \c "imagemagick" factory with the following
+    provider tree:
+
+    @code
+    imagemagick{}/
+      image/                        # Container: image operations
+        resize                      # Resize with filter selection
+        crop                        # Crop to region
+        rotate                      # Rotate by angle
+        flip                        # Flip/mirror
+        blur                        # Gaussian blur
+        sharpen                     # Sharpen
+        brightness-contrast         # Adjust brightness and contrast
+        composite                   # Overlay images
+        annotate                    # Add text
+        thumbnail                   # Fast thumbnail creation
+        auto-orient                 # Fix EXIF orientation
+        strip                       # Remove metadata
+        effects/                    # Container: artistic effects
+          charcoal                  # Charcoal drawing
+          sepia                     # Sepia tone
+          oil-paint                 # Oil painting
+          edge                      # Edge detection
+          emboss                    # 3D emboss
+      convert/                      # Container: format operations
+        format                      # Convert image format
+      info/                         # Container: information
+        get                         # Get image metadata
+    @endcode
+
+    All image operations accept either \c input_path (file path) or \c data (binary) as input,
+    with an optional \c output_format to control the output format. All return binary \c data
+    plus \c width, \c height, \c format, and \c size metadata.
+
+    @par Using Data Provider to Resize:
+    @code{.py}
+%requires ImageMagickDataProvider
+
+AbstractDataProvider dp = DataProvider::getFactoryObjectFromStringEx("imagemagick{}/image/resize");
+hash<auto> result = dp.doRequest({
+    "data": input_binary,
+    "width": 800,
+    "height": 600,
+    "filter": "Lanczos",
+    "output_format": "JPEG",
+});
+binary resized = result.data;
+printf("Output: %dx%d %s (%d bytes)\n", result.width, result.height, result.format, result.size);
+    @endcode
+
+    @par Using Data Provider to Get Image Info:
+    @code{.py}
+AbstractDataProvider dp = DataProvider::getFactoryObjectFromStringEx("imagemagick{}/info/get");
+hash<auto> info = dp.doRequest({"data": image_binary});
+printf("Format: %s, Size: %dx%d, Colors: %d\n", info.format, info.width, info.height, info.colors);
+    @endcode
 
     @section imagemagickerrors Error Handling
 
     All errors are raised as \c IMAGEMAGICK-ERROR exceptions with descriptive messages
     from the ImageMagick library.
 
+    @par Error handling example:
+    @code{.py}
+try {
+    MagickImage img("/nonexistent/path.jpg");
+} catch (hash<ExceptionInfo> ex) {
+    if (ex.err == "IMAGEMAGICK-ERROR") {
+        printf("ImageMagick error: %s\n", ex.desc);
+    }
+}
+    @endcode
+
+    Common error scenarios:
+    - Reading a nonexistent or unreadable file
+    - Reading corrupt or unsupported image data
+    - Writing to an unwritable path
+    - Invalid color strings
+    - Invalid filter, colorspace, or composite operator names
+    - Out-of-bounds pixel coordinates
+
     @section imagemagickreleasenotes Release Notes
 
     @subsection imagemagick_v1_0 imagemagick Module Version 1.0
     - initial public release
+    - @ref Qore::ImageMagick::MagickImage "MagickImage" class with comprehensive image processing
+    - @ref Qore::ImageMagick::MagickDrawing "MagickDrawing" class for vector drawing
+    - @ref Qore::ImageMagick::ImageInfo "ImageInfo", @ref Qore::ImageMagick::ImageResolutionInfo "ImageResolutionInfo",
+      @ref Qore::ImageMagick::PointInfo "PointInfo" hashdecls
+    - ImageMagickDataProvider module for Qorus integration
+    - filter type, colorspace, composite operator, gravity, and noise type constants
+    - support for 200+ image formats
+    - thread-safe design with per-object MagickWand ownership
 
     @section imagemagicklicense License
 
