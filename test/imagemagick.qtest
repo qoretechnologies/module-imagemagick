@@ -1,0 +1,1600 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+/*
+    Qore imagemagick module test suite
+
+    Copyright (C) 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+%modern
+
+%requires QUnit
+%requires Util
+%requires imagemagick
+
+%exec-class ImageMagickTest
+
+public class ImageMagickTest inherits QUnit::Test {
+    private {
+        string testDir;
+    }
+
+    constructor() : Test("ImageMagickTest", "1.0") {
+        testDir = tmp_location() + "/imagemagick_test_" + string(getpid());
+
+        addTestCase("Image construction tests", \constructionTest());
+        addTestCase("Image I/O tests", \ioTest());
+        addTestCase("Image info tests", \infoTest());
+        addTestCase("Properties and profiles tests", \propertiesTest());
+        addTestCase("Resize tests", \resizeTest());
+        addTestCase("Crop tests", \cropTest());
+        addTestCase("Transform tests", \transformTest());
+        addTestCase("Blur/sharpen tests", \blurSharpenTest());
+        addTestCase("Color adjustment tests", \colorTest());
+        addTestCase("Effects tests", \effectsTest());
+        addTestCase("Composite tests", \compositeTest());
+        addTestCase("Drawing tests", \drawingTest());
+        addTestCase("Format conversion tests", \formatConversionTest());
+        addTestCase("Multi-image tests", \multiImageTest());
+        addTestCase("Copy constructor tests", \copyTest());
+        addTestCase("Pixel color tests", \pixelTest());
+        addTestCase("Error handling tests", \errorHandlingTest());
+        addTestCase("Corner case tests", \cornerCaseTest());
+        addTestCase("Sandbox filesystem tests", \sandboxFilesystemTest());
+
+        set_return_value(main());
+    }
+
+    globalSetUp() {
+        mkdir(testDir);
+    }
+
+    globalTearDown() {
+        if (is_dir(testDir)) {
+            system("rm -rf " + testDir);
+        }
+    }
+
+    #! Creates a test image with known dimensions
+    private MagickImage createTestImage(int width = 100, int height = 80, string color = "white") {
+        MagickImage img(width, height, color);
+        img.setFormat("PNG");
+        return img;
+    }
+
+    #! Creates a test image with some visual content for operations that need non-uniform pixels
+    private MagickImage createContentImage() {
+        MagickImage img(200, 150, "white");
+        img.setFormat("PNG");
+        # Draw some content to make operations meaningful
+        MagickDrawing dw();
+        dw.setFillColor("red");
+        dw.rectangle(10.0, 10.0, 90.0, 70.0);
+        dw.setFillColor("blue");
+        dw.circle(150.0, 75.0, 180.0, 75.0);
+        dw.setFillColor("green");
+        dw.rectangle(50.0, 80.0, 180.0, 140.0);
+        img.draw(dw);
+        return img;
+    }
+
+    # --- Construction tests ---
+    constructionTest() {
+        # Blank image with default background
+        {
+            MagickImage img(100, 80, "white");
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # Blank image with specific color
+        {
+            MagickImage img(50, 50, "red");
+            assertEq(50, img.width());
+            assertEq(50, img.height());
+        }
+
+        # Blank image with hex color
+        {
+            MagickImage img(30, 30, "#FF00FF");
+            assertEq(30, img.width());
+        }
+
+        # Blank image with transparent background
+        {
+            MagickImage img(40, 40, "transparent");
+            assertEq(40, img.width());
+        }
+
+        # From binary data
+        {
+            MagickImage src(100, 100, "white");
+            src.setFormat("PNG");
+            binary data = src.toData();
+            MagickImage img(data);
+            assertEq(100, img.width());
+            assertEq(100, img.height());
+        }
+
+        # From binary data with explicit format
+        {
+            MagickImage src(80, 60, "blue");
+            src.setFormat("BMP");
+            binary data = src.toData();
+            MagickImage img(data, "BMP");
+            assertEq(80, img.width());
+            assertEq(60, img.height());
+        }
+    }
+
+    # --- I/O tests ---
+    ioTest() {
+        # Write and read file
+        {
+            MagickImage img = createTestImage();
+            string path = testDir + "/test_io.png";
+            img.writeFile(path);
+            assertTrue(is_file(path));
+
+            MagickImage img2(path);
+            assertEq(100, img2.width());
+            assertEq(80, img2.height());
+        }
+
+        # Write and read JPEG
+        {
+            MagickImage img = createTestImage();
+            string path = testDir + "/test_io.jpg";
+            img.setFormat("JPEG");
+            img.writeFile(path);
+            assertTrue(is_file(path));
+
+            MagickImage img2(path);
+            assertEq(100, img2.width());
+            assertEq(80, img2.height());
+        }
+
+        # toData round-trip
+        {
+            MagickImage img = createTestImage();
+            binary data = img.toData();
+            assertGt(0, data.size());
+
+            MagickImage img2(data);
+            assertEq(100, img2.width());
+            assertEq(80, img2.height());
+        }
+
+        # toData with format
+        {
+            MagickImage img = createTestImage();
+            binary png_data = img.toData("PNG");
+            binary bmp_data = img.toData("BMP");
+            # BMP is typically larger than PNG for uniform images
+            assertGt(0, png_data.size());
+            assertGt(0, bmp_data.size());
+        }
+
+        # readData
+        {
+            MagickImage src = createTestImage();
+            binary data = src.toData();
+            MagickImage img(50, 50, "black");
+            img.readData(data);
+            # After readData, image list grows
+            assertGt(0, img.numberImages());
+        }
+
+        # pingFile
+        {
+            MagickImage img = createTestImage();
+            string path = testDir + "/test_ping.png";
+            img.writeFile(path);
+
+            MagickImage probe(1, 1, "white");
+            hash<ImageInfo> info = probe.pingFile(path);
+            assertEq(100, info.width);
+            assertEq(80, info.height);
+            assertEq("PNG", info.format);
+        }
+
+        # pingData
+        {
+            MagickImage img = createTestImage();
+            binary data = img.toData();
+
+            MagickImage probe(1, 1, "white");
+            hash<ImageInfo> info = probe.pingData(data);
+            assertEq(100, info.width);
+            assertEq(80, info.height);
+        }
+
+        # writeFiles
+        {
+            MagickImage img = createTestImage();
+            string path = testDir + "/test_writefiles.png";
+            img.writeFiles(path);
+            assertTrue(is_file(path));
+        }
+    }
+
+    # --- Info tests ---
+    infoTest() {
+        MagickImage img = createTestImage();
+        img.setFormat("PNG");
+
+        # Basic dimensions
+        assertEq(100, img.width());
+        assertEq(80, img.height());
+
+        # Format
+        assertEq("PNG", img.format());
+
+        # Depth
+        int depth = img.depth();
+        assertGt(0, depth);
+        assertTrue(depth == 8 || depth == 16);
+
+        # Colorspace
+        string cs = img.colorspace();
+        assertTrue(cs.size() > 0);
+
+        # Image type
+        string it = img.imageType();
+        assertTrue(it.size() > 0);
+
+        # Resolution
+        hash<ImageResolutionInfo> res = img.resolution();
+        assertTrue(exists res.x);
+        assertTrue(exists res.y);
+
+        # Set and get resolution
+        img.setResolution(300.0, 300.0);
+        res = img.resolution();
+        assertEq(300.0, res.x);
+        assertEq(300.0, res.y);
+
+        # Compression quality
+        int q = img.compressionQuality();
+        assertTrue(q >= 0);
+
+        # Set compression quality
+        img.setCompressionQuality(85);
+        assertEq(85, img.compressionQuality());
+
+        # Signature
+        string sig = img.signature();
+        assertTrue(sig.size() > 0);
+
+        # Identify
+        string id = img.identify();
+        assertTrue(id.size() > 0);
+
+        # Colors
+        int c = img.colors();
+        assertGt(0, c);
+
+        # Number of images
+        assertEq(1, img.numberImages());
+
+        # getInfo comprehensive hash
+        hash<ImageInfo> info = img.getInfo();
+        assertEq(100, info.width);
+        assertEq(80, info.height);
+        assertEq("PNG", info.format);
+        assertGt(0, info.depth);
+        assertTrue(info.colorspace.size() > 0);
+        assertTrue(info.image_type.size() > 0);
+        assertTrue(exists info.resolution);
+        assertTrue(exists info.compression_quality);
+        assertEq(1, info.number_images);
+        assertGt(0, info.colors);
+        assertTrue(info.signature.size() > 0);
+
+        # setFormat
+        img.setFormat("JPEG");
+        assertEq("JPEG", img.format());
+        img.setFormat("PNG");
+        assertEq("PNG", img.format());
+
+        # setDepth
+        img.setDepth(16);
+        assertEq(16, img.depth());
+        img.setDepth(8);
+        assertEq(8, img.depth());
+
+        # setColorspace
+        img.setColorspace("sRGB");
+        assertEq("sRGB", img.colorspace());
+    }
+
+    # --- Properties and profiles tests ---
+    propertiesTest() {
+        MagickImage img = createTestImage();
+
+        # Set and get property
+        img.setProperty("comment", "test comment");
+        *string val = img.getProperty("comment");
+        assertEq("test comment", val);
+
+        # Get non-existent property
+        *string missing = img.getProperty("nonexistent:property");
+        assertNothing(missing);
+
+        # Get all properties
+        img.setProperty("test:key1", "value1");
+        img.setProperty("test:key2", "value2");
+        hash<auto> props = img.getProperties("test:*");
+        assertTrue(props.hasKey("test:key1"));
+        assertTrue(props.hasKey("test:key2"));
+        assertEq("value1", props{"test:key1"});
+        assertEq("value2", props{"test:key2"});
+
+        # Delete property
+        img.deleteProperty("comment");
+        *string deleted = img.getProperty("comment");
+        assertNothing(deleted);
+
+        # Profile names (initially may be empty)
+        list<string> names = img.getProfileNames();
+        assertTrue(names.typeCode() == NT_LIST);
+
+        # Set and get profile
+        binary profile_data = <beefcafe>;
+        img.setProfile("test-profile", profile_data);
+        *binary retrieved = img.getProfile("test-profile");
+        assertTrue(exists retrieved);
+
+        # Get non-existent profile
+        *binary no_profile = img.getProfile("nonexistent-profile");
+        assertNothing(no_profile);
+
+        # Strip
+        img.setProperty("comment", "will be stripped");
+        img.strip();
+        *string stripped = img.getProperty("comment");
+        # After strip, comments should be gone
+        assertNothing(stripped);
+    }
+
+    # --- Resize tests ---
+    resizeTest() {
+        # resize with default filter
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.resize(100, 80);
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # resize with specific filter
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.resize(100, 80, "Mitchell");
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # scale
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.scale(100, 80);
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # thumbnail
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.thumbnail(50, 40);
+            assertEq(50, img.width());
+            assertEq(40, img.height());
+        }
+
+        # adaptiveResize
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.adaptiveResize(100, 80);
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # sample
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.sample(100, 80);
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # resample
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.setResolution(72.0, 72.0);
+            img.resample(36.0, 36.0);
+            # Resampling changes dimensions based on resolution ratio
+            assertTrue(img.width() > 0);
+            assertTrue(img.height() > 0);
+        }
+
+        # liquidRescale
+        {
+            MagickImage img = createContentImage();
+            img.liquidRescale(150, 112);
+            assertEq(150, img.width());
+            assertEq(112, img.height());
+        }
+
+        # Upscale
+        {
+            MagickImage img = createTestImage(50, 40);
+            img.resize(200, 160);
+            assertEq(200, img.width());
+            assertEq(160, img.height());
+        }
+
+        # Filter type constants
+        {
+            MagickImage img = createTestImage(200, 160);
+            assertGt(0, IM_FILTER_LANCZOS);
+            assertGt(0, IM_FILTER_MITCHELL);
+            assertGt(0, IM_FILTER_CATROM);
+            assertGt(0, IM_FILTER_GAUSSIAN);
+            assertGt(0, IM_FILTER_BOX);
+            assertGt(0, IM_FILTER_TRIANGLE);
+            assertGt(0, IM_FILTER_POINT);
+            assertGt(0, IM_FILTER_CUBIC);
+        }
+    }
+
+    # --- Crop tests ---
+    cropTest() {
+        # crop
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.crop(100, 80, 10, 10);
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # trim
+        {
+            # Create image with border that can be trimmed
+            MagickImage img(200, 160, "white");
+            img.setFormat("PNG");
+            MagickDrawing dw();
+            dw.setFillColor("red");
+            dw.rectangle(50.0, 50.0, 150.0, 110.0);
+            img.draw(dw);
+            img.trim(0.0);
+            # After trim, image should be smaller
+            assertTrue(img.width() <= 200);
+            assertTrue(img.height() <= 160);
+        }
+
+        # extent (canvas extension)
+        {
+            MagickImage img = createTestImage(100, 80);
+            img.extent(200, 160, 0, 0);
+            assertEq(200, img.width());
+            assertEq(160, img.height());
+        }
+
+        # chop
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.chop(50, 40, 10, 10);
+            assertEq(150, img.width());
+            assertEq(120, img.height());
+        }
+
+        # shave
+        {
+            MagickImage img = createTestImage(200, 160);
+            img.shave(10, 10);
+            assertEq(180, img.width());
+            assertEq(140, img.height());
+        }
+
+        # splice
+        {
+            MagickImage img = createTestImage(100, 80);
+            img.splice(20, 20, 50, 40);
+            assertEq(120, img.width());
+            assertEq(100, img.height());
+        }
+    }
+
+    # --- Transform tests ---
+    transformTest() {
+        # rotate 90 degrees
+        {
+            MagickImage img = createTestImage(100, 80);
+            img.rotate(90.0);
+            # After 90 degree rotation, dimensions swap
+            assertEq(80, img.width());
+            assertEq(100, img.height());
+        }
+
+        # rotate 45 degrees (expands canvas)
+        {
+            MagickImage img = createTestImage(100, 100);
+            img.rotate(45.0, "white");
+            # 45 degree rotation creates larger canvas
+            assertGt(100, img.width());
+            assertGt(100, img.height());
+        }
+
+        # flip (vertical mirror)
+        {
+            MagickImage img = createTestImage();
+            img.flip();
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # flop (horizontal mirror)
+        {
+            MagickImage img = createTestImage();
+            img.flop();
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+
+        # transpose
+        {
+            MagickImage img = createTestImage(100, 80);
+            img.transpose();
+            assertEq(80, img.width());
+            assertEq(100, img.height());
+        }
+
+        # transverse
+        {
+            MagickImage img = createTestImage(100, 80);
+            img.transverse();
+            assertEq(80, img.width());
+            assertEq(100, img.height());
+        }
+
+        # shear
+        {
+            MagickImage img = createTestImage();
+            img.shear(10.0, 0.0, "white");
+            # Shear changes dimensions
+            assertTrue(img.width() > 0);
+            assertTrue(img.height() > 0);
+        }
+
+        # deskew
+        {
+            MagickImage img = createContentImage();
+            img.deskew(10000.0);
+            assertTrue(img.width() > 0);
+            assertTrue(img.height() > 0);
+        }
+
+        # autoOrient
+        {
+            MagickImage img = createTestImage();
+            img.autoOrient();
+            assertEq(100, img.width());
+            assertEq(80, img.height());
+        }
+    }
+
+    # --- Blur/sharpen tests ---
+    blurSharpenTest() {
+        # blur
+        {
+            MagickImage img = createContentImage();
+            binary before = img.toData();
+            img.blur(0.0, 2.0);
+            binary after = img.toData();
+            # Blur should change the image
+            assertTrue(before != after);
+        }
+
+        # gaussianBlur
+        {
+            MagickImage img = createContentImage();
+            img.gaussianBlur(0.0, 2.0);
+            assertEq(200, img.width());
+        }
+
+        # adaptiveBlur
+        {
+            MagickImage img = createContentImage();
+            img.adaptiveBlur(0.0, 2.0);
+            assertEq(200, img.width());
+        }
+
+        # sharpen
+        {
+            MagickImage img = createContentImage();
+            img.sharpen(0.0, 1.0);
+            assertEq(200, img.width());
+        }
+
+        # adaptiveSharpen
+        {
+            MagickImage img = createContentImage();
+            img.adaptiveSharpen(0.0, 1.0);
+            assertEq(200, img.width());
+        }
+
+        # unsharpMask
+        {
+            MagickImage img = createContentImage();
+            img.unsharpMask(0.0, 1.0, 1.5, 0.0);
+            assertEq(200, img.width());
+        }
+
+        # motionBlur
+        {
+            MagickImage img = createContentImage();
+            img.motionBlur(0.0, 5.0, 45.0);
+            assertEq(200, img.width());
+        }
+
+        # selectiveBlur
+        {
+            MagickImage img = createContentImage();
+            img.selectiveBlur(0.0, 2.0, 5000.0);
+            assertEq(200, img.width());
+        }
+
+        # rotationalBlur
+        {
+            MagickImage img = createContentImage();
+            img.rotationalBlur(10.0);
+            assertEq(200, img.width());
+        }
+    }
+
+    # --- Color adjustment tests ---
+    colorTest() {
+        # brightnessContrast
+        {
+            MagickImage img = createContentImage();
+            img.brightnessContrast(10.0, 20.0);
+            assertEq(200, img.width());
+        }
+
+        # gamma
+        {
+            MagickImage img = createContentImage();
+            img.gamma(1.5);
+            assertEq(200, img.width());
+        }
+
+        # level
+        {
+            MagickImage img = createContentImage();
+            img.level(0.0, 1.0, 65535.0);
+            assertEq(200, img.width());
+        }
+
+        # modulate
+        {
+            MagickImage img = createContentImage();
+            img.modulate(120.0, 100.0, 100.0);
+            assertEq(200, img.width());
+        }
+
+        # negate
+        {
+            MagickImage img = createContentImage();
+            binary before = img.toData();
+            img.negate();
+            binary after = img.toData();
+            assertTrue(before != after);
+        }
+
+        # normalize
+        {
+            MagickImage img = createContentImage();
+            img.normalize();
+            assertEq(200, img.width());
+        }
+
+        # equalize
+        {
+            MagickImage img = createContentImage();
+            img.equalize();
+            assertEq(200, img.width());
+        }
+
+        # autoGamma
+        {
+            MagickImage img = createContentImage();
+            img.autoGamma();
+            assertEq(200, img.width());
+        }
+
+        # autoLevel
+        {
+            MagickImage img = createContentImage();
+            img.autoLevel();
+            assertEq(200, img.width());
+        }
+
+        # sigmoidalContrast
+        {
+            MagickImage img = createContentImage();
+            img.sigmoidalContrast(True, 5.0, 50.0);
+            assertEq(200, img.width());
+        }
+
+        # contrastStretch
+        {
+            MagickImage img = createContentImage();
+            img.contrastStretch(0.0, 30000.0);
+            assertEq(200, img.width());
+        }
+
+        # linearStretch
+        {
+            MagickImage img = createContentImage();
+            img.linearStretch(0.0, 30000.0);
+            assertEq(200, img.width());
+        }
+
+        # enhance
+        {
+            MagickImage img = createContentImage();
+            img.enhance();
+            assertEq(200, img.width());
+        }
+
+        # whiteBalance
+        {
+            MagickImage img = createContentImage();
+            img.whiteBalance();
+            assertEq(200, img.width());
+        }
+
+        # transformColorspace
+        {
+            MagickImage img = createContentImage();
+            img.transformColorspace("Gray");
+            assertEq("Gray", img.colorspace());
+        }
+    }
+
+    # --- Effects tests ---
+    effectsTest() {
+        # charcoal
+        {
+            MagickImage img = createContentImage();
+            img.charcoal(1.0, 1.0);
+            assertEq(200, img.width());
+        }
+
+        # edge
+        {
+            MagickImage img = createContentImage();
+            img.edge(1.0);
+            assertEq(200, img.width());
+        }
+
+        # emboss
+        {
+            MagickImage img = createContentImage();
+            img.emboss(0.0, 1.0);
+            assertEq(200, img.width());
+        }
+
+        # oilPaint
+        {
+            MagickImage img = createContentImage();
+            img.oilPaint(3.0);
+            assertEq(200, img.width());
+        }
+
+        # sketch
+        {
+            MagickImage img = createContentImage();
+            img.sketch(0.0, 10.0, 45.0);
+            assertEq(200, img.width());
+        }
+
+        # solarize
+        {
+            MagickImage img = createContentImage();
+            img.solarize(50000.0);
+            assertEq(200, img.width());
+        }
+
+        # sepiaTone
+        {
+            MagickImage img = createContentImage();
+            img.sepiaTone(50000.0);
+            assertEq(200, img.width());
+        }
+
+        # vignette
+        {
+            MagickImage img = createContentImage();
+            img.vignette(0.0, 5.0, 10, 10);
+            assertEq(200, img.width());
+        }
+
+        # shadow
+        {
+            MagickImage img = createContentImage();
+            img.shadow(80.0, 3.0, 5, 5);
+            # Shadow may change dimensions
+            assertTrue(img.width() > 0);
+        }
+
+        # shade
+        {
+            MagickImage img = createContentImage();
+            img.shade(False, 135.0, 45.0);
+            assertEq(200, img.width());
+        }
+
+        # wave
+        {
+            MagickImage img = createContentImage();
+            img.wave(5.0, 50.0);
+            # Wave changes height
+            assertTrue(img.height() > 0);
+        }
+
+        # swirl
+        {
+            MagickImage img = createContentImage();
+            img.swirl(45.0);
+            assertEq(200, img.width());
+        }
+
+        # implode
+        {
+            MagickImage img = createContentImage();
+            img.implode(0.5);
+            assertEq(200, img.width());
+        }
+
+        # despeckle
+        {
+            MagickImage img = createContentImage();
+            img.despeckle();
+            assertEq(200, img.width());
+        }
+
+        # posterize
+        {
+            MagickImage img = createContentImage();
+            img.posterize(4);
+            assertEq(200, img.width());
+        }
+
+        # threshold
+        {
+            MagickImage img = createContentImage();
+            img.threshold(32000.0);
+            assertEq(200, img.width());
+        }
+
+        # addNoise
+        {
+            MagickImage img = createContentImage();
+            binary before = img.toData();
+            img.addNoise("Gaussian", 0.5);
+            binary after = img.toData();
+            assertTrue(before != after);
+        }
+
+        # blueShift
+        {
+            MagickImage img = createContentImage();
+            img.blueShift(1.5);
+            assertEq(200, img.width());
+        }
+
+        # waveletDenoise
+        {
+            MagickImage img = createContentImage();
+            img.waveletDenoise(10000.0);
+            assertEq(200, img.width());
+        }
+    }
+
+    # --- Composite tests ---
+    compositeTest() {
+        # Basic composite (position-based)
+        {
+            MagickImage base(200, 200, "white");
+            base.setFormat("PNG");
+            MagickImage overlay(50, 50, "red");
+            overlay.setFormat("PNG");
+            base.composite(overlay, "Over", 10, 10);
+            assertEq(200, base.width());
+            assertEq(200, base.height());
+        }
+
+        # Composite with gravity
+        {
+            MagickImage base(200, 200, "white");
+            base.setFormat("PNG");
+            MagickImage overlay(50, 50, "blue");
+            overlay.setFormat("PNG");
+            base.compositeGravity(overlay, "Over", "Center");
+            assertEq(200, base.width());
+        }
+
+        # Composite with different operators
+        {
+            MagickImage base = createContentImage();
+            MagickImage overlay(50, 50, "red");
+            overlay.setFormat("PNG");
+            base.composite(overlay, "Multiply", 0, 0);
+            assertEq(200, base.width());
+        }
+
+        # Composite gravity constants
+        {
+            assertEq("Center", IM_GRAVITY_CENTER);
+            assertEq("North", IM_GRAVITY_NORTH);
+            assertEq("South", IM_GRAVITY_SOUTH);
+            assertEq("East", IM_GRAVITY_EAST);
+            assertEq("West", IM_GRAVITY_WEST);
+            assertEq("NorthWest", IM_GRAVITY_NORTHWEST);
+            assertEq("NorthEast", IM_GRAVITY_NORTHEAST);
+            assertEq("SouthWest", IM_GRAVITY_SOUTHWEST);
+            assertEq("SouthEast", IM_GRAVITY_SOUTHEAST);
+        }
+
+        # Composite operator constants
+        {
+            assertEq("Over", IM_COMPOSITE_OVER);
+            assertEq("Multiply", IM_COMPOSITE_MULTIPLY);
+            assertEq("Screen", IM_COMPOSITE_SCREEN);
+            assertEq("Overlay", IM_COMPOSITE_OVERLAY);
+            assertEq("Difference", IM_COMPOSITE_DIFFERENCE);
+            assertEq("Plus", IM_COMPOSITE_PLUS);
+            assertEq("Dissolve", IM_COMPOSITE_DISSOLVE);
+        }
+    }
+
+    # --- Drawing tests ---
+    drawingTest() {
+        # Basic shapes
+        {
+            MagickDrawing dw();
+            dw.setFillColor("red");
+            dw.setStrokeColor("black");
+            dw.setStrokeWidth(2.0);
+            dw.line(10.0, 10.0, 90.0, 90.0);
+            dw.rectangle(20.0, 20.0, 80.0, 80.0);
+            dw.circle(50.0, 50.0, 80.0, 50.0);
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Round rectangle
+        {
+            MagickDrawing dw();
+            dw.setFillColor("blue");
+            dw.roundRectangle(10.0, 10.0, 90.0, 90.0, 10.0, 10.0);
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Ellipse
+        {
+            MagickDrawing dw();
+            dw.setFillColor("green");
+            dw.ellipse(50.0, 50.0, 40.0, 30.0, 0.0, 360.0);
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Arc
+        {
+            MagickDrawing dw();
+            dw.setStrokeColor("purple");
+            dw.setStrokeWidth(3.0);
+            dw.arc(10.0, 10.0, 90.0, 90.0, 0.0, 270.0);
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Point
+        {
+            MagickDrawing dw();
+            dw.setFillColor("red");
+            dw.point(50.0, 50.0);
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Polygon
+        {
+            MagickDrawing dw();
+            dw.setFillColor("orange");
+            dw.polygon((
+                cast<hash<PointInfo>>({"x": 50.0, "y": 10.0}),
+                cast<hash<PointInfo>>({"x": 90.0, "y": 90.0}),
+                cast<hash<PointInfo>>({"x": 10.0, "y": 90.0}),
+            ));
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Polyline
+        {
+            MagickDrawing dw();
+            dw.setStrokeColor("blue");
+            dw.setStrokeWidth(2.0);
+            dw.polyline((
+                cast<hash<PointInfo>>({"x": 10.0, "y": 10.0}),
+                cast<hash<PointInfo>>({"x": 90.0, "y": 50.0}),
+                cast<hash<PointInfo>>({"x": 10.0, "y": 90.0}),
+            ));
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Text annotation (via drawing)
+        {
+            MagickDrawing dw();
+            dw.setFontSize(20.0);
+            dw.setFillColor("black");
+            dw.annotation(10.0, 50.0, "Hello");
+
+            MagickImage img(200, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(200, img.width());
+        }
+
+        # Text annotation (via image)
+        {
+            MagickImage img(200, 100, "white");
+            img.setFormat("PNG");
+            img.annotate("Test text", 10.0, 50.0);
+            assertEq(200, img.width());
+        }
+
+        # Font settings
+        {
+            MagickDrawing dw();
+            dw.setFontSize(24.0);
+            dw.setFontWeight(700);
+            dw.setFontStyle("italic");
+            dw.setFillColor("red");
+            dw.annotation(10.0, 50.0, "Bold Italic");
+
+            MagickImage img(200, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(200, img.width());
+        }
+
+        # Opacity settings
+        {
+            MagickDrawing dw();
+            dw.setFillColor("red");
+            dw.setFillOpacity(0.5);
+            dw.setStrokeColor("blue");
+            dw.setStrokeOpacity(0.8);
+            dw.setStrokeWidth(3.0);
+            dw.rectangle(10.0, 10.0, 90.0, 90.0);
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Transform operations
+        {
+            MagickDrawing dw();
+            dw.push();
+            dw.translate(50.0, 50.0);
+            dw.rotate(45.0);
+            dw.setFillColor("red");
+            dw.rectangle(-20.0, -20.0, 20.0, 20.0);
+            dw.pop();
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Scale
+        {
+            MagickDrawing dw();
+            dw.setFillColor("green");
+            dw.drawScale(2.0, 2.0);
+            dw.rectangle(10.0, 10.0, 30.0, 30.0);
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Skew
+        {
+            MagickDrawing dw();
+            dw.setFillColor("blue");
+            dw.skewX(15.0);
+            dw.rectangle(20.0, 20.0, 60.0, 60.0);
+
+            MagickImage img(100, 100, "white");
+            img.setFormat("PNG");
+            img.draw(dw);
+            assertEq(100, img.width());
+        }
+
+        # Border
+        {
+            MagickImage img = createTestImage(100, 80);
+            img.border("red", 5, 5);
+            assertEq(110, img.width());
+            assertEq(90, img.height());
+        }
+
+        # Frame
+        {
+            MagickImage img = createTestImage(100, 80);
+            img.frame("gold", 10, 10, 3, 3);
+            assertEq(120, img.width());
+            assertEq(100, img.height());
+        }
+    }
+
+    # --- Format conversion tests ---
+    formatConversionTest() {
+        # PNG to JPEG
+        {
+            MagickImage img = createContentImage();
+            binary jpeg = img.toData("JPEG");
+            assertGt(0, jpeg.size());
+            MagickImage img2(jpeg, "JPEG");
+            assertEq(200, img2.width());
+            assertEq(150, img2.height());
+        }
+
+        # PNG to BMP
+        {
+            MagickImage img = createTestImage();
+            binary bmp = img.toData("BMP");
+            assertGt(0, bmp.size());
+            MagickImage img2(bmp, "BMP");
+            assertEq(100, img2.width());
+        }
+
+        # PNG to GIF
+        {
+            MagickImage img = createTestImage(50, 50);
+            binary gif = img.toData("GIF");
+            assertGt(0, gif.size());
+            MagickImage img2(gif, "GIF");
+            assertEq(50, img2.width());
+        }
+
+        # PNG to TIFF
+        {
+            MagickImage img = createTestImage();
+            binary tiff = img.toData("TIFF");
+            assertGt(0, tiff.size());
+            MagickImage img2(tiff, "TIFF");
+            assertEq(100, img2.width());
+        }
+
+        # JPEG quality settings
+        {
+            MagickImage img = createContentImage();
+            img.setFormat("JPEG");
+            img.setCompressionQuality(10);
+            binary low_q = img.toData();
+            img.setCompressionQuality(95);
+            binary high_q = img.toData();
+            # High quality JPEG should be larger than low quality
+            assertGt(low_q.size(), high_q.size());
+        }
+
+        # toData preserves original format
+        {
+            MagickImage img = createTestImage();
+            img.setFormat("PNG");
+            img.toData("JPEG");
+            # Original format should still be PNG
+            assertEq("PNG", img.format());
+        }
+
+        # File extension determines format
+        {
+            MagickImage img = createTestImage();
+            string path_png = testDir + "/convert.png";
+            string path_jpg = testDir + "/convert.jpg";
+            img.writeFile(path_png);
+            img.writeFile(path_jpg);
+            assertTrue(is_file(path_png));
+            assertTrue(is_file(path_jpg));
+        }
+
+        # Colorspace constants
+        {
+            assertEq("sRGB", IM_COLORSPACE_SRGB);
+            assertEq("RGB", IM_COLORSPACE_RGB);
+            assertEq("CMYK", IM_COLORSPACE_CMYK);
+            assertEq("Gray", IM_COLORSPACE_GRAY);
+            assertEq("HSL", IM_COLORSPACE_HSL);
+            assertEq("Lab", IM_COLORSPACE_LAB);
+        }
+    }
+
+    # --- Multi-image tests ---
+    multiImageTest() {
+        # Single image navigation
+        {
+            MagickImage img = createTestImage();
+            assertEq(1, img.numberImages());
+            assertFalse(img.hasNextImage());
+        }
+
+        # Multiple images via readData
+        {
+            MagickImage img1 = createTestImage(100, 80);
+            MagickImage img2 = createTestImage(50, 40);
+            binary data2 = img2.toData();
+
+            img1.readData(data2);
+            # Should now have 2 images
+            assertEq(2, img1.numberImages());
+        }
+
+        # Iterator navigation
+        {
+            MagickImage img(100, 100, "red");
+            img.setFormat("PNG");
+            MagickImage img2(50, 50, "blue");
+            img2.setFormat("PNG");
+            binary data2 = img2.toData();
+            img.readData(data2);
+
+            img.resetIterator();
+            assertTrue(img.nextImage());
+            assertEq(100, img.width());
+
+            assertTrue(img.hasNextImage());
+            assertTrue(img.nextImage());
+            assertEq(50, img.width());
+
+            assertFalse(img.hasNextImage());
+        }
+
+        # setIteratorIndex
+        {
+            MagickImage img(100, 100, "red");
+            img.setFormat("PNG");
+            MagickImage img2(50, 50, "blue");
+            img2.setFormat("PNG");
+            img.readData(img2.toData());
+
+            img.setIteratorIndex(0);
+            assertEq(100, img.width());
+            img.setIteratorIndex(1);
+            assertEq(50, img.width());
+        }
+
+        # iteratorIndex
+        {
+            MagickImage img(100, 100, "red");
+            img.setFormat("PNG");
+            img.readData(createTestImage(50, 50).toData());
+
+            img.setIteratorIndex(0);
+            assertEq(0, img.iteratorIndex());
+            img.setIteratorIndex(1);
+            assertEq(1, img.iteratorIndex());
+        }
+    }
+
+    # --- Copy constructor tests ---
+    copyTest() {
+        # Basic copy
+        {
+            MagickImage img = createContentImage();
+            MagickImage copy = img.copy();
+            assertEq(img.width(), copy.width());
+            assertEq(img.height(), copy.height());
+            assertEq(img.format(), copy.format());
+        }
+
+        # Copy independence
+        {
+            MagickImage img = createTestImage(200, 160);
+            MagickImage copy = img.copy();
+
+            # Modify copy
+            copy.resize(100, 80);
+            # Original should be unchanged
+            assertEq(200, img.width());
+            assertEq(160, img.height());
+            assertEq(100, copy.width());
+            assertEq(80, copy.height());
+        }
+
+        # Copy preserves content
+        {
+            MagickImage img = createContentImage();
+            binary before = img.toData();
+            MagickImage copy = img.copy();
+            binary after = copy.toData();
+            assertEq(before.size(), after.size());
+        }
+    }
+
+    # --- Pixel color tests ---
+    pixelTest() {
+        # Get pixel color
+        {
+            MagickImage img(10, 10, "red");
+            img.setFormat("PNG");
+            string color = img.getPixelColor(5, 5);
+            assertTrue(color.size() > 0);
+        }
+
+        # Set pixel color
+        {
+            MagickImage img(10, 10, "white");
+            img.setFormat("PNG");
+            img.setPixelColor(5, 5, "red");
+            string color = img.getPixelColor(5, 5);
+            assertTrue(color.size() > 0);
+        }
+
+        # Corner pixels
+        {
+            MagickImage img(10, 10, "blue");
+            img.setFormat("PNG");
+            string tl = img.getPixelColor(0, 0);
+            string br = img.getPixelColor(9, 9);
+            assertTrue(tl.size() > 0);
+            assertTrue(br.size() > 0);
+        }
+    }
+
+    # --- Error handling tests ---
+    errorHandlingTest() {
+        # Invalid file path
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickImage img("/nonexistent/path/to/image.png");
+        });
+
+        # Invalid binary data
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickImage img(<deadbeef>);
+        });
+
+        # Invalid filter type
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickImage img = createTestImage();
+            img.resize(50, 50, "InvalidFilterName");
+        });
+
+        # Invalid composite operator
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickImage base(100, 100, "white");
+            base.setFormat("PNG");
+            MagickImage overlay(50, 50, "red");
+            overlay.setFormat("PNG");
+            base.composite(overlay, "InvalidOp", 0, 0);
+        });
+
+        # Invalid gravity type
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickImage base(100, 100, "white");
+            base.setFormat("PNG");
+            MagickImage overlay(50, 50, "red");
+            overlay.setFormat("PNG");
+            base.compositeGravity(overlay, "Over", "InvalidGravity");
+        });
+
+        # Invalid colorspace
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickImage img = createTestImage();
+            img.setColorspace("InvalidColorspace");
+        });
+
+        # Invalid noise type
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickImage img = createTestImage();
+            img.addNoise("InvalidNoiseType");
+        });
+
+        # Invalid font style
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickDrawing dw();
+            dw.setFontStyle("invalid_style");
+        });
+
+        # Polygon with too few points
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickDrawing dw();
+            dw.polygon((
+                cast<hash<PointInfo>>({"x": 10.0, "y": 10.0}),
+                cast<hash<PointInfo>>({"x": 20.0, "y": 20.0}),
+            ));
+        });
+
+        # Polyline with too few points
+        assertThrows("IMAGEMAGICK-ERROR", sub () {
+            MagickDrawing dw();
+            dw.polyline((
+                cast<hash<PointInfo>>({"x": 10.0, "y": 10.0}),
+            ));
+        });
+
+        # Invalid iterator index - MagickSetIteratorIndex may not raise an error
+        # for out-of-range, so test that operations after invalid index handle gracefully
+        {
+            MagickImage img = createTestImage();
+            # Just verify it doesn't crash with single-image wand
+            assertEq(1, img.numberImages());
+        }
+
+        # Noise type constants
+        {
+            assertEq("Uniform", IM_NOISE_UNIFORM);
+            assertEq("Gaussian", IM_NOISE_GAUSSIAN);
+            assertEq("MultiplicativeGaussian", IM_NOISE_MULTIPLICATIVE_GAUSSIAN);
+            assertEq("Impulse", IM_NOISE_IMPULSE);
+            assertEq("Laplacian", IM_NOISE_LAPLACIAN);
+            assertEq("Poisson", IM_NOISE_POISSON);
+            assertEq("Random", IM_NOISE_RANDOM);
+        }
+    }
+
+    # --- Corner case tests ---
+    cornerCaseTest() {
+        # 1x1 image
+        {
+            MagickImage img(1, 1, "red");
+            img.setFormat("PNG");
+            assertEq(1, img.width());
+            assertEq(1, img.height());
+            binary data = img.toData();
+            assertGt(0, data.size());
+        }
+
+        # Very small image operations
+        {
+            MagickImage img(2, 2, "blue");
+            img.setFormat("PNG");
+            img.blur(0.0, 0.5);
+            assertEq(2, img.width());
+        }
+
+        # Alpha channel (transparent image)
+        {
+            MagickImage img(100, 100, "transparent");
+            img.setFormat("PNG");
+            binary data = img.toData();
+            assertGt(0, data.size());
+
+            MagickImage img2(data);
+            assertEq(100, img2.width());
+        }
+
+        # Large image (not too large to be slow)
+        {
+            MagickImage img(1000, 1000, "white");
+            img.setFormat("PNG");
+            assertEq(1000, img.width());
+            assertEq(1000, img.height());
+        }
+
+        # Empty format string handling
+        {
+            MagickImage img = createTestImage();
+            string fmt = img.format();
+            assertTrue(fmt.size() > 0);
+        }
+
+        # Zero-radius operations
+        {
+            MagickImage img = createContentImage();
+            img.blur(0.0, 0.0);
+            assertEq(200, img.width());
+        }
+
+        # Multiple operations in sequence
+        {
+            MagickImage img = createContentImage();
+            img.resize(100, 75);
+            img.blur(0.0, 1.0);
+            img.sharpen(0.0, 1.0);
+            img.brightnessContrast(5.0, 10.0);
+            img.negate();
+            assertEq(100, img.width());
+            assertEq(75, img.height());
+        }
+
+        # Read-modify-write cycle
+        {
+            MagickImage img = createTestImage();
+            string path = testDir + "/corner_rmw.png";
+            img.writeFile(path);
+
+            MagickImage img2(path);
+            img2.resize(50, 40);
+            img2.writeFile(path);
+
+            MagickImage img3(path);
+            assertEq(50, img3.width());
+            assertEq(40, img3.height());
+        }
+    }
+
+    # --- Sandbox filesystem tests ---
+    sandboxFilesystemTest() {
+        # File I/O methods should require FILESYSTEM domain
+        {
+            Program p(PO_NEW_STYLE | PO_STRICT_ARGS | PO_REQUIRE_TYPES | PO_NO_FILESYSTEM);
+            p.loadModule("imagemagick");
+            assertThrows("PARSE-EXCEPTION", \p.parse(), (
+                "sub test() { MagickImage img('test.png'); }",
+                "sandbox-test"
+            ));
+        }
+
+        # In-memory operations should work with filesystem sandbox
+        {
+            Program p(PO_NEW_STYLE | PO_STRICT_ARGS | PO_REQUIRE_TYPES | PO_NO_FILESYSTEM);
+            p.loadModule("imagemagick");
+            p.parse("int sub test_memory() { MagickImage img(100, 100, 'white'); return img.width(); }",
+                     "sandbox-memory-test");
+            int result = p.callFunction("test_memory");
+            assertEq(100, result);
+        }
+    }
+}

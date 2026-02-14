@@ -1,0 +1,311 @@
+/* -*- mode: c++; indent-tabs-mode: nil -*- */
+/** @file QC_MagickDrawing.cpp defines the %Qore MagickDrawing class */
+/*
+    Qore imagemagick module
+
+    Copyright (C) 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+#include "QC_MagickDrawing.h"
+#include "QoreMagickDrawing.h"
+
+//! The MagickDrawing class provides vector graphics drawing capabilities
+/**
+    @par Example: Drawing shapes on an image
+    @code{.py}
+MagickDrawing dw();
+dw.setFillColor("blue");
+dw.setStrokeColor("black");
+dw.setStrokeWidth(2.0);
+dw.rectangle(10.0, 10.0, 100.0, 100.0);
+dw.circle(150.0, 150.0, 200.0, 150.0);
+
+MagickImage img(300, 300, "white");
+img.draw(dw);
+img.writeFile("shapes.png");
+    @endcode
+
+    @par Example: Drawing text
+    @code{.py}
+MagickDrawing dw();
+dw.setFont("Helvetica");
+dw.setFontSize(24.0);
+dw.setFillColor("red");
+dw.annotation(50.0, 100.0, "Hello World!");
+
+MagickImage img(400, 200, "white");
+img.draw(dw);
+img.writeFile("text.png");
+    @endcode
+
+    @since %imagemagick 1.0
+*/
+qclass MagickDrawing [arg=QoreMagickDrawing* dw; ns=Qore::ImageMagick];
+
+//! Creates a new MagickDrawing object
+/**
+*/
+MagickDrawing::constructor() {
+    self->setPrivate(CID_MAGICKDRAWING, new QoreMagickDrawing());
+}
+
+//! Destroys the MagickDrawing object
+/**
+*/
+MagickDrawing::destructor() {
+    dw->deref(xsink);
+}
+
+// --- Font/Text config ---
+
+//! Sets the font for text operations
+/** @param font the font name or path to a font file
+*/
+nothing MagickDrawing::setFont(string font) {
+    dw->setFont(font->c_str(), xsink);
+}
+
+//! Sets the font size for text operations
+/** @param size the font size in points
+*/
+nothing MagickDrawing::setFontSize(float size) {
+    dw->setFontSize(size, xsink);
+}
+
+//! Sets the font family for text operations
+/** @param family the font family name (e.g. "Helvetica", "Times", "Courier")
+*/
+nothing MagickDrawing::setFontFamily(string family) {
+    dw->setFontFamily(family->c_str(), xsink);
+}
+
+//! Sets the font weight
+/** @param weight the font weight (e.g. 400 for normal, 700 for bold)
+*/
+nothing MagickDrawing::setFontWeight(int weight) {
+    dw->setFontWeight(weight, xsink);
+}
+
+//! Sets the font style
+/** @param style the font style: "normal", "italic", or "oblique"
+
+    @throw IMAGEMAGICK-ERROR error if style is invalid
+*/
+nothing MagickDrawing::setFontStyle(string style) {
+    dw->setFontStyle(style->c_str(), xsink);
+}
+
+// --- Color config ---
+
+//! Sets the fill color for shapes and text
+/** @param color the color name or value (e.g. "red", "#FF0000", "rgb(255,0,0)")
+*/
+nothing MagickDrawing::setFillColor(string color) {
+    dw->setFillColor(color->c_str(), xsink);
+}
+
+//! Sets the stroke (outline) color
+/** @param color the color name or value
+*/
+nothing MagickDrawing::setStrokeColor(string color) {
+    dw->setStrokeColor(color->c_str(), xsink);
+}
+
+//! Sets the stroke width
+/** @param width the stroke width in pixels
+*/
+nothing MagickDrawing::setStrokeWidth(float width) {
+    dw->setStrokeWidth(width, xsink);
+}
+
+//! Sets the fill opacity
+/** @param opacity the opacity value (0.0 = transparent, 1.0 = opaque)
+*/
+nothing MagickDrawing::setFillOpacity(float opacity) {
+    dw->setFillOpacity(opacity, xsink);
+}
+
+//! Sets the stroke opacity
+/** @param opacity the opacity value (0.0 = transparent, 1.0 = opaque)
+*/
+nothing MagickDrawing::setStrokeOpacity(float opacity) {
+    dw->setStrokeOpacity(opacity, xsink);
+}
+
+// --- Shape methods ---
+
+//! Draws a line
+/** @param sx start x coordinate
+    @param sy start y coordinate
+    @param ex end x coordinate
+    @param ey end y coordinate
+*/
+nothing MagickDrawing::line(float sx, float sy, float ex, float ey) {
+    dw->line(sx, sy, ex, ey, xsink);
+}
+
+//! Draws a rectangle
+/** @param x1 top-left x coordinate
+    @param y1 top-left y coordinate
+    @param x2 bottom-right x coordinate
+    @param y2 bottom-right y coordinate
+*/
+nothing MagickDrawing::rectangle(float x1, float y1, float x2, float y2) {
+    dw->rectangle(x1, y1, x2, y2, xsink);
+}
+
+//! Draws a rounded rectangle
+/** @param x1 top-left x coordinate
+    @param y1 top-left y coordinate
+    @param x2 bottom-right x coordinate
+    @param y2 bottom-right y coordinate
+    @param rx horizontal corner radius
+    @param ry vertical corner radius
+*/
+nothing MagickDrawing::roundRectangle(float x1, float y1, float x2, float y2, float rx, float ry) {
+    dw->roundRectangle(x1, y1, x2, y2, rx, ry, xsink);
+}
+
+//! Draws a circle
+/** @param ox center x coordinate
+    @param oy center y coordinate
+    @param px a point on the circle circumference x coordinate
+    @param py a point on the circle circumference y coordinate
+*/
+nothing MagickDrawing::circle(float ox, float oy, float px, float py) {
+    dw->circle(ox, oy, px, py, xsink);
+}
+
+//! Draws an ellipse
+/** @param ox center x coordinate
+    @param oy center y coordinate
+    @param rx horizontal radius
+    @param ry vertical radius
+    @param start the start angle in degrees
+    @param end the end angle in degrees
+*/
+nothing MagickDrawing::ellipse(float ox, float oy, float rx, float ry, float start, float end) {
+    dw->ellipse(ox, oy, rx, ry, start, end, xsink);
+}
+
+//! Draws an arc
+/** @param sx start x coordinate
+    @param sy start y coordinate
+    @param ex end x coordinate
+    @param ey end y coordinate
+    @param sd start degree
+    @param ed end degree
+*/
+nothing MagickDrawing::arc(float sx, float sy, float ex, float ey, float sd, float ed) {
+    dw->arc(sx, sy, ex, ey, sd, ed, xsink);
+}
+
+//! Draws a single point
+/** @param x the x coordinate
+    @param y the y coordinate
+*/
+nothing MagickDrawing::point(float x, float y) {
+    dw->point(x, y, xsink);
+}
+
+//! Draws a polygon
+/** @param points a list of @ref Qore::ImageMagick::PointInfo hashes (at least 3)
+
+    @throw IMAGEMAGICK-ERROR if fewer than 3 points are provided
+*/
+nothing MagickDrawing::polygon(list<hash<PointInfo>> points) {
+    dw->polygon(points, xsink);
+}
+
+//! Draws a polyline
+/** @param points a list of @ref Qore::ImageMagick::PointInfo hashes (at least 2)
+
+    @throw IMAGEMAGICK-ERROR if fewer than 2 points are provided
+*/
+nothing MagickDrawing::polyline(list<hash<PointInfo>> points) {
+    dw->polyline(points, xsink);
+}
+
+// --- Text ---
+
+//! Draws text at the specified position
+/** @param x the x coordinate
+    @param y the y coordinate
+    @param text the text to draw
+*/
+nothing MagickDrawing::annotation(float x, float y, string text) {
+    dw->annotation(x, y, text->c_str(), xsink);
+}
+
+// --- Transforms ---
+
+//! Applies a rotation to subsequent drawing operations
+/** @param degrees the rotation angle in degrees
+*/
+nothing MagickDrawing::rotate(float degrees) {
+    dw->rotate(degrees, xsink);
+}
+
+//! Applies a translation to subsequent drawing operations
+/** @param x the horizontal offset
+    @param y the vertical offset
+*/
+nothing MagickDrawing::translate(float x, float y) {
+    dw->translate(x, y, xsink);
+}
+
+//! Applies a scale to subsequent drawing operations
+/** @param x the horizontal scale factor
+    @param y the vertical scale factor
+*/
+nothing MagickDrawing::drawScale(float x, float y) {
+    dw->drawScale(x, y, xsink);
+}
+
+//! Applies a horizontal skew to subsequent drawing operations
+/** @param degrees the skew angle in degrees
+*/
+nothing MagickDrawing::skewX(float degrees) {
+    dw->skewX(degrees, xsink);
+}
+
+//! Applies a vertical skew to subsequent drawing operations
+/** @param degrees the skew angle in degrees
+*/
+nothing MagickDrawing::skewY(float degrees) {
+    dw->skewY(degrees, xsink);
+}
+
+// --- State ---
+
+//! Pushes the drawing context state (saves current settings)
+/**
+*/
+nothing MagickDrawing::push() {
+    dw->push(xsink);
+}
+
+//! Pops the drawing context state (restores saved settings)
+/**
+*/
+nothing MagickDrawing::pop() {
+    dw->pop(xsink);
+}

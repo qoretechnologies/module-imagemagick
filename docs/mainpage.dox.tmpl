@@ -1,0 +1,125 @@
+/** @mainpage Qore imagemagick Module
+
+    @tableofcontents
+
+    @section imagemagickintro ImageMagick Module Introduction
+
+    The \c imagemagick module provides comprehensive image processing and manipulation capabilities
+    for %Qore by wrapping the ImageMagick MagickWand C API.
+
+    To use this module, use the \c %%requires directive as follows:
+    @code{.py}
+%requires imagemagick
+    @endcode
+
+    This module provides the following classes:
+    - @ref Qore::ImageMagick::MagickImage "MagickImage": the main image class for loading,
+      manipulating, and saving images
+    - @ref Qore::ImageMagick::MagickDrawing "MagickDrawing": vector graphics drawing class
+
+    @section imagemagickreq ImageMagick Module Requirements
+
+    This module requires:
+    - %Qore 2.0+
+    - ImageMagick 7.0+ with MagickWand development libraries
+
+    @section imagemagickquickstart Quick Start
+
+    @par Loading and resizing an image:
+    @code{.py}
+%requires imagemagick
+
+MagickImage img("photo.jpg");
+img.resize(800, 600, "Lanczos");
+img.writeFile("photo_resized.jpg");
+    @endcode
+
+    @par Format conversion:
+    @code{.py}
+MagickImage img("document.png");
+binary jpeg_data = img.toData("JPEG");
+    @endcode
+
+    @par Applying effects:
+    @code{.py}
+MagickImage img("photo.jpg");
+img.charcoal(1.0, 0.5);
+img.writeFile("charcoal.jpg");
+    @endcode
+
+    @par Drawing shapes and text:
+    @code{.py}
+MagickDrawing dw();
+dw.setFillColor("blue");
+dw.rectangle(10.0, 10.0, 100.0, 100.0);
+dw.setFillColor("red");
+dw.setFontSize(24.0);
+dw.annotation(50.0, 150.0, "Hello!");
+
+MagickImage img(300, 300, "white");
+img.draw(dw);
+img.writeFile("drawing.png");
+    @endcode
+
+    @par Creating thumbnails:
+    @code{.py}
+MagickImage img("photo.jpg");
+img.thumbnail(200, 200);
+img.sharpen(0.0, 1.0);
+img.setCompressionQuality(85);
+img.writeFile("thumb.jpg");
+    @endcode
+
+    @par Working with metadata:
+    @code{.py}
+MagickImage img("photo.jpg");
+hash<ImageInfo> info = img.getInfo();
+printf("Size: %dx%d, Format: %s\n", info.width, info.height, info.format);
+    @endcode
+
+    @section imagemagickformats Supported Image Formats
+
+    ImageMagick supports over 200 image formats including PNG, JPEG, GIF, BMP, TIFF, WebP,
+    SVG, PDF, and many more. The available formats depend on your ImageMagick installation
+    and its configured delegates.
+
+    @section imagemagickfilters Filter Types
+
+    The following filter types are available for resize operations:
+    | Filter | Description |
+    |--------|-------------|
+    | Lanczos | High quality (default, recommended for most uses) |
+    | Mitchell | Balanced sharpness and ringing |
+    | Catrom | Catmull-Rom spline (good for reduction) |
+    | Gaussian | Gaussian curve |
+    | Box | Nearest neighbor (for pixel art upscaling) |
+    | Triangle | Bilinear interpolation |
+    | Point | Nearest neighbor (fastest) |
+    | Cubic | Cubic interpolation |
+
+    @section imagemagickcolorspaces Colorspaces
+
+    Supported colorspaces include: sRGB, RGB, CMYK, Gray, HSL, HSV, Lab, LCH, YCbCr,
+    and many others.
+
+    @section imagemagickdataprovider Data Provider API
+
+    The \c ImageMagickDataProvider module provides integration with the %Qore data provider
+    framework for use with Qorus. See @ref imagemagickdataproviderintro for details.
+
+    @section imagemagickerrors Error Handling
+
+    All errors are raised as \c IMAGEMAGICK-ERROR exceptions with descriptive messages
+    from the ImageMagick library.
+
+    @section imagemagickreleasenotes Release Notes
+
+    @subsection imagemagick_v1_0 imagemagick Module Version 1.0
+    - initial public release
+
+    @section imagemagicklicense License
+
+    The imagemagick module is released under the MIT license.
+
+    Copyright (C) 2026 Qore Technologies, s.r.o.
+*/

@@ -1,0 +1,1433 @@
+/* -*- mode: c++; indent-tabs-mode: nil -*- */
+/** @file QC_MagickImage.cpp defines the %Qore MagickImage class and related types */
+/*
+    Qore imagemagick module
+
+    Copyright (C) 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+#include "QC_MagickImage.h"
+#include "QoreMagickImage.h"
+#include "QC_MagickDrawing.h"
+#include "QoreMagickDrawing.h"
+
+/** @defgroup im_filter_types ImageMagick Filter Types
+    These constants define the filter types for image resizing.
+*/
+///@{
+//! Lanczos filter (high quality, recommended for most uses)
+const IM_FILTER_LANCZOS = IM_FILTER_LANCZOS_VAL;
+
+//! Mitchell filter (balanced sharpness and ringing)
+const IM_FILTER_MITCHELL = IM_FILTER_MITCHELL_VAL;
+
+//! Catrom filter (Catmull-Rom, good for reduction)
+const IM_FILTER_CATROM = IM_FILTER_CATROM_VAL;
+
+//! Gaussian filter
+const IM_FILTER_GAUSSIAN = IM_FILTER_GAUSSIAN_VAL;
+
+//! Box filter (nearest neighbor for upscale)
+const IM_FILTER_BOX = IM_FILTER_BOX_VAL;
+
+//! Triangle (bilinear) filter
+const IM_FILTER_TRIANGLE = IM_FILTER_TRIANGLE_VAL;
+
+//! Point filter (nearest neighbor)
+const IM_FILTER_POINT = IM_FILTER_POINT_VAL;
+
+//! Cubic filter
+const IM_FILTER_CUBIC = IM_FILTER_CUBIC_VAL;
+///@}
+
+/** @defgroup im_colorspace_types ImageMagick Colorspace Types
+    String constants for colorspace types used with MagickImage methods.
+*/
+///@{
+//! sRGB colorspace
+const IM_COLORSPACE_SRGB = "sRGB";
+
+//! RGB colorspace
+const IM_COLORSPACE_RGB = "RGB";
+
+//! CMYK colorspace
+const IM_COLORSPACE_CMYK = "CMYK";
+
+//! Grayscale colorspace
+const IM_COLORSPACE_GRAY = "Gray";
+
+//! HSL colorspace
+const IM_COLORSPACE_HSL = "HSL";
+
+//! Lab colorspace
+const IM_COLORSPACE_LAB = "Lab";
+///@}
+
+/** @defgroup im_composite_ops ImageMagick Composite Operators
+    String constants for composite operations.
+*/
+///@{
+//! Overlay source on destination
+const IM_COMPOSITE_OVER = "Over";
+
+//! Multiply composite
+const IM_COMPOSITE_MULTIPLY = "Multiply";
+
+//! Screen composite
+const IM_COMPOSITE_SCREEN = "Screen";
+
+//! Overlay composite
+const IM_COMPOSITE_OVERLAY = "Overlay";
+
+//! Difference composite
+const IM_COMPOSITE_DIFFERENCE = "Difference";
+
+//! Addition composite
+const IM_COMPOSITE_PLUS = "Plus";
+
+//! Dissolve composite
+const IM_COMPOSITE_DISSOLVE = "Dissolve";
+///@}
+
+/** @defgroup im_gravity_types ImageMagick Gravity Types
+    String constants for gravity types.
+*/
+///@{
+//! Center gravity
+const IM_GRAVITY_CENTER = "Center";
+
+//! North gravity
+const IM_GRAVITY_NORTH = "North";
+
+//! South gravity
+const IM_GRAVITY_SOUTH = "South";
+
+//! East gravity
+const IM_GRAVITY_EAST = "East";
+
+//! West gravity
+const IM_GRAVITY_WEST = "West";
+
+//! NorthWest gravity
+const IM_GRAVITY_NORTHWEST = "NorthWest";
+
+//! NorthEast gravity
+const IM_GRAVITY_NORTHEAST = "NorthEast";
+
+//! SouthWest gravity
+const IM_GRAVITY_SOUTHWEST = "SouthWest";
+
+//! SouthEast gravity
+const IM_GRAVITY_SOUTHEAST = "SouthEast";
+///@}
+
+/** @defgroup im_noise_types ImageMagick Noise Types
+    String constants for noise types.
+*/
+///@{
+//! Uniform noise
+const IM_NOISE_UNIFORM = "Uniform";
+
+//! Gaussian noise
+const IM_NOISE_GAUSSIAN = "Gaussian";
+
+//! Multiplicative Gaussian noise
+const IM_NOISE_MULTIPLICATIVE_GAUSSIAN = "MultiplicativeGaussian";
+
+//! Impulse noise
+const IM_NOISE_IMPULSE = "Impulse";
+
+//! Laplacian noise
+const IM_NOISE_LAPLACIAN = "Laplacian";
+
+//! Poisson noise
+const IM_NOISE_POISSON = "Poisson";
+
+//! Random noise
+const IM_NOISE_RANDOM = "Random";
+///@}
+
+//! Image metadata information
+/** @since %imagemagick 1.0
+*/
+hashdecl Qore::ImageMagick::ImageInfo {
+    //! Image width in pixels
+    int width;
+
+    //! Image height in pixels
+    int height;
+
+    //! Image format (e.g. "PNG", "JPEG", "GIF")
+    string format;
+
+    //! Image depth in bits per channel
+    int depth;
+
+    //! Image colorspace (e.g. "sRGB", "CMYK", "Gray")
+    string colorspace;
+
+    //! Image type (e.g. "TrueColor", "Palette", "Grayscale")
+    string image_type;
+
+    //! Image resolution
+    hash<ImageResolutionInfo> resolution;
+
+    //! Compression quality (0-100, format dependent)
+    int compression_quality;
+
+    //! Number of images (for multi-image formats like GIF)
+    int number_images;
+
+    //! Number of unique colors in the image
+    int colors;
+
+    //! Cryptographic signature of the image
+    string signature;
+}
+
+//! Image resolution information
+/** @since %imagemagick 1.0
+*/
+hashdecl Qore::ImageMagick::ImageResolutionInfo {
+    //! Horizontal resolution (DPI)
+    float x;
+
+    //! Vertical resolution (DPI)
+    float y;
+}
+
+//! Point coordinates for drawing operations
+/** @since %imagemagick 1.0
+*/
+hashdecl Qore::ImageMagick::PointInfo {
+    //! X coordinate
+    float x;
+
+    //! Y coordinate
+    float y;
+}
+
+//! The MagickImage class provides comprehensive image processing and manipulation capabilities
+/**
+    @par Example: Loading and resizing an image
+    @code{.py}
+#!/usr/bin/qore
+
+%requires imagemagick
+
+MagickImage img("photo.jpg");
+img.resize(800, 600, "Lanczos");
+img.writeFile("photo_resized.jpg");
+    @endcode
+
+    @par Example: Creating a thumbnail with effects
+    @code{.py}
+MagickImage img("photo.jpg");
+img.thumbnail(200, 200);
+img.sharpen(0.0, 1.0);
+img.setCompressionQuality(85);
+img.writeFile("thumb.jpg");
+    @endcode
+
+    @par Example: Format conversion
+    @code{.py}
+MagickImage img("document.png");
+binary jpeg_data = img.toData("JPEG");
+    @endcode
+
+    @par Example: Working with image metadata
+    @code{.py}
+MagickImage img("photo.jpg");
+hash<ImageInfo> info = img.getInfo();
+printf("Size: %dx%d, Format: %s\n", info.width, info.height, info.format);
+*string exif_date = img.getProperty("exif:DateTimeOriginal");
+    @endcode
+
+    @since %imagemagick 1.0
+*/
+qclass MagickImage [arg=QoreMagickImage* img; ns=Qore::ImageMagick];
+
+//! Creates a MagickImage by reading from a file
+/** @param path the path to the image file
+
+    @throw IMAGEMAGICK-ERROR error reading the image file
+*/
+MagickImage::constructor(string path) [dom=FILESYSTEM] {
+    ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(path->c_str(), xsink), xsink);
+    if (*xsink) {
+        return;
+    }
+    self->setPrivate(CID_MAGICKIMAGE, holder.release());
+}
+
+//! Creates a MagickImage from binary data
+/** @param data binary data containing an image
+
+    @throw IMAGEMAGICK-ERROR error reading the image data
+*/
+MagickImage::constructor(binary data) {
+    ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(data, xsink), xsink);
+    if (*xsink) {
+        return;
+    }
+    self->setPrivate(CID_MAGICKIMAGE, holder.release());
+}
+
+//! Creates a MagickImage from binary data with an explicit format
+/** @param data binary data containing an image
+    @param format the image format (e.g. "PNG", "JPEG")
+
+    @throw IMAGEMAGICK-ERROR error reading the image data
+*/
+MagickImage::constructor(binary data, string format) {
+    ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(data, format->c_str(), xsink), xsink);
+    if (*xsink) {
+        return;
+    }
+    self->setPrivate(CID_MAGICKIMAGE, holder.release());
+}
+
+//! Creates a blank image with the given dimensions and background color
+/** @param width the image width in pixels
+    @param height the image height in pixels
+    @param background_color the background color name (e.g. "white", "black", "#FF0000", "transparent")
+
+    @throw IMAGEMAGICK-ERROR error creating the image
+*/
+MagickImage::constructor(int width, int height, string background_color = "white") {
+    ReferenceHolder<QoreMagickImage> holder(
+        new QoreMagickImage(static_cast<size_t>(width), static_cast<size_t>(height),
+                            background_color->c_str(), xsink), xsink);
+    if (*xsink) {
+        return;
+    }
+    self->setPrivate(CID_MAGICKIMAGE, holder.release());
+}
+
+//! Creates a copy of this MagickImage
+/** @return a new independent MagickImage copy
+
+    @throw IMAGEMAGICK-ERROR error cloning the image
+*/
+MagickImage::copy() {
+    ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(*img, xsink), xsink);
+    if (*xsink) {
+        return;
+    }
+    self->setPrivate(CID_MAGICKIMAGE, holder.release());
+}
+
+//! Destroys the MagickImage object
+/**
+*/
+MagickImage::destructor() {
+    img->deref(xsink);
+}
+
+// --- I/O Methods ---
+
+//! Reads an image from a file, appending to the image list
+/** @param path the path to the image file
+
+    @throw IMAGEMAGICK-ERROR error reading the image file
+*/
+nothing MagickImage::readFile(string path) [dom=FILESYSTEM] {
+    img->readFile(path->c_str(), xsink);
+}
+
+//! Reads an image from binary data, appending to the image list
+/** @param data binary data containing an image
+
+    @throw IMAGEMAGICK-ERROR error reading the image data
+*/
+nothing MagickImage::readData(binary data) {
+    img->readData(data, xsink);
+}
+
+//! Gets image metadata from a file without reading pixel data
+/** @param path the path to the image file
+
+    @return an @ref Qore::ImageMagick::ImageInfo hash with image metadata
+
+    @throw IMAGEMAGICK-ERROR error pinging the image file
+*/
+hash<ImageInfo> MagickImage::pingFile(string path) [dom=FILESYSTEM] {
+    return img->pingFile(path->c_str(), xsink);
+}
+
+//! Gets image metadata from binary data without decoding pixel data
+/** @param data binary data containing an image
+
+    @return an @ref Qore::ImageMagick::ImageInfo hash with image metadata
+
+    @throw IMAGEMAGICK-ERROR error pinging the image data
+*/
+hash<ImageInfo> MagickImage::pingData(binary data) {
+    return img->pingData(data, xsink);
+}
+
+//! Writes the image to a file
+/** @param path the output file path; the format is determined by the file extension
+
+    @throw IMAGEMAGICK-ERROR error writing the image file
+*/
+nothing MagickImage::writeFile(string path) [dom=FILESYSTEM] {
+    img->writeFile(path->c_str(), xsink);
+}
+
+//! Writes all images in the list to a file
+/** @param path the output file path
+    @param adjoin if True, join all images into a single multi-image file
+
+    @throw IMAGEMAGICK-ERROR error writing the image files
+*/
+nothing MagickImage::writeFiles(string path, bool adjoin = True) [dom=FILESYSTEM] {
+    img->writeFiles(path->c_str(), adjoin, xsink);
+}
+
+//! Returns the image as binary data in its current format
+/** @return the image data as binary
+
+    @throw IMAGEMAGICK-ERROR error getting the image data
+*/
+binary MagickImage::toData() {
+    return img->toData(xsink);
+}
+
+//! Returns the image as binary data in the specified format
+/** @param format the output format (e.g. "PNG", "JPEG", "GIF", "BMP", "TIFF")
+
+    @return the image data as binary in the specified format
+
+    @throw IMAGEMAGICK-ERROR error getting the image data
+*/
+binary MagickImage::toData(string format) {
+    return img->toDataWithFormat(format->c_str(), xsink);
+}
+
+// --- Info/Metadata Methods ---
+
+//! Returns the image width in pixels
+/** @return the width
+*/
+int MagickImage::width() {
+    return img->getWidth(xsink);
+}
+
+//! Returns the image height in pixels
+/** @return the height
+*/
+int MagickImage::height() {
+    return img->getHeight(xsink);
+}
+
+//! Returns the image format
+/** @return the format string (e.g. "PNG", "JPEG")
+*/
+string MagickImage::format() {
+    return img->getFormat(xsink);
+}
+
+//! Sets the image format
+/** @param format the format string (e.g. "PNG", "JPEG")
+
+    @throw IMAGEMAGICK-ERROR error setting the format
+*/
+nothing MagickImage::setFormat(string format) {
+    img->setFormat(format->c_str(), xsink);
+}
+
+//! Returns the image depth (bits per channel)
+/** @return the depth
+*/
+int MagickImage::depth() {
+    return img->getDepth(xsink);
+}
+
+//! Sets the image depth
+/** @param depth bits per channel
+
+    @throw IMAGEMAGICK-ERROR error setting the depth
+*/
+nothing MagickImage::setDepth(int depth) {
+    img->setDepth(depth, xsink);
+}
+
+//! Returns the image colorspace
+/** @return the colorspace name (e.g. "sRGB", "CMYK", "Gray")
+*/
+string MagickImage::colorspace() {
+    return img->getColorspace(xsink);
+}
+
+//! Sets the image colorspace
+/** @param colorspace the colorspace name
+
+    @throw IMAGEMAGICK-ERROR error setting the colorspace
+*/
+nothing MagickImage::setColorspace(string colorspace) {
+    img->setColorspace(colorspace->c_str(), xsink);
+}
+
+//! Returns the image type
+/** @return the image type (e.g. "TrueColor", "Grayscale", "Palette")
+*/
+string MagickImage::imageType() {
+    return img->getImageType(xsink);
+}
+
+//! Returns the image resolution
+/** @return an @ref Qore::ImageMagick::ImageResolutionInfo hash
+*/
+hash<ImageResolutionInfo> MagickImage::resolution() {
+    return img->getResolution(xsink);
+}
+
+//! Sets the image resolution
+/** @param x horizontal resolution (DPI)
+    @param y vertical resolution (DPI)
+
+    @throw IMAGEMAGICK-ERROR error setting the resolution
+*/
+nothing MagickImage::setResolution(float x, float y) {
+    img->setResolution(x, y, xsink);
+}
+
+//! Returns the compression quality
+/** @return the quality value (0-100)
+*/
+int MagickImage::compressionQuality() {
+    return img->getCompressionQuality(xsink);
+}
+
+//! Sets the compression quality
+/** @param quality the quality value (0-100, format dependent)
+
+    @throw IMAGEMAGICK-ERROR error setting the quality
+*/
+nothing MagickImage::setCompressionQuality(int quality) {
+    img->setCompressionQuality(quality, xsink);
+}
+
+//! Returns the image signature (cryptographic hash)
+/** @return the signature string
+*/
+string MagickImage::signature() {
+    return img->getSignature(xsink);
+}
+
+//! Returns a verbose description of the image
+/** @return a string with detailed image information
+*/
+string MagickImage::identify() {
+    return img->identify(xsink);
+}
+
+//! Returns the number of unique colors
+/** @return the color count
+*/
+int MagickImage::colors() {
+    return img->getColors(xsink);
+}
+
+//! Returns the number of images in the image list
+/** @return the image count
+*/
+int MagickImage::numberImages() {
+    return img->getNumberImages(xsink);
+}
+
+//! Returns comprehensive image metadata
+/** @return an @ref Qore::ImageMagick::ImageInfo hash
+*/
+hash<ImageInfo> MagickImage::getInfo() {
+    return img->getInfo(xsink);
+}
+
+// --- Properties/Profiles ---
+
+//! Gets an image property value
+/** @param name the property name (e.g. "exif:DateTimeOriginal", "comment")
+
+    @return the property value, or NOTHING if not found
+*/
+*string MagickImage::getProperty(string name) {
+    return img->getProperty(name->c_str(), xsink);
+}
+
+//! Gets all image properties matching a pattern
+/** @param pattern the property name pattern (e.g. "exif:*", "*")
+
+    @return a hash of property name/value pairs
+*/
+hash<auto> MagickImage::getProperties(string pattern = "*") {
+    return img->getProperties(pattern->c_str(), xsink);
+}
+
+//! Sets an image property
+/** @param name the property name
+    @param value the property value
+
+    @throw IMAGEMAGICK-ERROR error setting the property
+*/
+nothing MagickImage::setProperty(string name, string value) {
+    img->setProperty(name->c_str(), value->c_str(), xsink);
+}
+
+//! Deletes an image property
+/** @param name the property name
+
+    @throw IMAGEMAGICK-ERROR error deleting the property
+*/
+nothing MagickImage::deleteProperty(string name) {
+    img->deleteProperty(name->c_str(), xsink);
+}
+
+//! Gets an image profile (e.g. ICC, IPTC, EXIF)
+/** @param name the profile name (e.g. "icc", "iptc", "exif")
+
+    @return the profile data as binary, or NOTHING if not found
+*/
+*binary MagickImage::getProfile(string name) {
+    return img->getProfile(name->c_str(), xsink);
+}
+
+//! Sets an image profile
+/** @param name the profile name
+    @param data the profile data
+
+    @throw IMAGEMAGICK-ERROR error setting the profile
+*/
+nothing MagickImage::setProfile(string name, binary data) {
+    img->setProfile(name->c_str(), data, xsink);
+}
+
+//! Gets the names of all image profiles
+/** @return a list of profile names
+*/
+list<string> MagickImage::getProfileNames() {
+    return img->getProfileNames(xsink);
+}
+
+//! Strips all profiles and comments from the image
+/** @throw IMAGEMAGICK-ERROR error stripping the image
+*/
+nothing MagickImage::strip() {
+    img->strip(xsink);
+}
+
+// --- Resize Methods ---
+
+//! Resizes the image using the specified filter
+/** @param width the target width
+    @param height the target height
+    @param filter the filter type name (e.g. "Lanczos", "Mitchell", "Catrom")
+
+    @throw IMAGEMAGICK-ERROR error resizing the image
+*/
+nothing MagickImage::resize(int width, int height, string filter = "Lanczos") {
+    img->resize(width, height, filter->c_str(), xsink);
+}
+
+//! Scales the image (fast, no filtering)
+/** @param width the target width
+    @param height the target height
+
+    @throw IMAGEMAGICK-ERROR error scaling the image
+*/
+nothing MagickImage::scale(int width, int height) {
+    img->scale(width, height, xsink);
+}
+
+//! Creates a thumbnail of the image
+/** @param width the target width
+    @param height the target height
+
+    @throw IMAGEMAGICK-ERROR error creating the thumbnail
+*/
+nothing MagickImage::thumbnail(int width, int height) {
+    img->thumbnail(width, height, xsink);
+}
+
+//! Adaptively resizes the image with data-dependent triangulation
+/** @param width the target width
+    @param height the target height
+
+    @throw IMAGEMAGICK-ERROR error resizing the image
+*/
+nothing MagickImage::adaptiveResize(int width, int height) {
+    img->adaptiveResize(width, height, xsink);
+}
+
+//! Scales the image using pixel sampling (fastest, no interpolation)
+/** @param width the target width
+    @param height the target height
+
+    @throw IMAGEMAGICK-ERROR error sampling the image
+*/
+nothing MagickImage::sample(int width, int height) {
+    img->sample(width, height, xsink);
+}
+
+//! Resamples the image to the given resolution
+/** @param x_resolution the target horizontal resolution (DPI)
+    @param y_resolution the target vertical resolution (DPI)
+    @param filter the filter type name
+
+    @throw IMAGEMAGICK-ERROR error resampling the image
+*/
+nothing MagickImage::resample(float x_resolution, float y_resolution, string filter = "Lanczos") {
+    img->resample(x_resolution, y_resolution, filter->c_str(), xsink);
+}
+
+//! Rescales the image using liquid/content-aware rescaling
+/** @param width the target width
+    @param height the target height
+    @param delta_x maximum seam step (0 = strict)
+    @param rigidity introduces a bias for non-straight seams (0 = unbiased)
+
+    @throw IMAGEMAGICK-ERROR error rescaling the image
+*/
+nothing MagickImage::liquidRescale(int width, int height, float delta_x = 0.0, float rigidity = 0.0) {
+    img->liquidRescale(width, height, delta_x, rigidity, xsink);
+}
+
+// --- Crop Methods ---
+
+//! Crops the image to the specified region
+/** @param width the crop width
+    @param height the crop height
+    @param x the left offset
+    @param y the top offset
+
+    @throw IMAGEMAGICK-ERROR error cropping the image
+*/
+nothing MagickImage::crop(int width, int height, int x, int y) {
+    img->crop(width, height, x, y, xsink);
+}
+
+//! Trims the image by removing edges that match the background
+/** @param fuzz color tolerance for edge detection (0.0 = exact match)
+
+    @throw IMAGEMAGICK-ERROR error trimming the image
+*/
+nothing MagickImage::trim(float fuzz = 0.0) {
+    img->trim(fuzz, xsink);
+}
+
+//! Sets the image extent (canvas size and position)
+/** @param width the new canvas width
+    @param height the new canvas height
+    @param x the horizontal offset of the image on the canvas
+    @param y the vertical offset of the image on the canvas
+
+    @throw IMAGEMAGICK-ERROR error setting the extent
+*/
+nothing MagickImage::extent(int width, int height, int x = 0, int y = 0) {
+    img->extent(width, height, x, y, xsink);
+}
+
+//! Removes a region from the image
+/** @param width the region width
+    @param height the region height
+    @param x the left offset
+    @param y the top offset
+
+    @throw IMAGEMAGICK-ERROR error chopping the image
+*/
+nothing MagickImage::chop(int width, int height, int x, int y) {
+    img->chop(width, height, x, y, xsink);
+}
+
+//! Shaves pixels from the edges of the image
+/** @param columns the number of columns to shave from each side
+    @param rows the number of rows to shave from top and bottom
+
+    @throw IMAGEMAGICK-ERROR error shaving the image
+*/
+nothing MagickImage::shave(int columns, int rows) {
+    img->shave(columns, rows, xsink);
+}
+
+//! Splices a region of the image
+/** @param width the width of the splice region
+    @param height the height of the splice region
+    @param x the left offset
+    @param y the top offset
+
+    @throw IMAGEMAGICK-ERROR error splicing the image
+*/
+nothing MagickImage::splice(int width, int height, int x, int y) {
+    img->splice(width, height, x, y, xsink);
+}
+
+// --- Transform Methods ---
+
+//! Rotates the image by the given angle
+/** @param degrees the rotation angle in degrees (clockwise)
+    @param background the background color for areas exposed by rotation
+
+    @throw IMAGEMAGICK-ERROR error rotating the image
+*/
+nothing MagickImage::rotate(float degrees, string background = "white") {
+    img->rotate(degrees, background->c_str(), xsink);
+}
+
+//! Flips the image vertically (top to bottom mirror)
+/** @throw IMAGEMAGICK-ERROR error flipping the image
+*/
+nothing MagickImage::flip() {
+    img->flip(xsink);
+}
+
+//! Flops the image horizontally (left to right mirror)
+/** @throw IMAGEMAGICK-ERROR error flopping the image
+*/
+nothing MagickImage::flop() {
+    img->flop(xsink);
+}
+
+//! Transposes the image (mirror along top-left to bottom-right diagonal)
+/** @throw IMAGEMAGICK-ERROR error transposing the image
+*/
+nothing MagickImage::transpose() {
+    img->transpose(xsink);
+}
+
+//! Transverses the image (mirror along top-right to bottom-left diagonal)
+/** @throw IMAGEMAGICK-ERROR error transversing the image
+*/
+nothing MagickImage::transverse() {
+    img->transverse(xsink);
+}
+
+//! Shears the image
+/** @param x the horizontal shear angle in degrees
+    @param y the vertical shear angle in degrees
+    @param background the background color for exposed areas
+
+    @throw IMAGEMAGICK-ERROR error shearing the image
+*/
+nothing MagickImage::shear(float x, float y, string background = "white") {
+    img->shear(x, y, background->c_str(), xsink);
+}
+
+//! Straightens the image by removing skew
+/** @param threshold the deskew threshold (try 40%% of quantum range)
+
+    @throw IMAGEMAGICK-ERROR error deskewing the image
+*/
+nothing MagickImage::deskew(float threshold) {
+    img->deskew(threshold, xsink);
+}
+
+//! Automatically orients the image based on EXIF orientation tag
+/** @throw IMAGEMAGICK-ERROR error auto-orienting the image
+*/
+nothing MagickImage::autoOrient() {
+    img->autoOrient(xsink);
+}
+
+// --- Blur/Sharpen Methods ---
+
+//! Applies a blur filter
+/** @param radius the blur radius (0 for auto)
+    @param sigma the blur standard deviation
+
+    @throw IMAGEMAGICK-ERROR error blurring the image
+*/
+nothing MagickImage::blur(float radius, float sigma) {
+    img->blur(radius, sigma, xsink);
+}
+
+//! Applies a Gaussian blur filter
+/** @param radius the blur radius (0 for auto)
+    @param sigma the blur standard deviation
+
+    @throw IMAGEMAGICK-ERROR error blurring the image
+*/
+nothing MagickImage::gaussianBlur(float radius, float sigma) {
+    img->gaussianBlur(radius, sigma, xsink);
+}
+
+//! Applies an adaptive blur that is stronger in less detailed areas
+/** @param radius the blur radius (0 for auto)
+    @param sigma the blur standard deviation
+
+    @throw IMAGEMAGICK-ERROR error blurring the image
+*/
+nothing MagickImage::adaptiveBlur(float radius, float sigma) {
+    img->adaptiveBlur(radius, sigma, xsink);
+}
+
+//! Applies a sharpening filter
+/** @param radius the sharpening radius (0 for auto)
+    @param sigma the sharpening standard deviation
+
+    @throw IMAGEMAGICK-ERROR error sharpening the image
+*/
+nothing MagickImage::sharpen(float radius, float sigma) {
+    img->sharpen(radius, sigma, xsink);
+}
+
+//! Applies an adaptive sharpening filter
+/** @param radius the sharpening radius (0 for auto)
+    @param sigma the sharpening standard deviation
+
+    @throw IMAGEMAGICK-ERROR error sharpening the image
+*/
+nothing MagickImage::adaptiveSharpen(float radius, float sigma) {
+    img->adaptiveSharpen(radius, sigma, xsink);
+}
+
+//! Applies an unsharp mask
+/** @param radius the mask radius (0 for auto)
+    @param sigma the standard deviation
+    @param gain the gain multiplier (typically 1.0-3.0)
+    @param threshold the threshold for selective sharpening
+
+    @throw IMAGEMAGICK-ERROR error applying unsharp mask
+*/
+nothing MagickImage::unsharpMask(float radius, float sigma, float gain, float threshold) {
+    img->unsharpMask(radius, sigma, gain, threshold, xsink);
+}
+
+//! Applies a motion blur
+/** @param radius the blur radius (0 for auto)
+    @param sigma the standard deviation
+    @param angle the blur angle in degrees
+
+    @throw IMAGEMAGICK-ERROR error applying motion blur
+*/
+nothing MagickImage::motionBlur(float radius, float sigma, float angle) {
+    img->motionBlur(radius, sigma, angle, xsink);
+}
+
+//! Applies a selective blur (only blurs pixels within threshold)
+/** @param radius the blur radius
+    @param sigma the standard deviation
+    @param threshold the color difference threshold
+
+    @throw IMAGEMAGICK-ERROR error applying selective blur
+*/
+nothing MagickImage::selectiveBlur(float radius, float sigma, float threshold) {
+    img->selectiveBlur(radius, sigma, threshold, xsink);
+}
+
+//! Applies a rotational blur (spin effect)
+/** @param angle the blur angle in degrees
+
+    @throw IMAGEMAGICK-ERROR error applying rotational blur
+*/
+nothing MagickImage::rotationalBlur(float angle) {
+    img->rotationalBlur(angle, xsink);
+}
+
+// --- Color Methods ---
+
+//! Adjusts brightness and contrast
+/** @param brightness the brightness adjustment (-100 to 100)
+    @param contrast the contrast adjustment (-100 to 100)
+
+    @throw IMAGEMAGICK-ERROR error adjusting brightness/contrast
+*/
+nothing MagickImage::brightnessContrast(float brightness, float contrast) {
+    img->brightnessContrast(brightness, contrast, xsink);
+}
+
+//! Applies gamma correction
+/** @param gamma_value the gamma value (< 1 darkens, > 1 brightens)
+
+    @throw IMAGEMAGICK-ERROR error applying gamma correction
+*/
+nothing MagickImage::gamma(float gamma_value) {
+    img->gamma(gamma_value, xsink);
+}
+
+//! Adjusts levels (black point, gamma, white point)
+/** @param black_point the black point value
+    @param gamma_value the gamma value
+    @param white_point the white point value
+
+    @throw IMAGEMAGICK-ERROR error adjusting levels
+*/
+nothing MagickImage::level(float black_point, float gamma_value, float white_point) {
+    img->level(black_point, gamma_value, white_point, xsink);
+}
+
+//! Modulates brightness, saturation, and hue
+/** @param brightness the brightness factor (100 = no change)
+    @param saturation the saturation factor (100 = no change)
+    @param hue the hue rotation (100 = no change)
+
+    @throw IMAGEMAGICK-ERROR error modulating the image
+*/
+nothing MagickImage::modulate(float brightness, float saturation, float hue) {
+    img->modulate(brightness, saturation, hue, xsink);
+}
+
+//! Negates (inverts) the image colors
+/** @param gray_only if True, only negate grayscale values
+
+    @throw IMAGEMAGICK-ERROR error negating the image
+*/
+nothing MagickImage::negate(bool gray_only = False) {
+    img->negate(gray_only, xsink);
+}
+
+//! Normalizes the image (enhances contrast by stretching the value range)
+/** @throw IMAGEMAGICK-ERROR error normalizing the image
+*/
+nothing MagickImage::normalize() {
+    img->normalize(xsink);
+}
+
+//! Equalizes the image histogram
+/** @throw IMAGEMAGICK-ERROR error equalizing the image
+*/
+nothing MagickImage::equalize() {
+    img->equalize(xsink);
+}
+
+//! Automatically adjusts gamma
+/** @throw IMAGEMAGICK-ERROR error applying auto gamma
+*/
+nothing MagickImage::autoGamma() {
+    img->autoGamma(xsink);
+}
+
+//! Automatically adjusts levels
+/** @throw IMAGEMAGICK-ERROR error applying auto levels
+*/
+nothing MagickImage::autoLevel() {
+    img->autoLevel(xsink);
+}
+
+//! Applies sigmoidal contrast adjustment
+/** @param sharpen if True, increase contrast; if False, decrease
+    @param strength the contrast strength
+    @param midpoint the midpoint value
+
+    @throw IMAGEMAGICK-ERROR error adjusting sigmoidal contrast
+*/
+nothing MagickImage::sigmoidalContrast(bool sharpen, float strength, float midpoint) {
+    img->sigmoidalContrast(sharpen, strength, midpoint, xsink);
+}
+
+//! Stretches contrast using black and white point percentages
+/** @param black_point the black point percentage
+    @param white_point the white point percentage
+
+    @throw IMAGEMAGICK-ERROR error stretching contrast
+*/
+nothing MagickImage::contrastStretch(float black_point, float white_point) {
+    img->contrastStretch(black_point, white_point, xsink);
+}
+
+//! Linearly stretches the image intensity
+/** @param black_point the black point
+    @param white_point the white point
+
+    @throw IMAGEMAGICK-ERROR error stretching linearly
+*/
+nothing MagickImage::linearStretch(float black_point, float white_point) {
+    img->linearStretch(black_point, white_point, xsink);
+}
+
+//! Enhances the image (applies a digital filter to improve quality)
+/** @throw IMAGEMAGICK-ERROR error enhancing the image
+*/
+nothing MagickImage::enhance() {
+    img->enhance(xsink);
+}
+
+//! Applies automatic white balance correction
+/** @throw IMAGEMAGICK-ERROR error white balancing the image
+*/
+nothing MagickImage::whiteBalance() {
+    img->whiteBalance(xsink);
+}
+
+//! Transforms the image to a different colorspace
+/** @param colorspace the target colorspace name
+
+    @throw IMAGEMAGICK-ERROR error transforming colorspace
+*/
+nothing MagickImage::transformColorspace(string colorspace) {
+    img->transformColorspace(colorspace->c_str(), xsink);
+}
+
+// --- Effect Methods ---
+
+//! Applies a charcoal drawing effect
+/** @param radius the effect radius
+    @param sigma the standard deviation
+
+    @throw IMAGEMAGICK-ERROR error applying charcoal effect
+*/
+nothing MagickImage::charcoal(float radius, float sigma) {
+    img->charcoal(radius, sigma, xsink);
+}
+
+//! Applies an edge detection filter
+/** @param radius the edge detection radius
+
+    @throw IMAGEMAGICK-ERROR error applying edge detection
+*/
+nothing MagickImage::edge(float radius) {
+    img->edge(radius, xsink);
+}
+
+//! Applies an emboss (3D) effect
+/** @param radius the effect radius
+    @param sigma the standard deviation
+
+    @throw IMAGEMAGICK-ERROR error applying emboss effect
+*/
+nothing MagickImage::emboss(float radius, float sigma) {
+    img->emboss(radius, sigma, xsink);
+}
+
+//! Applies an oil painting effect
+/** @param radius the effect radius
+    @param sigma the standard deviation
+
+    @throw IMAGEMAGICK-ERROR error applying oil paint effect
+*/
+nothing MagickImage::oilPaint(float radius, float sigma = 1.0) {
+    img->oilPaint(radius, sigma, xsink);
+}
+
+//! Applies a sketch effect
+/** @param radius the effect radius
+    @param sigma the standard deviation
+    @param angle the sketch angle in degrees
+
+    @throw IMAGEMAGICK-ERROR error applying sketch effect
+*/
+nothing MagickImage::sketch(float radius, float sigma, float angle) {
+    img->sketch(radius, sigma, angle, xsink);
+}
+
+//! Solarizes the image (reverses tones above threshold)
+/** @param threshold the solarize threshold
+
+    @throw IMAGEMAGICK-ERROR error solarizing the image
+*/
+nothing MagickImage::solarize(float threshold) {
+    img->solarize(threshold, xsink);
+}
+
+//! Applies a sepia tone effect
+/** @param threshold the sepia threshold (try 80%% of quantum range)
+
+    @throw IMAGEMAGICK-ERROR error applying sepia tone
+*/
+nothing MagickImage::sepiaTone(float threshold) {
+    img->sepiaTone(threshold, xsink);
+}
+
+//! Applies a vignette effect (soft dark edges)
+/** @param radius the effect radius
+    @param sigma the standard deviation
+    @param x horizontal offset
+    @param y vertical offset
+
+    @throw IMAGEMAGICK-ERROR error applying vignette
+*/
+nothing MagickImage::vignette(float radius, float sigma, int x = 0, int y = 0) {
+    img->vignette(radius, sigma, x, y, xsink);
+}
+
+//! Applies a shadow effect
+/** @param alpha the shadow opacity (0.0-1.0)
+    @param sigma the shadow blur standard deviation
+    @param x horizontal offset
+    @param y vertical offset
+
+    @throw IMAGEMAGICK-ERROR error applying shadow
+*/
+nothing MagickImage::shadow(float alpha, float sigma, int x, int y) {
+    img->shadow(alpha, sigma, x, y, xsink);
+}
+
+//! Applies a shade (3D lighting) effect
+/** @param gray if True, shade in grayscale
+    @param azimuth the light direction angle in degrees
+    @param elevation the light elevation angle in degrees
+
+    @throw IMAGEMAGICK-ERROR error applying shade
+*/
+nothing MagickImage::shade(bool gray, float azimuth, float elevation) {
+    img->shade(gray, azimuth, elevation, xsink);
+}
+
+//! Applies a wave distortion
+/** @param amplitude the wave amplitude in pixels
+    @param wavelength the wave length in pixels
+
+    @throw IMAGEMAGICK-ERROR error applying wave
+*/
+nothing MagickImage::wave(float amplitude, float wavelength) {
+    img->wave(amplitude, wavelength, xsink);
+}
+
+//! Applies a swirl distortion
+/** @param degrees the swirl degrees
+
+    @throw IMAGEMAGICK-ERROR error applying swirl
+*/
+nothing MagickImage::swirl(float degrees) {
+    img->swirl(degrees, xsink);
+}
+
+//! Applies an implosion distortion
+/** @param amount the implosion amount (positive = inward, negative = outward)
+
+    @throw IMAGEMAGICK-ERROR error applying implosion
+*/
+nothing MagickImage::implode(float amount) {
+    img->implode(amount, xsink);
+}
+
+//! Removes speckle noise
+/** @throw IMAGEMAGICK-ERROR error despeckling the image
+*/
+nothing MagickImage::despeckle() {
+    img->despeckle(xsink);
+}
+
+//! Reduces the number of colors (posterize effect)
+/** @param levels the number of color levels per channel
+    @param dither if True, apply dithering
+
+    @throw IMAGEMAGICK-ERROR error posterizing the image
+*/
+nothing MagickImage::posterize(int levels, bool dither = False) {
+    img->posterize(levels, dither, xsink);
+}
+
+//! Applies a threshold (converts to black and white based on threshold)
+/** @param threshold_value the threshold value
+
+    @throw IMAGEMAGICK-ERROR error thresholding the image
+*/
+nothing MagickImage::threshold(float threshold_value) {
+    img->threshold(threshold_value, xsink);
+}
+
+//! Adds random noise to the image
+/** @param noise_type the noise type (e.g. "Uniform", "Gaussian", "Impulse")
+    @param attenuate the noise attenuation factor
+
+    @throw IMAGEMAGICK-ERROR error adding noise
+*/
+nothing MagickImage::addNoise(string noise_type, float attenuate = 1.0) {
+    img->addNoise(noise_type->c_str(), attenuate, xsink);
+}
+
+//! Applies a blue shift effect (moonlight simulation)
+/** @param factor the blue shift factor (1.5 = typical moonlight)
+
+    @throw IMAGEMAGICK-ERROR error applying blue shift
+*/
+nothing MagickImage::blueShift(float factor = 1.5) {
+    img->blueShift(factor, xsink);
+}
+
+//! Reduces noise in the image
+/** @param radius the noise reduction radius
+
+    @throw IMAGEMAGICK-ERROR error reducing noise
+*/
+nothing MagickImage::reduceNoise(float radius) {
+    img->reduceNoise(radius, xsink);
+}
+
+//! Applies wavelet-based denoising
+/** @param threshold the denoising threshold
+    @param softness the softness factor (0.0 = hard threshold)
+
+    @throw IMAGEMAGICK-ERROR error denoising the image
+*/
+nothing MagickImage::waveletDenoise(float threshold, float softness = 0.0) {
+    img->waveletDenoise(threshold, softness, xsink);
+}
+
+// --- Composite Methods ---
+
+//! Composites another image onto this image at the specified position
+/** @param source the source image to composite
+    @param op the composite operator (e.g. "Over", "Multiply", "Screen")
+    @param x the horizontal offset
+    @param y the vertical offset
+
+    @throw IMAGEMAGICK-ERROR error compositing the image
+*/
+nothing MagickImage::composite(MagickImage[QoreMagickImage] source, string op, int x, int y) {
+    ReferenceHolder<QoreMagickImage> holder(source, xsink);
+    img->composite(source, op->c_str(), x, y, xsink);
+}
+
+//! Composites another image using gravity-based positioning
+/** @param source the source image to composite
+    @param op the composite operator
+    @param gravity the gravity type (e.g. "Center", "NorthWest")
+
+    @throw IMAGEMAGICK-ERROR error compositing the image
+*/
+nothing MagickImage::compositeGravity(MagickImage[QoreMagickImage] source, string op, string gravity) {
+    ReferenceHolder<QoreMagickImage> holder(source, xsink);
+    img->compositeGravity(source, op->c_str(), gravity->c_str(), xsink);
+}
+
+// --- Drawing Methods ---
+
+//! Annotates the image with text
+/** @param text the text to draw
+    @param x the horizontal position
+    @param y the vertical position
+    @param angle the text rotation angle in degrees
+    @param font the font name or path (empty for default)
+    @param font_size the font size in points (0 for default)
+    @param fill_color the text fill color (empty for default)
+    @param stroke_color the text stroke color (empty for none)
+
+    @throw IMAGEMAGICK-ERROR error annotating the image
+*/
+nothing MagickImage::annotate(string text, float x, float y, float angle = 0.0,
+                              string font = "", float font_size = 0.0,
+                              string fill_color = "black", string stroke_color = "") {
+    img->annotate(text->c_str(), x, y, angle, font->c_str(), font_size,
+                  fill_color->c_str(), stroke_color->c_str(), xsink);
+}
+
+//! Draws vector graphics from a MagickDrawing object onto the image
+/** @param drawing the MagickDrawing object with drawing commands
+
+    @throw IMAGEMAGICK-ERROR error drawing on the image
+*/
+nothing MagickImage::draw(MagickDrawing[QoreMagickDrawing] drawing) {
+    ReferenceHolder<QoreMagickDrawing> holder(drawing, xsink);
+    img->draw(drawing->getWand(), xsink);
+}
+
+//! Adds a border around the image
+/** @param color the border color
+    @param width the horizontal border width
+    @param height the vertical border height
+
+    @throw IMAGEMAGICK-ERROR error adding the border
+*/
+nothing MagickImage::border(string color, int width, int height) {
+    img->border(color->c_str(), width, height, xsink);
+}
+
+//! Adds a decorative frame around the image
+/** @param color the frame color
+    @param width the frame width
+    @param height the frame height
+    @param inner_bevel the inner bevel width
+    @param outer_bevel the outer bevel width
+
+    @throw IMAGEMAGICK-ERROR error adding the frame
+*/
+nothing MagickImage::frame(string color, int width, int height, int inner_bevel, int outer_bevel) {
+    img->frame(color->c_str(), width, height, inner_bevel, outer_bevel, xsink);
+}
+
+// --- Multi-image Methods ---
+
+//! Checks if there is a next image in the image list
+/** @return True if there is a next image
+*/
+bool MagickImage::hasNextImage() {
+    return img->hasNextImage(xsink);
+}
+
+//! Checks if there is a previous image in the image list
+/** @return True if there is a previous image
+*/
+bool MagickImage::hasPreviousImage() {
+    return img->hasPreviousImage(xsink);
+}
+
+//! Advances to the next image in the image list
+/** @return True if successful
+*/
+bool MagickImage::nextImage() {
+    return img->nextImage(xsink);
+}
+
+//! Goes back to the previous image in the image list
+/** @return True if successful
+*/
+bool MagickImage::previousImage() {
+    return img->previousImage(xsink);
+}
+
+//! Sets the iterator to a specific image index
+/** @param index the image index (0-based)
+
+    @throw IMAGEMAGICK-ERROR error setting the iterator
+*/
+nothing MagickImage::setIteratorIndex(int index) {
+    img->setIteratorIndex(index, xsink);
+}
+
+//! Returns the current iterator index
+/** @return the current index
+*/
+int MagickImage::iteratorIndex() {
+    return img->getIteratorIndex(xsink);
+}
+
+//! Resets the iterator to the first image
+/**
+*/
+nothing MagickImage::resetIterator() {
+    img->resetIterator(xsink);
+}
+
+// --- Pixel Methods ---
+
+//! Gets the color of a pixel
+/** @param x the pixel x coordinate
+    @param y the pixel y coordinate
+
+    @return the color as a normalized string
+
+    @throw IMAGEMAGICK-ERROR error getting the pixel color
+*/
+string MagickImage::getPixelColor(int x, int y) {
+    return img->getPixelColor(x, y, xsink);
+}
+
+//! Sets the color of a pixel
+/** @param x the pixel x coordinate
+    @param y the pixel y coordinate
+    @param color the color name or value (e.g. "red", "#FF0000")
+
+    @throw IMAGEMAGICK-ERROR error setting the pixel color
+*/
+nothing MagickImage::setPixelColor(int x, int y, string color) {
+    img->setPixelColor(x, y, color->c_str(), xsink);
+}
