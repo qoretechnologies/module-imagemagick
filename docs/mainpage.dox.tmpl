@@ -23,6 +23,7 @@
 
     To use this module, use the \c %%requires directive as follows:
     @code{.py}
+%modern
 %requires imagemagick
     @endcode
 
@@ -52,6 +53,7 @@
 
     @par Loading from file:
     @code{.py}
+%modern
 %requires imagemagick
 
 # Load from file
@@ -514,6 +516,7 @@ printf("Frame 3 index: %d\n", gif.iteratorIndex());
     @subsection imagemagick_batch Batch Processing
 
     @code{.py}
+%modern
 %requires imagemagick
 
 # Process all JPEGs in a directory
@@ -690,6 +693,7 @@ printf("Pixel color: %s\n", color);  # e.g., "srgb(255,0,0)"
 
     @par Using Data Provider to Resize:
     @code{.py}
+%modern
 %requires ImageMagickDataProvider
 
 AbstractDataProvider dp = DataProvider::getFactoryObjectFromStringEx("imagemagick{}/image/resize");

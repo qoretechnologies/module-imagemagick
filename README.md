@@ -37,6 +37,7 @@ make install
 ```qore
 #!/usr/bin/qore
 
+%modern
 %requires imagemagick
 
 # Load and resize an image
@@ -75,6 +76,7 @@ printf("Size: %dx%d, Format: %s\n", info.width, info.height, info.format);
 The module includes `ImageMagickDataProvider` for use with Qore's data provider framework:
 
 ```qore
+%modern
 %requires ImageMagickDataProvider
 
 # Resize an image
