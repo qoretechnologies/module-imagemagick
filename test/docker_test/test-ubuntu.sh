@@ -7,6 +7,9 @@ ENV_FILE=/tmp/env.sh
 
 . ${ENV_FILE}
 
+# Save original working directory before building ImageMagick
+orig_dir=`pwd`
+
 # Install ImageMagick 7 development libraries (Ubuntu repos only have IM6)
 apt-get update -qq
 apt-get install -y -qq pkg-config build-essential libjpeg-dev libpng-dev libtiff-dev libwebp-dev wget
@@ -20,7 +23,7 @@ cd /tmp/ImageMagick-${IM_VERSION}
 make -j4 --quiet
 make install --quiet
 ldconfig
-cd -
+cd ${orig_dir}
 
 # setup MODULE_SRC_DIR env var
 cwd=`pwd`
@@ -44,7 +47,7 @@ export MAKE_JOBS=4
 echo && echo "-- building module --"
 mkdir -p ${MODULE_SRC_DIR}/build
 cd ${MODULE_SRC_DIR}/build
-cmake .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
+cmake -S .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
 make -j${MAKE_JOBS}
 make install
 

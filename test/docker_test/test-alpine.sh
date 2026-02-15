@@ -32,7 +32,7 @@ export MAKE_JOBS=4
 echo && echo "-- building module --"
 mkdir -p ${MODULE_SRC_DIR}/build
 cd ${MODULE_SRC_DIR}/build
-cmake .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
+cmake -S .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
 make -j${MAKE_JOBS}
 make install
 
