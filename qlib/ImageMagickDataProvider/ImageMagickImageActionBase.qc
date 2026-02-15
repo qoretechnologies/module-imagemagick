@@ -50,19 +50,28 @@ public class ImageMagickImageActionBase inherits AbstractDataProvider {
         if (req.output_path) {
             img.writeFile(req.output_path);
         }
-        binary data = img.toData();
-        # Write to output_location if specified
-        if (req.output_location) {
-            FileLocationHandler::writeFileToLocation(req.output_location, data);
-        }
         bool has_output = exists req.output_path || exists req.output_location;
         bool do_return_data = exists req.return_data ? req.return_data : !has_output;
+        # Only skip serialization when output_path was written and data is not needed elsewhere
+        bool needs_data = do_return_data || exists req.output_location || !exists req.output_path;
+        *binary data;
+        if (needs_data) {
+            data = img.toData();
+            # Write to output_location if specified
+            if (req.output_location) {
+                FileLocationHandler::writeFileToLocation(req.output_location, data);
+            }
+        }
         hash<auto> response = {
             "width": img.width(),
             "height": img.height(),
             "format": img.format(),
-            "size": data.size(),
         };
+        if (data) {
+            response."size" = data.size();
+        } else if (req.output_path) {
+            response."size" = hstat(req.output_path).size;
+        }
         if (do_return_data) {
             response."data" = data;
         }

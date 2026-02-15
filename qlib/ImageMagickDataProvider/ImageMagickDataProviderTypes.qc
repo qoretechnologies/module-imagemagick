@@ -589,6 +589,7 @@ public class ImageMagickAnnotateRequestDataType inherits HashDataType {
                 "display_name": "Font",
                 "short_desc": "Font name",
                 "desc": "Font name or path to font file",
+                "default_value": "DejaVu-Sans",
             },
             "font_size": {
                 "type": FloatOrNothingType,
