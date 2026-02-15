@@ -7,9 +7,20 @@ ENV_FILE=/tmp/env.sh
 
 . ${ENV_FILE}
 
-# Install ImageMagick development libraries
+# Install ImageMagick 7 development libraries (Ubuntu repos only have IM6)
 apt-get update -qq
-apt-get install -y -qq libmagickwand-dev pkg-config
+apt-get install -y -qq pkg-config build-essential libjpeg-dev libpng-dev libtiff-dev libwebp-dev wget
+
+# Build and install ImageMagick 7 from source
+IM_VERSION="7.1.1-43"
+wget -q "https://github.com/ImageMagick/ImageMagick/archive/refs/tags/${IM_VERSION}.tar.gz" -O /tmp/im.tar.gz
+cd /tmp && tar xf im.tar.gz
+cd /tmp/ImageMagick-${IM_VERSION}
+./configure --prefix=/usr --disable-docs --without-x --disable-openmp --with-quantum-depth=16 --with-magick-plus-plus=no --quiet
+make -j4 --quiet
+make install --quiet
+ldconfig
+cd -
 
 # setup MODULE_SRC_DIR env var
 cwd=`pwd`

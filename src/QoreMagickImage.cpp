@@ -1034,9 +1034,17 @@ void QoreMagickImage::blueShift(double factor, ExceptionSink* xsink) {
 
 void QoreMagickImage::reduceNoise(double radius, ExceptionSink* xsink) {
     QoreAutoRWWriteLocker al(rwlock);
+#ifdef HAVE_MAGICK_REDUCE_NOISE_IMAGE
     if (MagickReduceNoiseImage(wand, radius) == MagickFalse) {
         checkMagickError(wand, "error reducing noise", xsink);
     }
+#else
+    // MagickReduceNoiseImage was removed in ImageMagick 7.1+; use MagickStatisticImage instead
+    if (MagickStatisticImage(wand, NonpeakStatistic, static_cast<size_t>(radius),
+                             static_cast<size_t>(radius)) == MagickFalse) {
+        checkMagickError(wand, "error reducing noise", xsink);
+    }
+#endif
 }
 
 void QoreMagickImage::waveletDenoise(double threshold, double softness, ExceptionSink* xsink) {
