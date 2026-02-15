@@ -7,9 +7,6 @@ ENV_FILE=/tmp/env.sh
 
 . ${ENV_FILE}
 
-# Install ImageMagick development libraries
-apk add --no-cache imagemagick-dev pkgconfig
-
 # setup MODULE_SRC_DIR env var
 cwd=`pwd`
 if [ -z "${MODULE_SRC_DIR}" ]; then
