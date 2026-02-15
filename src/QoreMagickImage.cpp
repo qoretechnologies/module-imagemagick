@@ -36,15 +36,15 @@ MagickBooleanType QoreMagickImage::progressMonitor(const char* tag, const Magick
                                                     const MagickSizeType size, void* client_data) {
     QoreMagickImage* self = static_cast<QoreMagickImage*>(client_data);
     if (self->smh && self->smh->isInterruptRequested()) {
-        self->interrupted = true;
+        self->interrupted.store(true, std::memory_order_release);
         return MagickFalse;  // Cancel the operation
     }
     return MagickTrue;
 }
 
 bool QoreMagickImage::checkInterrupted(ExceptionSink* xsink) {
-    if (interrupted) {
-        interrupted = false;
+    if (interrupted.load(std::memory_order_acquire)) {
+        interrupted.store(false, std::memory_order_relaxed);
         // Clear the MagickWand exception set by the cancelled operation
         MagickClearException(wand);
         xsink->raiseException("PROGRAM-INTERRUPTED", "ImageMagick operation interrupted");
@@ -136,7 +136,9 @@ void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
 void QoreMagickImage::readData(const BinaryNode* data, ExceptionSink* xsink) {
     QoreAutoRWWriteLocker al(rwlock);
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
-        checkMagickError(wand, "error reading image from binary data", xsink);
+        if (!checkInterrupted(xsink)) {
+            checkMagickError(wand, "error reading image from binary data", xsink);
+        }
     }
 }
 
@@ -145,7 +147,9 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
     QoreAutoRWWriteLocker al(rwlock);
     MagickSetFormat(wand, format);
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
-        checkMagickError(wand, "error reading image from binary data with format", xsink);
+        if (!checkInterrupted(xsink)) {
+            checkMagickError(wand, "error reading image from binary data with format", xsink);
+        }
     }
 }
 

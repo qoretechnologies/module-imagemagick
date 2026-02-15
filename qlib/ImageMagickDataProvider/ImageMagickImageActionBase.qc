@@ -35,6 +35,9 @@ public class ImageMagickImageActionBase inherits AbstractDataProvider {
         if (req.location) {
             return new MagickImage(FileLocationHandler::getBinaryFileFromLocation(req.location));
         }
+        if (!req.data) {
+            throw "IMAGEMAGICK-ERROR", "one of 'input_path', 'data', or 'location' must be provided";
+        }
         return new MagickImage(req.data);
     }
 
@@ -44,13 +47,9 @@ public class ImageMagickImageActionBase inherits AbstractDataProvider {
             img.setFormat(req.output_format);
         }
         binary data = img.toData();
-        # Write to output_path if specified
+        # Write to output_path if specified (uses C++ writeFile which enforces sandbox checks)
         if (req.output_path) {
-            {
-                File f();
-                f.open2(req.output_path, O_CREAT | O_WRONLY | O_TRUNC);
-                f.write(data);
-            }
+            img.writeFile(req.output_path);
         }
         # Write to output_location if specified
         if (req.output_location) {

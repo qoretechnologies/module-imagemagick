@@ -30,6 +30,8 @@
 #include "imagemagick-module.h"
 #include "ImageMagickHelper.h"
 
+#include <atomic>
+
 //! QoreMagickImage - private data class for MagickImage Qore class
 /** This class wraps a MagickWand* and is thread-safe via QoreRWLock.
     Each instance owns its own MagickWand.
@@ -217,7 +219,7 @@ private:
     //! Sandbox manager helper for interrupt checking (acquired at construction)
     QoreSandboxManagerHelper smh;
     //! Flag set by progress monitor when interrupt is detected
-    bool interrupted = false;
+    std::atomic<bool> interrupted{false};
 
     //! Set up progress monitor for interruptible operations
     DLLLOCAL void setupProgressMonitor();
