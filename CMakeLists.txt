@@ -26,30 +26,66 @@ find_package(Qore 2.0 REQUIRED)
 
 # Find ImageMagick 7 MagickWand library via pkg-config
 include(FindPkgConfig)
-pkg_check_modules(MAGICKWAND QUIET MagickWand-7.Q16HDRI)
-if (NOT MAGICKWAND_FOUND)
-    pkg_check_modules(MAGICKWAND QUIET MagickWand-7.Q16)
-endif()
-if (NOT MAGICKWAND_FOUND)
-    # Try generic name but verify it's IM7
-    pkg_check_modules(MAGICKWAND QUIET MagickWand)
-    if (MAGICKWAND_FOUND AND MAGICKWAND_VERSION VERSION_LESS "7.0")
-        message(FATAL_ERROR "ImageMagick 7+ required, found version ${MAGICKWAND_VERSION}. "
-            "Install ImageMagick 7 development packages.")
+
+# Macro to search for MagickWand 7 .pc files
+macro(_find_magickwand)
+    pkg_check_modules(MAGICKWAND QUIET MagickWand-7.Q16HDRI)
+    if (NOT MAGICKWAND_FOUND)
+        pkg_check_modules(MAGICKWAND QUIET MagickWand-7.Q16)
     endif()
-endif()
+    if (NOT MAGICKWAND_FOUND)
+        # Try generic name but verify it's IM7
+        pkg_check_modules(MAGICKWAND QUIET MagickWand)
+        if (MAGICKWAND_FOUND AND MAGICKWAND_VERSION VERSION_LESS "7.0")
+            set(MAGICKWAND_FOUND FALSE)
+        endif()
+    endif()
+endmacro()
+
+_find_magickwand()
+
+# If not found, search common non-standard ImageMagick 7 installation paths
 if (NOT MAGICKWAND_FOUND)
-    message(FATAL_ERROR "MagickWand 7+ library not found. Install ImageMagick 7 development packages.")
+    set(_IM7_EXTRA_PC_PATHS
+        /opt/local/lib/ImageMagick7/lib/pkgconfig   # MacPorts
+        /opt/homebrew/opt/imagemagick/lib/pkgconfig  # Homebrew (Apple Silicon)
+        /usr/local/opt/imagemagick/lib/pkgconfig     # Homebrew (Intel)
+    )
+    foreach(_pc_path ${_IM7_EXTRA_PC_PATHS})
+        if (IS_DIRECTORY "${_pc_path}")
+            file(GLOB _im7_pc_files "${_pc_path}/MagickWand-7*.pc" "${_pc_path}/MagickWand.pc")
+            if (_im7_pc_files)
+                set(ENV{PKG_CONFIG_PATH} "${_pc_path}:$ENV{PKG_CONFIG_PATH}")
+                message(STATUS "Added ${_pc_path} to PKG_CONFIG_PATH for ImageMagick 7 detection")
+                _find_magickwand()
+                if (MAGICKWAND_FOUND)
+                    break()
+                endif()
+            endif()
+        endif()
+    endforeach()
+endif()
+
+if (NOT MAGICKWAND_FOUND)
+    message(FATAL_ERROR "MagickWand 7+ library not found. Install ImageMagick 7 development packages.\n"
+        "If ImageMagick 7 is installed in a non-standard location, set PKG_CONFIG_PATH to include\n"
+        "the directory containing MagickWand-7.Q16HDRI.pc or MagickWand-7.Q16.pc.")
+endif()
+if (MAGICKWAND_FOUND AND MAGICKWAND_VERSION VERSION_LESS "7.0")
+    message(FATAL_ERROR "ImageMagick 7+ required, found version ${MAGICKWAND_VERSION}. "
+        "Install ImageMagick 7 development packages.")
 endif()
 message(STATUS "Found MagickWand: ${MAGICKWAND_LIBRARIES} (version ${MAGICKWAND_VERSION})")
 
 # Check for deprecated/removed APIs
 include(CheckSymbolExists)
 set(CMAKE_REQUIRED_INCLUDES ${MAGICKWAND_INCLUDE_DIRS})
-set(CMAKE_REQUIRED_LIBRARIES ${MAGICKWAND_LIBRARIES})
+set(CMAKE_REQUIRED_LIBRARIES ${MAGICKWAND_LDFLAGS})
 set(CMAKE_REQUIRED_FLAGS "${MAGICKWAND_CFLAGS_OTHER}")
 check_symbol_exists(MagickReduceNoiseImage "MagickWand/MagickWand.h" HAVE_MAGICK_REDUCE_NOISE_IMAGE)
 unset(CMAKE_REQUIRED_FLAGS)
+unset(CMAKE_REQUIRED_INCLUDES)
+unset(CMAKE_REQUIRED_LIBRARIES)
 if (HAVE_MAGICK_REDUCE_NOISE_IMAGE)
     message(STATUS "MagickReduceNoiseImage: found")
 else()
@@ -109,6 +145,9 @@ endif()
 add_custom_target(QORE_INC_FILES DEPENDS ${QORE_INC_SRC})
 add_dependencies(${module_name} QORE_INC_FILES)
 
+if (MAGICKWAND_LIBRARY_DIRS)
+    target_link_directories(${module_name} PRIVATE ${MAGICKWAND_LIBRARY_DIRS})
+endif()
 target_link_libraries(${module_name} ${MAGICKWAND_LIBRARIES} ${QORE_LIBRARY})
 
 set(MODULE_DOX_INPUT ${CMAKE_CURRENT_BINARY_DIR}/mainpage.dox ${QPP_DOX})
