@@ -866,10 +866,20 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
             "output_path": outPath2,
             "output_location": outLoc2,
         });
+        string outLocPath2 = testDir + "/output_both_loc.png";
         assertEq(True, is_file(outPath2), "both: output_path file exists");
-        assertEq(True, is_file(testDir + "/output_both_loc.png"), "both: output_location file exists");
+        assertEq(True, is_file(outLocPath2), "both: output_location file exists");
         assertEq(outPath2, result.output_path, "both: output_path in response");
         assertEq(outLoc2, result.output_location, "both: output_location in response");
+
+        # Verify both output files have identical dimensions and size
+        MagickImage outImgPath(outPath2);
+        MagickImage outImgLoc(outLocPath2);
+        assertEq(25, outImgPath.width(), "both: output_path image width");
+        assertEq(20, outImgPath.height(), "both: output_path image height");
+        assertEq(25, outImgLoc.width(), "both: output_location image width");
+        assertEq(20, outImgLoc.height(), "both: output_location image height");
+        assertEq(hstat(outPath2).size, hstat(outLocPath2).size, "both: output files have identical size");
     }
 
     # ==================== Return Data Tests ====================
@@ -972,6 +982,21 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         AbstractDataProvider info = getProvider("info/get");
         assertThrows("IMAGEMAGICK-ERROR", \info.doRequest(), ({
             "input_path": "/nonexistent/path.png",
+        },));
+
+        # Test missing input source (caught by DataProvider required field group validation)
+        assertThrows("REQUIRED-FIELD-GROUP-ERROR", \resize.doRequest(), ({
+            "width": 50,
+            "height": 40,
+        },));
+
+        # Test composite missing overlay source (caught by DataProvider required field group validation)
+        AbstractDataProvider composite = getProvider("image/composite");
+        assertThrows("REQUIRED-FIELD-GROUP-ERROR", \composite.doRequest(), ({
+            "input_path": testImagePath,
+            "operator": "Over",
+            "x": 0,
+            "y": 0,
         },));
     }
 }

@@ -27,7 +27,7 @@
 #include "QoreMagickImage.h"
 
 void QoreMagickImage::setupProgressMonitor() {
-    if (smh) {
+    if (wand && smh) {
         MagickSetImageProgressMonitor(wand, progressMonitor, this);
     }
 }
@@ -72,6 +72,10 @@ QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(
 
 QoreMagickImage::QoreMagickImage(const BinaryNode* data, ExceptionSink* xsink) : wand(NewMagickWand()) {
     setupProgressMonitor();
+    // Check for I/O interrupt before blob read operation
+    if (qore_check_io_interrupt(xsink, "reading image from binary data")) {
+        return;
+    }
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
         if (!checkInterrupted(xsink)) {
             checkMagickError(wand, "error reading image from binary data", xsink);
@@ -82,6 +86,10 @@ QoreMagickImage::QoreMagickImage(const BinaryNode* data, ExceptionSink* xsink) :
 QoreMagickImage::QoreMagickImage(const BinaryNode* data, const char* format,
                                  ExceptionSink* xsink) : wand(NewMagickWand()) {
     setupProgressMonitor();
+    // Check for I/O interrupt before blob read operation
+    if (qore_check_io_interrupt(xsink, "reading image from binary data with format")) {
+        return;
+    }
     MagickSetFormat(wand, format);
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
         if (!checkInterrupted(xsink)) {
@@ -134,6 +142,10 @@ void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
 }
 
 void QoreMagickImage::readData(const BinaryNode* data, ExceptionSink* xsink) {
+    // Check for I/O interrupt before blob read operation
+    if (qore_check_io_interrupt(xsink, "reading image from binary data")) {
+        return;
+    }
     QoreAutoRWWriteLocker al(rwlock);
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
         if (!checkInterrupted(xsink)) {
@@ -144,6 +156,10 @@ void QoreMagickImage::readData(const BinaryNode* data, ExceptionSink* xsink) {
 
 void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* format,
                                          ExceptionSink* xsink) {
+    // Check for I/O interrupt before blob read operation
+    if (qore_check_io_interrupt(xsink, "reading image from binary data with format")) {
+        return;
+    }
     QoreAutoRWWriteLocker al(rwlock);
     MagickSetFormat(wand, format);
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {

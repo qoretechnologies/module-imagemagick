@@ -67,7 +67,7 @@ public class ImageMagickAnnotateDataProvider inherits ImageMagickImageActionBase
             req.x,
             req.y,
             req.angle ?? 0.0,
-            req.font ?? "",
+            req.font ?? "DejaVu-Sans",
             req.font_size ?? 0.0,
             req.fill_color ?? "black",
             req.stroke_color ?? "",

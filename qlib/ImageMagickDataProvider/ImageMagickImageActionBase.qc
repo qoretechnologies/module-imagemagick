@@ -46,11 +46,11 @@ public class ImageMagickImageActionBase inherits AbstractDataProvider {
         if (req.output_format) {
             img.setFormat(req.output_format);
         }
-        binary data = img.toData();
         # Write to output_path if specified (uses C++ writeFile which enforces sandbox checks)
         if (req.output_path) {
             img.writeFile(req.output_path);
         }
+        binary data = img.toData();
         # Write to output_location if specified
         if (req.output_location) {
             FileLocationHandler::writeFileToLocation(req.output_location, data);
