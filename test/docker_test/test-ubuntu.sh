@@ -19,7 +19,7 @@ IM_VERSION="7.1.1-43"
 wget -q "https://github.com/ImageMagick/ImageMagick/archive/refs/tags/${IM_VERSION}.tar.gz" -O /tmp/im.tar.gz
 cd /tmp && tar xf im.tar.gz
 cd /tmp/ImageMagick-${IM_VERSION}
-./configure --prefix=/usr --disable-docs --without-x --disable-openmp --with-quantum-depth=16 --with-magick-plus-plus=no --quiet
+./configure --prefix=/usr --disable-docs --without-x --disable-openmp --with-quantum-depth=16 --with-magick-plus-plus=no --with-fontconfig --quiet
 make -j4 --quiet
 make install --quiet
 ldconfig
@@ -57,6 +57,9 @@ useradd -o -m -d /home/qore -u ${QORE_UID} -g ${QORE_GID} qore
 
 # own everything by the qore user
 chown -R qore:qore ${MODULE_SRC_DIR}
+
+# update font cache for ImageMagick annotate tests
+fc-cache -f
 
 # run the tests
 export QORE_MODULE_DIR=${MODULE_SRC_DIR}/qlib:${QORE_MODULE_DIR}
