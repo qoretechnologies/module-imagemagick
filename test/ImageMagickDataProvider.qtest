@@ -70,6 +70,10 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         addTestCase("Composite action tests", \compositeActionTest());
         addTestCase("Annotate action tests", \annotateActionTest());
         addTestCase("Binary data input tests", \binaryDataInputTest());
+        addTestCase("Location input tests", \locationInputTest());
+        addTestCase("Output path tests", \outputPathTest());
+        addTestCase("Output location tests", \outputLocationTest());
+        addTestCase("Return data tests", \returnDataTest());
         addTestCase("Error handling tests", \errorHandlingTest());
 
         set_return_value(main());
@@ -605,6 +609,48 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         assertEq(60, result.width, "emboss from binary data width");
     }
 
+    # ==================== Location Input Tests ====================
+
+    locationInputTest() {
+        # Test actions accept location string input (file:// scheme)
+        string location = "file://" + testImagePath;
+
+        # Resize with location input
+        AbstractDataProvider resize = getProvider("image/resize");
+        hash<auto> result = resize.doRequest({
+            "location": location,
+            "width": 50,
+            "height": 40,
+        });
+        assertEq(50, result.width, "resize from location width");
+        assertEq(40, result.height, "resize from location height");
+
+        # Get info with location input
+        AbstractDataProvider info = getProvider("info/get");
+        hash<auto> infoResult = info.doRequest({
+            "location": location,
+        });
+        assertEq(100, infoResult.width, "get-info from location width");
+        assertEq(80, infoResult.height, "get-info from location height");
+        assertEq("PNG", infoResult.format, "get-info from location format");
+
+        # Composite with overlay_location
+        AbstractDataProvider composite = getProvider("image/composite");
+        # Create an overlay file for the location test
+        string overlayPath = testDir + "/overlay_loc.png";
+        MagickImage overlayImg(30, 20, "blue");
+        overlayImg.setFormat("PNG");
+        overlayImg.writeFile(overlayPath);
+        result = composite.doRequest({
+            "location": location,
+            "overlay_location": "file://" + overlayPath,
+            "x": 0,
+            "y": 0,
+        });
+        assertEq(100, result.width, "composite from location width");
+        assertEq(80, result.height, "composite from location height");
+    }
+
     # ==================== Composite Action Tests ====================
 
     compositeActionTest() {
@@ -626,6 +672,8 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         assertEq(100, result.width, "composite preserves width");
         assertEq(80, result.height, "composite preserves height");
         assertGt(0, result.data.size(), "composite returns data");
+        assertEq("PNG", result.format, "composite preserves format");
+        assertEq(True, result.data instanceof binary, "composite returns binary data");
 
         # Composite with gravity placement
         result = dp.doRequest({
@@ -636,6 +684,7 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         });
         assertEq(100, result.width, "composite with gravity preserves width");
         assertEq(80, result.height, "composite with gravity preserves height");
+        assertEq("PNG", result.format, "composite with gravity preserves format");
 
         # Composite with Multiply operator
         result = dp.doRequest({
@@ -645,7 +694,20 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
             "x": 0,
             "y": 0,
         });
+        assertEq(100, result.width, "composite multiply preserves width");
+        assertEq(80, result.height, "composite multiply preserves height");
         assertGt(0, result.data.size(), "composite multiply returns data");
+
+        # Composite with output format override
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "overlay_data": overlayData,
+            "operator": "Over",
+            "x": 0,
+            "y": 0,
+            "output_format": "JPEG",
+        });
+        assertEq("JPEG", result.format, "composite output_format override");
     }
 
     # ==================== Annotate Action Tests ====================
@@ -663,6 +725,8 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         assertEq(100, result.width, "annotate preserves width");
         assertEq(80, result.height, "annotate preserves height");
         assertGt(0, result.data.size(), "annotate returns data");
+        assertEq("PNG", result.format, "annotate preserves format");
+        assertEq(True, result.data instanceof binary, "annotate returns binary data");
 
         # Annotation with font options
         result = dp.doRequest({
@@ -675,6 +739,7 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         });
         assertEq(100, result.width, "annotate with options preserves width");
         assertEq(80, result.height, "annotate with options preserves height");
+        assertEq("PNG", result.format, "annotate with options preserves format");
 
         # Annotation with angle
         result = dp.doRequest({
@@ -685,7 +750,220 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
             "angle": 45.0,
             "fill_color": "black",
         });
+        assertEq(100, result.width, "annotate with angle preserves width");
+        assertEq(80, result.height, "annotate with angle preserves height");
         assertGt(0, result.data.size(), "annotate with angle returns data");
+
+        # Annotation with output format override
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "text": "Format",
+            "x": 10.0,
+            "y": 30.0,
+            "output_format": "JPEG",
+        });
+        assertEq("JPEG", result.format, "annotate output_format override");
+    }
+
+    # ==================== Output Path Tests ====================
+
+    outputPathTest() {
+        AbstractDataProvider resize = getProvider("image/resize");
+
+        # Test output_path: write resized image to file
+        string outPath = testDir + "/output_resize.png";
+        hash<auto> result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "output_path": outPath,
+        });
+        assertEq(50, result.width, "output_path resize width");
+        assertEq(40, result.height, "output_path resize height");
+        assertEq(outPath, result.output_path, "output_path in response");
+        assertEq(True, !exists result.data, "output_path: data not returned by default");
+        assertEq(True, is_file(outPath), "output file exists");
+
+        # Verify the written file has correct dimensions
+        MagickImage written(outPath);
+        assertEq(50, written.width(), "written file width");
+        assertEq(40, written.height(), "written file height");
+
+        # Test output_path with composite
+        AbstractDataProvider composite = getProvider("image/composite");
+        binary overlayData = createTestImageData(30, 20, "blue");
+        string compositeOutPath = testDir + "/output_composite.png";
+        result = composite.doRequest({
+            "input_path": testImagePath,
+            "overlay_data": overlayData,
+            "operator": "Over",
+            "x": 0,
+            "y": 0,
+            "output_path": compositeOutPath,
+        });
+        assertEq(compositeOutPath, result.output_path, "composite output_path in response");
+        assertEq(True, is_file(compositeOutPath), "composite output file exists");
+        assertEq(True, !exists result.data, "composite output_path: data not returned by default");
+
+        # Test output_path with annotate
+        AbstractDataProvider annotate = getProvider("image/annotate");
+        string annotateOutPath = testDir + "/output_annotate.png";
+        result = annotate.doRequest({
+            "input_path": testImagePath,
+            "text": "Test",
+            "x": 10.0,
+            "y": 30.0,
+            "output_path": annotateOutPath,
+        });
+        assertEq(annotateOutPath, result.output_path, "annotate output_path in response");
+        assertEq(True, is_file(annotateOutPath), "annotate output file exists");
+
+        # Test output_path with format conversion
+        AbstractDataProvider fmt = getProvider("convert/format");
+        string fmtOutPath = testDir + "/output_convert.jpg";
+        result = fmt.doRequest({
+            "input_path": testImagePath,
+            "format": "JPEG",
+            "output_path": fmtOutPath,
+        });
+        assertEq(fmtOutPath, result.output_path, "convert output_path in response");
+        assertEq("JPEG", result.format, "convert with output_path format");
+        assertEq(True, is_file(fmtOutPath), "convert output file exists");
+    }
+
+    # ==================== Output Location Tests ====================
+
+    outputLocationTest() {
+        AbstractDataProvider resize = getProvider("image/resize");
+
+        # Test output_location with file:// scheme
+        string outPath = testDir + "/output_location_resize.png";
+        string outLocation = "file://" + outPath;
+        hash<auto> result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "output_location": outLocation,
+        });
+        assertEq(50, result.width, "output_location resize width");
+        assertEq(40, result.height, "output_location resize height");
+        assertEq(outLocation, result.output_location, "output_location in response");
+        assertEq(True, !exists result.data, "output_location: data not returned by default");
+        assertEq(True, is_file(outPath), "output_location file exists");
+
+        # Verify the written file has correct dimensions
+        MagickImage written(outPath);
+        assertEq(50, written.width(), "output_location written file width");
+        assertEq(40, written.height(), "output_location written file height");
+
+        # Test both output_path and output_location together
+        string outPath2 = testDir + "/output_both_path.png";
+        string outLoc2 = "file://" + testDir + "/output_both_loc.png";
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 25,
+            "height": 20,
+            "output_path": outPath2,
+            "output_location": outLoc2,
+        });
+        string outLocPath2 = testDir + "/output_both_loc.png";
+        assertEq(True, is_file(outPath2), "both: output_path file exists");
+        assertEq(True, is_file(outLocPath2), "both: output_location file exists");
+        assertEq(outPath2, result.output_path, "both: output_path in response");
+        assertEq(outLoc2, result.output_location, "both: output_location in response");
+
+        # Verify both output files have identical dimensions and size
+        MagickImage outImgPath(outPath2);
+        MagickImage outImgLoc(outLocPath2);
+        assertEq(25, outImgPath.width(), "both: output_path image width");
+        assertEq(20, outImgPath.height(), "both: output_path image height");
+        assertEq(25, outImgLoc.width(), "both: output_location image width");
+        assertEq(20, outImgLoc.height(), "both: output_location image height");
+        assertEq(hstat(outPath2).size, hstat(outLocPath2).size, "both: output files have identical size");
+    }
+
+    # ==================== Return Data Tests ====================
+
+    returnDataTest() {
+        AbstractDataProvider resize = getProvider("image/resize");
+
+        # Default without output: data is returned
+        hash<auto> result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+        });
+        assertEq(True, result.data instanceof binary, "no output: data returned by default");
+
+        # Default with output_path: data is NOT returned
+        string outPath = testDir + "/return_data_default.png";
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "output_path": outPath,
+        });
+        assertEq(True, !exists result.data, "with output: data not returned by default");
+
+        # Explicit return_data: True with output_path: both data and file
+        string outPath2 = testDir + "/return_data_true.png";
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "output_path": outPath2,
+            "return_data": True,
+        });
+        assertEq(True, result.data instanceof binary, "return_data True: data returned");
+        assertEq(True, is_file(outPath2), "return_data True: file also written");
+        assertEq(outPath2, result.output_path, "return_data True: output_path in response");
+
+        # Explicit return_data: False without output: data not returned
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "return_data": False,
+        });
+        assertEq(True, !exists result.data, "return_data False: data not returned");
+        assertEq(50, result.width, "return_data False: width still present");
+        assertEq(40, result.height, "return_data False: height still present");
+        assertGt(0, result.size, "return_data False: size still present");
+
+        # Explicit return_data: False with output_path
+        string outPath3 = testDir + "/return_data_false_output.png";
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "output_path": outPath3,
+            "return_data": False,
+        });
+        assertEq(True, !exists result.data, "return_data False + output: data not returned");
+        assertEq(True, is_file(outPath3), "return_data False + output: file written");
+
+        # Explicit return_data: True without output: data returned (same as default)
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "return_data": True,
+        });
+        assertEq(True, result.data instanceof binary, "return_data True no output: data returned");
+
+        # Test with output_format override and output_path
+        string outPath4 = testDir + "/return_data_format.jpg";
+        result = resize.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+            "output_format": "JPEG",
+            "output_path": outPath4,
+            "return_data": True,
+        });
+        assertEq("JPEG", result.format, "output_format + output_path: format correct");
+        assertEq(True, result.data instanceof binary, "output_format + output_path: data returned");
+        assertEq(True, is_file(outPath4), "output_format + output_path: file written");
     }
 
     # ==================== Error Handling Tests ====================
@@ -704,6 +982,21 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         AbstractDataProvider info = getProvider("info/get");
         assertThrows("IMAGEMAGICK-ERROR", \info.doRequest(), ({
             "input_path": "/nonexistent/path.png",
+        },));
+
+        # Test missing input source (caught by DataProvider required field group validation)
+        assertThrows("REQUIRED-FIELD-GROUP-ERROR", \resize.doRequest(), ({
+            "width": 50,
+            "height": 40,
+        },));
+
+        # Test composite missing overlay source (caught by DataProvider required field group validation)
+        AbstractDataProvider composite = getProvider("image/composite");
+        assertThrows("REQUIRED-FIELD-GROUP-ERROR", \composite.doRequest(), ({
+            "input_path": testImagePath,
+            "operator": "Over",
+            "x": 0,
+            "y": 0,
         },));
     }
 }

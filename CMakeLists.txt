@@ -24,19 +24,37 @@ endif()
 
 find_package(Qore 2.0 REQUIRED)
 
-# Find ImageMagick MagickWand library via pkg-config
+# Find ImageMagick 7 MagickWand library via pkg-config
 include(FindPkgConfig)
-pkg_check_modules(MAGICKWAND QUIET MagickWand)
-if (NOT MAGICKWAND_FOUND)
-    pkg_check_modules(MAGICKWAND QUIET MagickWand-7.Q16HDRI)
-endif()
+pkg_check_modules(MAGICKWAND QUIET MagickWand-7.Q16HDRI)
 if (NOT MAGICKWAND_FOUND)
     pkg_check_modules(MAGICKWAND QUIET MagickWand-7.Q16)
 endif()
 if (NOT MAGICKWAND_FOUND)
-    message(FATAL_ERROR "MagickWand library not found. Install ImageMagick development packages.")
+    # Try generic name but verify it's IM7
+    pkg_check_modules(MAGICKWAND QUIET MagickWand)
+    if (MAGICKWAND_FOUND AND MAGICKWAND_VERSION VERSION_LESS "7.0")
+        message(FATAL_ERROR "ImageMagick 7+ required, found version ${MAGICKWAND_VERSION}. "
+            "Install ImageMagick 7 development packages.")
+    endif()
+endif()
+if (NOT MAGICKWAND_FOUND)
+    message(FATAL_ERROR "MagickWand 7+ library not found. Install ImageMagick 7 development packages.")
 endif()
 message(STATUS "Found MagickWand: ${MAGICKWAND_LIBRARIES} (version ${MAGICKWAND_VERSION})")
+
+# Check for deprecated/removed APIs
+include(CheckSymbolExists)
+set(CMAKE_REQUIRED_INCLUDES ${MAGICKWAND_INCLUDE_DIRS})
+set(CMAKE_REQUIRED_LIBRARIES ${MAGICKWAND_LIBRARIES})
+set(CMAKE_REQUIRED_FLAGS "${MAGICKWAND_CFLAGS_OTHER}")
+check_symbol_exists(MagickReduceNoiseImage "MagickWand/MagickWand.h" HAVE_MAGICK_REDUCE_NOISE_IMAGE)
+unset(CMAKE_REQUIRED_FLAGS)
+if (HAVE_MAGICK_REDUCE_NOISE_IMAGE)
+    message(STATUS "MagickReduceNoiseImage: found")
+else()
+    message(STATUS "MagickReduceNoiseImage: not found (removed in IM 7.1+), reduceNoise() will use MagickStatisticImage")
+endif()
 
 # Check for C++11.
 include(CheckCXXCompilerFlag)
@@ -84,6 +102,9 @@ target_include_directories(${module_name} PRIVATE
     ${MAGICKWAND_INCLUDE_DIRS}
 )
 target_compile_options(${module_name} PRIVATE ${MAGICKWAND_CFLAGS_OTHER})
+if (HAVE_MAGICK_REDUCE_NOISE_IMAGE)
+    target_compile_definitions(${module_name} PRIVATE HAVE_MAGICK_REDUCE_NOISE_IMAGE)
+endif()
 
 add_custom_target(QORE_INC_FILES DEPENDS ${QORE_INC_SRC})
 add_dependencies(${module_name} QORE_INC_FILES)

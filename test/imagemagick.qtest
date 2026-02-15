@@ -436,12 +436,18 @@ public class ImageMagickTest inherits QUnit::Test {
             assertTrue(img.height() > 0);
         }
 
-        # liquidRescale
-        {
+        # liquidRescale (requires LQR delegate library)
+        try {
             MagickImage img = createContentImage();
             img.liquidRescale(150, 112);
             assertEq(150, img.width());
             assertEq(112, img.height());
+        } catch (hash<ExceptionInfo> ex) {
+            if (ex.err == "IMAGEMAGICK-ERROR" && ex.desc =~ /delegate library support not built-in/) {
+                testSkip("LQR delegate library not available");
+            } else {
+                rethrow;
+            }
         }
 
         # Upscale
@@ -1081,6 +1087,7 @@ public class ImageMagickTest inherits QUnit::Test {
         # Text annotation (via drawing)
         {
             MagickDrawing dw();
+            dw.setFont("DejaVu-Sans");
             dw.setFontSize(20.0);
             dw.setFillColor("black");
             dw.annotation(10.0, 50.0, "Hello");
@@ -1095,13 +1102,14 @@ public class ImageMagickTest inherits QUnit::Test {
         {
             MagickImage img(200, 100, "white");
             img.setFormat("PNG");
-            img.annotate("Test text", 10.0, 50.0);
+            img.annotate("Test text", 10.0, 50.0, 0.0, "DejaVu-Sans");
             assertEq(200, img.width());
         }
 
         # Font settings
         {
             MagickDrawing dw();
+            dw.setFont("DejaVu-Sans");
             dw.setFontSize(24.0);
             dw.setFontWeight(700);
             dw.setFontStyle("italic");

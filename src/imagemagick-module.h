@@ -28,6 +28,7 @@
 #define _QORE_IMAGEMAGICK_MODULE_H
 
 #include <qore/Qore.h>
+#include <qore/QoreSandboxManager.h>
 
 #include <MagickWand/MagickWand.h>
 

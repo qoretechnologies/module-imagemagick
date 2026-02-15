@@ -32,7 +32,7 @@ export MAKE_JOBS=4
 echo && echo "-- building module --"
 mkdir -p ${MODULE_SRC_DIR}/build
 cd ${MODULE_SRC_DIR}/build
-cmake .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
+cmake -S .. -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}
 make -j${MAKE_JOBS}
 make install
 
@@ -46,6 +46,9 @@ fi
 
 # own everything by the qore user
 chown -R qore:qore ${MODULE_SRC_DIR}
+
+# update font cache for ImageMagick annotate tests
+fc-cache -f
 
 # run the tests
 export QORE_MODULE_DIR=${MODULE_SRC_DIR}/qlib:${QORE_MODULE_DIR}
