@@ -48,6 +48,7 @@ module ImageMagickDataProvider {
             "short_desc": "Image processing and manipulation",
             "desc": "Process and manipulate images using ImageMagick: resize, crop, rotate, "
                 "apply effects, convert formats, and more",
+            "groups": (DataProvider::AppGroup::DesignCreative,),
             "logo": ImageMagickLogo,
             "logo_file_name": "imagemagick-logo.svg",
             "logo_mime_type": MimeTypeSvg,
