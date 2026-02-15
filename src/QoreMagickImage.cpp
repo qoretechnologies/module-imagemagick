@@ -26,28 +26,73 @@
 
 #include "QoreMagickImage.h"
 
+void QoreMagickImage::setupProgressMonitor() {
+    if (smh) {
+        MagickSetImageProgressMonitor(wand, progressMonitor, this);
+    }
+}
+
+MagickBooleanType QoreMagickImage::progressMonitor(const char* tag, const MagickOffsetType offset,
+                                                    const MagickSizeType size, void* client_data) {
+    QoreMagickImage* self = static_cast<QoreMagickImage*>(client_data);
+    if (self->smh && self->smh->isInterruptRequested()) {
+        self->interrupted = true;
+        return MagickFalse;  // Cancel the operation
+    }
+    return MagickTrue;
+}
+
+bool QoreMagickImage::checkInterrupted(ExceptionSink* xsink) {
+    if (interrupted) {
+        interrupted = false;
+        // Clear the MagickWand exception set by the cancelled operation
+        MagickClearException(wand);
+        xsink->raiseException("PROGRAM-INTERRUPTED", "ImageMagick operation interrupted");
+        return true;
+    }
+    return false;
+}
+
 QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(NewMagickWand()) {
+    setupProgressMonitor();
+    // Check filesystem sandbox access
+    if (smh && !smh->checkFilesystemAccess(path, QSEC_READ, xsink)) {
+        return;
+    }
+    // Check for I/O interrupt before file operation
+    if (qore_check_io_interrupt(xsink, "reading image file")) {
+        return;
+    }
     if (MagickReadImage(wand, path) == MagickFalse) {
-        checkMagickError(wand, "error reading image file", xsink);
+        if (!checkInterrupted(xsink)) {
+            checkMagickError(wand, "error reading image file", xsink);
+        }
     }
 }
 
 QoreMagickImage::QoreMagickImage(const BinaryNode* data, ExceptionSink* xsink) : wand(NewMagickWand()) {
+    setupProgressMonitor();
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
-        checkMagickError(wand, "error reading image from binary data", xsink);
+        if (!checkInterrupted(xsink)) {
+            checkMagickError(wand, "error reading image from binary data", xsink);
+        }
     }
 }
 
 QoreMagickImage::QoreMagickImage(const BinaryNode* data, const char* format,
                                  ExceptionSink* xsink) : wand(NewMagickWand()) {
+    setupProgressMonitor();
     MagickSetFormat(wand, format);
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
-        checkMagickError(wand, "error reading image from binary data with format", xsink);
+        if (!checkInterrupted(xsink)) {
+            checkMagickError(wand, "error reading image from binary data with format", xsink);
+        }
     }
 }
 
 QoreMagickImage::QoreMagickImage(size_t width, size_t height, const char* background,
                                  ExceptionSink* xsink) : wand(NewMagickWand()) {
+    setupProgressMonitor();
     PixelWandHelper pw(background);
     if (MagickNewImage(wand, width, height, pw) == MagickFalse) {
         checkMagickError(wand, "error creating new image", xsink);
@@ -58,6 +103,8 @@ QoreMagickImage::QoreMagickImage(const QoreMagickImage& old,
                                  ExceptionSink* xsink) : wand(CloneMagickWand(old.wand)) {
     if (!wand) {
         xsink->raiseException("IMAGEMAGICK-ERROR", "failed to clone MagickWand");
+    } else {
+        setupProgressMonitor();
     }
 }
 
@@ -70,9 +117,19 @@ QoreMagickImage::~QoreMagickImage() {
 // --- I/O ---
 
 void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
+    // Check filesystem sandbox access
+    if (smh && !smh->checkFilesystemAccess(path, QSEC_READ, xsink)) {
+        return;
+    }
+    // Check for I/O interrupt before file operation
+    if (qore_check_io_interrupt(xsink, "reading image file")) {
+        return;
+    }
     QoreAutoRWWriteLocker al(rwlock);
     if (MagickReadImage(wand, path) == MagickFalse) {
-        checkMagickError(wand, "error reading image file", xsink);
+        if (!checkInterrupted(xsink)) {
+            checkMagickError(wand, "error reading image file", xsink);
+        }
     }
 }
 
@@ -93,6 +150,14 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
 }
 
 QoreHashNode* QoreMagickImage::pingFile(const char* path, ExceptionSink* xsink) {
+    // Check filesystem sandbox access
+    if (smh && !smh->checkFilesystemAccess(path, QSEC_READ, xsink)) {
+        return nullptr;
+    }
+    // Check for I/O interrupt before file operation
+    if (qore_check_io_interrupt(xsink, "pinging image file")) {
+        return nullptr;
+    }
     QoreAutoRWWriteLocker al(rwlock);
     MagickWand* pw = NewMagickWand();
     if (MagickPingImage(pw, path) == MagickFalse) {
@@ -167,16 +232,36 @@ QoreHashNode* QoreMagickImage::pingData(const BinaryNode* data, ExceptionSink* x
 }
 
 void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
+    // Check filesystem sandbox access
+    if (smh && !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink)) {
+        return;
+    }
+    // Check for I/O interrupt before file operation
+    if (qore_check_io_interrupt(xsink, "writing image file")) {
+        return;
+    }
     QoreAutoRWReadLocker al(rwlock);
     if (MagickWriteImage(wand, path) == MagickFalse) {
-        checkMagickError(wand, "error writing image file", xsink);
+        if (!checkInterrupted(xsink)) {
+            checkMagickError(wand, "error writing image file", xsink);
+        }
     }
 }
 
 void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* xsink) {
+    // Check filesystem sandbox access
+    if (smh && !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink)) {
+        return;
+    }
+    // Check for I/O interrupt before file operation
+    if (qore_check_io_interrupt(xsink, "writing image files")) {
+        return;
+    }
     QoreAutoRWReadLocker al(rwlock);
     if (MagickWriteImages(wand, path, adjoin ? MagickTrue : MagickFalse) == MagickFalse) {
-        checkMagickError(wand, "error writing image files", xsink);
+        if (!checkInterrupted(xsink)) {
+            checkMagickError(wand, "error writing image files", xsink);
+        }
     }
 }
 

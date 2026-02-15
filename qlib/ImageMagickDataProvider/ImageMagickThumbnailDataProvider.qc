@@ -45,6 +45,6 @@ public class ImageMagickThumbnailDataProvider inherits ImageMagickImageActionBas
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.thumbnail(req.width, req.height);
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

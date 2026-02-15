@@ -45,6 +45,6 @@ public class ImageMagickSepiaDataProvider inherits ImageMagickImageActionBase {
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.sepiaTone(req.threshold ?? 52000.0);
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

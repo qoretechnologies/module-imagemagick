@@ -48,13 +48,6 @@ public class ImageMagickConvertFormatDataProvider inherits ImageMagickImageActio
         if (req.quality) {
             img.setCompressionQuality(req.quality);
         }
-        binary data = img.toData();
-        return {
-            "data": data,
-            "width": img.width(),
-            "height": img.height(),
-            "format": img.format(),
-            "size": data.size(),
-        };
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

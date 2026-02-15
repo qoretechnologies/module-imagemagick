@@ -45,6 +45,6 @@ public class ImageMagickAutoOrientDataProvider inherits ImageMagickImageActionBa
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.autoOrient();
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

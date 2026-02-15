@@ -45,6 +45,6 @@ public class ImageMagickCropDataProvider inherits ImageMagickImageActionBase {
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.crop(req.width, req.height, req.x ?? 0, req.y ?? 0);
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

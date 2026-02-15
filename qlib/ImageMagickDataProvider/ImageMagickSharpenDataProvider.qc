@@ -45,6 +45,6 @@ public class ImageMagickSharpenDataProvider inherits ImageMagickImageActionBase 
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.sharpen(req.radius ?? 0.0, req.sigma);
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

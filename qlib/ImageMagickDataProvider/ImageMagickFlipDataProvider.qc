@@ -50,6 +50,6 @@ public class ImageMagickFlipDataProvider inherits ImageMagickImageActionBase {
         } else {
             img.flip();
         }
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

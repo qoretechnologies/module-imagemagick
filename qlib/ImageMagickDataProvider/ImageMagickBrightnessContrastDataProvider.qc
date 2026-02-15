@@ -45,6 +45,6 @@ public class ImageMagickBrightnessContrastDataProvider inherits ImageMagickImage
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.brightnessContrast(req.brightness ?? 0.0, req.contrast ?? 0.0);
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

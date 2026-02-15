@@ -54,6 +54,11 @@ public:
     //! Destructor
     DLLLOCAL virtual ~QoreMagickImage();
 
+    //! Check if the last operation was interrupted and raise PROGRAM-INTERRUPTED if so
+    /** @return true if interrupted (exception raised), false otherwise
+    */
+    DLLLOCAL bool checkInterrupted(ExceptionSink* xsink);
+
     // --- I/O ---
     DLLLOCAL void readFile(const char* path, ExceptionSink* xsink);
     DLLLOCAL void readData(const BinaryNode* data, ExceptionSink* xsink);
@@ -209,6 +214,17 @@ public:
 private:
     MagickWand* wand;
     mutable QoreRWLock rwlock;
+    //! Sandbox manager helper for interrupt checking (acquired at construction)
+    QoreSandboxManagerHelper smh;
+    //! Flag set by progress monitor when interrupt is detected
+    bool interrupted = false;
+
+    //! Set up progress monitor for interruptible operations
+    DLLLOCAL void setupProgressMonitor();
+
+    //! Progress monitor callback - checks for sandbox interrupt
+    static MagickBooleanType progressMonitor(const char* tag, const MagickOffsetType offset,
+                                              const MagickSizeType size, void* client_data);
 };
 
 #endif // _QORE_IMAGEMAGICK_QOREMAGICKIMAGE_H

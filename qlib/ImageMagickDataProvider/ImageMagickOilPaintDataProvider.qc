@@ -45,6 +45,6 @@ public class ImageMagickOilPaintDataProvider inherits ImageMagickImageActionBase
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.oilPaint(req.radius ?? 3.0);
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

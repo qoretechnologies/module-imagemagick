@@ -45,6 +45,6 @@ public class ImageMagickEmbossDataProvider inherits ImageMagickImageActionBase {
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.emboss(req.radius ?? 0.0, req.sigma ?? 1.0);
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }

@@ -27,10 +27,11 @@ public namespace ImageMagickDataProvider {
     #! Common image response fields
     const ImageResponseFields = {
         "data": {
-            "type": BinaryType,
+            "type": BinaryOrNothingType,
             "display_name": "Output Image Data",
             "short_desc": "The processed image data",
-            "desc": "Binary data of the processed image",
+            "desc": "Binary data of the processed image. Only included when 'return_data' is true "
+                "(default when no output destination is specified).",
         },
         "width": {
             "type": IntType,
@@ -56,22 +57,48 @@ public namespace ImageMagickDataProvider {
             "short_desc": "Image data size in bytes",
             "desc": "Size of the output image data in bytes",
         },
+        "output_path": {
+            "type": StringOrNothingType,
+            "display_name": "Output File Path",
+            "short_desc": "Path the output image was written to",
+            "desc": "File path where the output image was written, if 'output_path' was specified in "
+                "the request",
+        },
+        "output_location": {
+            "type": StringOrNothingType,
+            "display_name": "Output Location",
+            "short_desc": "Location the output image was written to",
+            "desc": "File location where the output image was written, if 'output_location' was "
+                "specified in the request",
+        },
     };
 
-    #! Common image input fields (data or input_path - required group)
+    #! Common image input fields (data, input_path, or location - required group)
     const ImageInputFields = {
         "input_path": {
             "type": StringOrNothingType,
             "display_name": "Input File Path",
             "short_desc": "Path to input image file",
-            "desc": "File path to read the input image from. Either this or 'data' must be provided.",
+            "desc": "File path to read the input image from. One of 'input_path', 'data', or "
+                "'location' must be provided.",
             "example_value": "/path/to/image.png",
         },
         "data": {
             "type": BinaryOrNothingType,
             "display_name": "Input Image Data",
             "short_desc": "Binary image data",
-            "desc": "Binary data of the input image. Either this or 'input_path' must be provided.",
+            "desc": "Binary data of the input image. One of 'input_path', 'data', or 'location' "
+                "must be provided.",
+        },
+        "location": {
+            "type": StringOrNothingType,
+            "display_name": "Input Location",
+            "short_desc": "Location of input image",
+            "desc": "A file location string as supported by the "
+                "[FileLocationHandler](https://docs.qore.org/current/modules/FileLocationHandler/html/index.html) "
+                "module (e.g. `file:///path/to/image.png`, `https://example.com/image.jpg`). "
+                "One of 'input_path', 'data', or 'location' must be provided.",
+            "example_value": "file:///path/to/image.png",
         },
         "output_format": {
             "type": StringOrNothingType,
@@ -79,6 +106,32 @@ public namespace ImageMagickDataProvider {
             "short_desc": "Output image format",
             "desc": "Format for the output image. If not specified, the input format is preserved.",
             "allowed_values": ImageFormatAllowedValues,
+        },
+        "output_path": {
+            "type": StringOrNothingType,
+            "display_name": "Output File Path",
+            "short_desc": "Path to write the output image to",
+            "desc": "File path to write the processed output image to. If neither 'output_path' nor "
+                "'output_location' is provided, the image data is returned in the response only.",
+            "example_value": "/path/to/output.png",
+        },
+        "output_location": {
+            "type": StringOrNothingType,
+            "display_name": "Output Location",
+            "short_desc": "Location to write the output image to",
+            "desc": "A file location string as supported by the "
+                "[FileLocationHandler](https://docs.qore.org/current/modules/FileLocationHandler/html/index.html) "
+                "module (e.g. `file:///path/to/output.png`, `sftp://host/path/image.jpg`). "
+                "If neither 'output_path' nor 'output_location' is provided, the image data is returned "
+                "in the response only.",
+            "example_value": "file:///path/to/output.png",
+        },
+        "return_data": {
+            "type": BoolOrNothingType,
+            "display_name": "Return Data",
+            "short_desc": "Whether to include image data in the response",
+            "desc": "Whether to include binary image data in the response hash. Defaults to `True` when "
+                "no output path or location is specified, `False` when an output destination is provided.",
         },
     };
 }
@@ -118,7 +171,7 @@ public class ImageMagickResizeRequestDataType inherits HashDataType {
                 "allowed_values": FilterTypeAllowedValues,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -154,7 +207,7 @@ public class ImageMagickCropRequestDataType inherits HashDataType {
                 "default_value": 0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -178,7 +231,7 @@ public class ImageMagickRotateRequestDataType inherits HashDataType {
                 "default_value": "white",
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -196,7 +249,7 @@ public class ImageMagickFlipRequestDataType inherits HashDataType {
                 "allowed_values": FlipDirectionAllowedValues,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -220,7 +273,7 @@ public class ImageMagickBlurRequestDataType inherits HashDataType {
                 "example_value": 2.0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -244,7 +297,7 @@ public class ImageMagickSharpenRequestDataType inherits HashDataType {
                 "example_value": 1.0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -268,7 +321,7 @@ public class ImageMagickBrightnessContrastRequestDataType inherits HashDataType 
                 "default_value": 0.0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -292,7 +345,7 @@ public class ImageMagickThumbnailRequestDataType inherits HashDataType {
                 "example_value": 200,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -300,7 +353,7 @@ public class ImageMagickThumbnailRequestDataType inherits HashDataType {
 public class ImageMagickAutoOrientRequestDataType inherits HashDataType {
     constructor() {
         addQoreFields(ImageInputFields);
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -308,7 +361,7 @@ public class ImageMagickAutoOrientRequestDataType inherits HashDataType {
 public class ImageMagickStripRequestDataType inherits HashDataType {
     constructor() {
         addQoreFields(ImageInputFields);
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -332,7 +385,7 @@ public class ImageMagickCharcoalRequestDataType inherits HashDataType {
                 "default_value": 1.0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -349,7 +402,7 @@ public class ImageMagickSepiaRequestDataType inherits HashDataType {
                 "default_value": 52000.0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -366,7 +419,7 @@ public class ImageMagickOilPaintRequestDataType inherits HashDataType {
                 "default_value": 3.0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -383,7 +436,7 @@ public class ImageMagickEdgeRequestDataType inherits HashDataType {
                 "default_value": 1.0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -407,7 +460,7 @@ public class ImageMagickEmbossRequestDataType inherits HashDataType {
                 "default_value": 1.0,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -432,7 +485,7 @@ public class ImageMagickConvertFormatRequestDataType inherits HashDataType {
                 "default_value": 85,
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -445,13 +498,24 @@ public class ImageMagickCompositeRequestDataType inherits HashDataType {
                 "type": StringOrNothingType,
                 "display_name": "Overlay File Path",
                 "short_desc": "Path to overlay image file",
-                "desc": "File path to read the overlay image from. Either this or 'overlay_data' must be provided.",
+                "desc": "File path to read the overlay image from. One of 'overlay_path', "
+                    "'overlay_data', or 'overlay_location' must be provided.",
             },
             "overlay_data": {
                 "type": BinaryOrNothingType,
                 "display_name": "Overlay Image Data",
                 "short_desc": "Binary overlay image data",
-                "desc": "Binary data of the overlay image. Either this or 'overlay_path' must be provided.",
+                "desc": "Binary data of the overlay image. One of 'overlay_path', 'overlay_data', "
+                    "or 'overlay_location' must be provided.",
+            },
+            "overlay_location": {
+                "type": StringOrNothingType,
+                "display_name": "Overlay Location",
+                "short_desc": "Location of overlay image",
+                "desc": "A file location string for the overlay image as supported by the "
+                    "[FileLocationHandler](https://docs.qore.org/current/modules/FileLocationHandler/html/index.html) "
+                    "module. One of 'overlay_path', 'overlay_data', or 'overlay_location' must be provided.",
+                "example_value": "file:///path/to/overlay.png",
             },
             "operator": {
                 "type": StringOrNothingType,
@@ -483,7 +547,7 @@ public class ImageMagickCompositeRequestDataType inherits HashDataType {
                 "default_value": 0,
             },
         });
-        setRequiredGroups((("input_path", "data"), ("overlay_path", "overlay_data")));
+        setRequiredGroups((("input_path", "data", "location"), ("overlay_path", "overlay_data", "overlay_location")));
     }
 }
 
@@ -547,7 +611,7 @@ public class ImageMagickAnnotateRequestDataType inherits HashDataType {
                 "desc": "Stroke (outline) color for the text",
             },
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 
@@ -557,8 +621,9 @@ public class ImageMagickGetInfoRequestDataType inherits HashDataType {
         addQoreFields({
             "input_path": ImageInputFields."input_path",
             "data": ImageInputFields."data",
+            "location": ImageInputFields."location",
         });
-        setRequiredGroups((("input_path", "data"),));
+        setRequiredGroups((("input_path", "data", "location"),));
     }
 }
 

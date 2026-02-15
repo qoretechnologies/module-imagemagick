@@ -65,6 +65,6 @@ public class ImageMagickResizeDataProvider inherits ImageMagickImageActionBase {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         string filter = req.filter ?? "Lanczos";
         img.resize(req.width, req.height, filter);
-        return ImageMagickImageActionBase::makeResponse(img, req.output_format);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }
