@@ -23,6 +23,8 @@
 
 #! @file ImageMagickBlurDataProvider.qc Blur action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickBlurDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickBlurDataProvider inherits ImageMagickImageActionBase {
         img.blur(req.radius ?? 0.0, req.sigma);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

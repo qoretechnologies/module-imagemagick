@@ -76,6 +76,58 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         addTestCase("Return data tests", \returnDataTest());
         addTestCase("Error handling tests", \errorHandlingTest());
 
+        # Color action tests
+        addTestCase("Negate action tests", \negateActionTest());
+        addTestCase("Normalize action tests", \normalizeActionTest());
+        addTestCase("Equalize action tests", \equalizeActionTest());
+        addTestCase("Auto-gamma action tests", \autoGammaActionTest());
+        addTestCase("Auto-level action tests", \autoLevelActionTest());
+        addTestCase("Enhance action tests", \enhanceActionTest());
+        addTestCase("White-balance action tests", \whiteBalanceActionTest());
+        addTestCase("Gamma action tests", \gammaActionTest());
+        addTestCase("Modulate action tests", \modulateActionTest());
+        addTestCase("Level action tests", \levelActionTest());
+        addTestCase("Contrast-stretch action tests", \contrastStretchActionTest());
+        addTestCase("Linear-stretch action tests", \linearStretchActionTest());
+        addTestCase("Sigmoidal-contrast action tests", \sigmoidalContrastActionTest());
+        addTestCase("Transform-colorspace action tests", \transformColorspaceActionTest());
+        addTestCase("Threshold action tests", \thresholdActionTest());
+
+        # Additional effects tests
+        addTestCase("Solarize action tests", \solarizeActionTest());
+        addTestCase("Posterize action tests", \posterizeActionTest());
+        addTestCase("Vignette action tests", \vignetteActionTest());
+        addTestCase("Sketch action tests", \sketchActionTest());
+        addTestCase("Wave action tests", \waveActionTest());
+        addTestCase("Swirl action tests", \swirlActionTest());
+        addTestCase("Implode action tests", \implodeActionTest());
+        addTestCase("Shadow action tests", \shadowActionTest());
+        addTestCase("Shade action tests", \shadeActionTest());
+        addTestCase("Add-noise action tests", \addNoiseActionTest());
+        addTestCase("Blue-shift action tests", \blueShiftActionTest());
+
+        # Blur/sharpen/denoise tests
+        addTestCase("Gaussian-blur action tests", \gaussianBlurActionTest());
+        addTestCase("Motion-blur action tests", \motionBlurActionTest());
+        addTestCase("Adaptive-blur action tests", \adaptiveBlurActionTest());
+        addTestCase("Rotational-blur action tests", \rotationalBlurActionTest());
+        addTestCase("Adaptive-sharpen action tests", \adaptiveSharpenActionTest());
+        addTestCase("Unsharp-mask action tests", \unsharpMaskActionTest());
+        addTestCase("Despeckle action tests", \despeckleActionTest());
+        addTestCase("Reduce-noise action tests", \reduceNoiseActionTest());
+        addTestCase("Wavelet-denoise action tests", \waveletDenoiseActionTest());
+
+        # Transform tests
+        addTestCase("Trim action tests", \trimActionTest());
+        addTestCase("Border action tests", \borderActionTest());
+        addTestCase("Frame action tests", \frameActionTest());
+        addTestCase("Shear action tests", \shearActionTest());
+        addTestCase("Deskew action tests", \deskewActionTest());
+
+        # Catalog and negative tests
+        addTestCase("Action catalog validation tests", \actionCatalogValidationTest());
+        addTestCase("Negative tests for new actions", \newActionNegativeTests());
+
         set_return_value(main());
     }
 
@@ -165,7 +217,8 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         # Check image children
         AbstractDataProvider image = root.getChildProvider("image");
         *list<string> imageChildren = image.getChildProviderNames();
-        assertEq(13, imageChildren.size(), "image has 13 children");
+        assertEq(28, imageChildren.size(), "image has 28 children");
+        # Original children
         assertEq(True, imageChildren.contains("resize"), "image has resize");
         assertEq(True, imageChildren.contains("crop"), "image has crop");
         assertEq(True, imageChildren.contains("rotate"), "image has rotate");
@@ -179,16 +232,63 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         assertEq(True, imageChildren.contains("auto-orient"), "image has auto-orient");
         assertEq(True, imageChildren.contains("strip"), "image has strip");
         assertEq(True, imageChildren.contains("effects"), "image has effects");
+        # New children
+        assertEq(True, imageChildren.contains("color"), "image has color");
+        assertEq(True, imageChildren.contains("gaussian-blur"), "image has gaussian-blur");
+        assertEq(True, imageChildren.contains("motion-blur"), "image has motion-blur");
+        assertEq(True, imageChildren.contains("adaptive-blur"), "image has adaptive-blur");
+        assertEq(True, imageChildren.contains("rotational-blur"), "image has rotational-blur");
+        assertEq(True, imageChildren.contains("adaptive-sharpen"), "image has adaptive-sharpen");
+        assertEq(True, imageChildren.contains("unsharp-mask"), "image has unsharp-mask");
+        assertEq(True, imageChildren.contains("despeckle"), "image has despeckle");
+        assertEq(True, imageChildren.contains("reduce-noise"), "image has reduce-noise");
+        assertEq(True, imageChildren.contains("wavelet-denoise"), "image has wavelet-denoise");
+        assertEq(True, imageChildren.contains("trim"), "image has trim");
+        assertEq(True, imageChildren.contains("border"), "image has border");
+        assertEq(True, imageChildren.contains("frame"), "image has frame");
+        assertEq(True, imageChildren.contains("shear"), "image has shear");
+        assertEq(True, imageChildren.contains("deskew"), "image has deskew");
 
         # Check effects children
         AbstractDataProvider effects = image.getChildProvider("effects");
         *list<string> effectsChildren = effects.getChildProviderNames();
-        assertEq(5, effectsChildren.size(), "effects has 5 children");
+        assertEq(16, effectsChildren.size(), "effects has 16 children");
         assertEq(True, effectsChildren.contains("charcoal"), "effects has charcoal");
         assertEq(True, effectsChildren.contains("sepia"), "effects has sepia");
         assertEq(True, effectsChildren.contains("oil-paint"), "effects has oil-paint");
         assertEq(True, effectsChildren.contains("edge"), "effects has edge");
         assertEq(True, effectsChildren.contains("emboss"), "effects has emboss");
+        assertEq(True, effectsChildren.contains("solarize"), "effects has solarize");
+        assertEq(True, effectsChildren.contains("posterize"), "effects has posterize");
+        assertEq(True, effectsChildren.contains("vignette"), "effects has vignette");
+        assertEq(True, effectsChildren.contains("sketch"), "effects has sketch");
+        assertEq(True, effectsChildren.contains("wave"), "effects has wave");
+        assertEq(True, effectsChildren.contains("swirl"), "effects has swirl");
+        assertEq(True, effectsChildren.contains("implode"), "effects has implode");
+        assertEq(True, effectsChildren.contains("shadow"), "effects has shadow");
+        assertEq(True, effectsChildren.contains("shade"), "effects has shade");
+        assertEq(True, effectsChildren.contains("add-noise"), "effects has add-noise");
+        assertEq(True, effectsChildren.contains("blue-shift"), "effects has blue-shift");
+
+        # Check color children
+        AbstractDataProvider color = image.getChildProvider("color");
+        *list<string> colorChildren = color.getChildProviderNames();
+        assertEq(15, colorChildren.size(), "color has 15 children");
+        assertEq(True, colorChildren.contains("negate"), "color has negate");
+        assertEq(True, colorChildren.contains("normalize"), "color has normalize");
+        assertEq(True, colorChildren.contains("equalize"), "color has equalize");
+        assertEq(True, colorChildren.contains("auto-gamma"), "color has auto-gamma");
+        assertEq(True, colorChildren.contains("auto-level"), "color has auto-level");
+        assertEq(True, colorChildren.contains("enhance"), "color has enhance");
+        assertEq(True, colorChildren.contains("white-balance"), "color has white-balance");
+        assertEq(True, colorChildren.contains("gamma"), "color has gamma");
+        assertEq(True, colorChildren.contains("modulate"), "color has modulate");
+        assertEq(True, colorChildren.contains("level"), "color has level");
+        assertEq(True, colorChildren.contains("contrast-stretch"), "color has contrast-stretch");
+        assertEq(True, colorChildren.contains("linear-stretch"), "color has linear-stretch");
+        assertEq(True, colorChildren.contains("sigmoidal-contrast"), "color has sigmoidal-contrast");
+        assertEq(True, colorChildren.contains("transform-colorspace"), "color has transform-colorspace");
+        assertEq(True, colorChildren.contains("threshold"), "color has threshold");
 
         # Check convert children
         AbstractDataProvider convert = root.getChildProvider("convert");
@@ -458,6 +558,16 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         });
         assertEq(100, result.width, "oil-paint preserves width");
         assertEq(80, result.height, "oil-paint preserves height");
+
+        # Test with sigma parameter
+        result = oilPaint.doRequest({
+            "input_path": testImagePath,
+            "radius": 3.0,
+            "sigma": 2.0,
+        });
+        assertEq(100, result.width, "oil-paint with sigma preserves width");
+        assertEq(80, result.height, "oil-paint with sigma preserves height");
+        assertEq(True, result.data instanceof binary, "oil-paint with sigma returns data");
     }
 
     # ==================== Edge Effect Tests ====================
@@ -997,6 +1107,755 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
             "operator": "Over",
             "x": 0,
             "y": 0,
+        },));
+    }
+
+    # ==================== Color Action Tests ====================
+
+    negateActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/negate");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "negate preserves width");
+        assertEq(80, result.height, "negate preserves height");
+        assertEq(True, result.data instanceof binary, "negate returns binary data");
+
+        # Test with gray_only
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "gray_only": True,
+        });
+        assertEq(100, result.width, "negate gray_only preserves width");
+
+        # Test with binary data input
+        binary imgdata = createTestImageData();
+        result = dp.doRequest({
+            "data": imgdata,
+        });
+        assertEq(True, result.data instanceof binary, "negate from binary returns data");
+    }
+
+    normalizeActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/normalize");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "normalize preserves width");
+        assertEq(80, result.height, "normalize preserves height");
+        assertEq(True, result.data instanceof binary, "normalize returns binary data");
+    }
+
+    equalizeActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/equalize");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "equalize preserves width");
+        assertEq(80, result.height, "equalize preserves height");
+        assertEq(True, result.data instanceof binary, "equalize returns binary data");
+    }
+
+    autoGammaActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/auto-gamma");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "auto-gamma preserves width");
+        assertEq(80, result.height, "auto-gamma preserves height");
+        assertEq(True, result.data instanceof binary, "auto-gamma returns binary data");
+    }
+
+    autoLevelActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/auto-level");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "auto-level preserves width");
+        assertEq(80, result.height, "auto-level preserves height");
+        assertEq(True, result.data instanceof binary, "auto-level returns binary data");
+    }
+
+    enhanceActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/enhance");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "enhance preserves width");
+        assertEq(80, result.height, "enhance preserves height");
+        assertEq(True, result.data instanceof binary, "enhance returns binary data");
+    }
+
+    whiteBalanceActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/white-balance");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "white-balance preserves width");
+        assertEq(80, result.height, "white-balance preserves height");
+        assertEq(True, result.data instanceof binary, "white-balance returns binary data");
+    }
+
+    gammaActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/gamma");
+
+        # Brighten
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "gamma_value": 1.5,
+        });
+        assertEq(100, result.width, "gamma brighten preserves width");
+        assertEq(80, result.height, "gamma brighten preserves height");
+        assertEq(True, result.data instanceof binary, "gamma returns binary data");
+
+        # Darken
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "gamma_value": 0.5,
+        });
+        assertEq(100, result.width, "gamma darken preserves width");
+    }
+
+    modulateActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/modulate");
+
+        # Default (no change)
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "modulate default preserves width");
+        assertEq(80, result.height, "modulate default preserves height");
+
+        # Increase saturation
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "brightness": 100.0,
+            "saturation": 150.0,
+            "hue": 100.0,
+        });
+        assertEq(True, result.data instanceof binary, "modulate with params returns data");
+    }
+
+    levelActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/level");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "black_point": 10.0,
+            "gamma_value": 1.0,
+            "white_point": 90.0,
+        });
+        assertEq(100, result.width, "level preserves width");
+        assertEq(80, result.height, "level preserves height");
+        assertEq(True, result.data instanceof binary, "level returns binary data");
+    }
+
+    contrastStretchActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/contrast-stretch");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "black_point": 1.0,
+            "white_point": 1.0,
+        });
+        assertEq(100, result.width, "contrast-stretch preserves width");
+        assertEq(80, result.height, "contrast-stretch preserves height");
+        assertEq(True, result.data instanceof binary, "contrast-stretch returns binary data");
+    }
+
+    linearStretchActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/linear-stretch");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "black_point": 2.0,
+            "white_point": 2.0,
+        });
+        assertEq(100, result.width, "linear-stretch preserves width");
+        assertEq(80, result.height, "linear-stretch preserves height");
+        assertEq(True, result.data instanceof binary, "linear-stretch returns binary data");
+    }
+
+    sigmoidalContrastActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/sigmoidal-contrast");
+
+        # Increase contrast
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "sharpen": True,
+            "strength": 5.0,
+            "midpoint": 50.0,
+        });
+        assertEq(100, result.width, "sigmoidal-contrast preserves width");
+        assertEq(80, result.height, "sigmoidal-contrast preserves height");
+        assertEq(True, result.data instanceof binary, "sigmoidal-contrast returns binary data");
+
+        # Decrease contrast
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "sharpen": False,
+            "strength": 3.0,
+            "midpoint": 50.0,
+        });
+        assertEq(True, result.data instanceof binary, "sigmoidal-contrast decrease returns data");
+    }
+
+    transformColorspaceActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/transform-colorspace");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "colorspace": "Gray",
+        });
+        assertEq(100, result.width, "transform-colorspace preserves width");
+        assertEq(80, result.height, "transform-colorspace preserves height");
+        assertEq(True, result.data instanceof binary, "transform-colorspace returns binary data");
+    }
+
+    thresholdActionTest() {
+        AbstractDataProvider dp = getProvider("image/color/threshold");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "threshold_value": 32000.0,
+        });
+        assertEq(100, result.width, "threshold preserves width");
+        assertEq(80, result.height, "threshold preserves height");
+        assertEq(True, result.data instanceof binary, "threshold returns binary data");
+    }
+
+    # ==================== Additional Effects Tests ====================
+
+    solarizeActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/solarize");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "threshold": 50.0,
+        });
+        assertEq(100, result.width, "solarize preserves width");
+        assertEq(80, result.height, "solarize preserves height");
+        assertEq(True, result.data instanceof binary, "solarize returns binary data");
+    }
+
+    posterizeActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/posterize");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "levels": 4,
+        });
+        assertEq(100, result.width, "posterize preserves width");
+        assertEq(80, result.height, "posterize preserves height");
+        assertEq(True, result.data instanceof binary, "posterize returns binary data");
+
+        # Test with dither
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "levels": 3,
+            "dither": True,
+        });
+        assertEq(True, result.data instanceof binary, "posterize with dither returns data");
+    }
+
+    vignetteActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/vignette");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "radius": 10.0,
+            "sigma": 5.0,
+        });
+        assertEq(100, result.width, "vignette preserves width");
+        assertEq(80, result.height, "vignette preserves height");
+        assertEq(True, result.data instanceof binary, "vignette returns binary data");
+
+        # Test with x/y offset
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "radius": 10.0,
+            "sigma": 5.0,
+            "x": 5,
+            "y": 5,
+        });
+        assertEq(True, result.data instanceof binary, "vignette with offset returns data");
+    }
+
+    sketchActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/sketch");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "radius": 0.0,
+            "sigma": 1.0,
+            "angle": 45.0,
+        });
+        assertEq(100, result.width, "sketch preserves width");
+        assertEq(80, result.height, "sketch preserves height");
+        assertEq(True, result.data instanceof binary, "sketch returns binary data");
+    }
+
+    waveActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/wave");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "amplitude": 5.0,
+            "wavelength": 20.0,
+        });
+        # Wave changes dimensions
+        assertEq(True, result.width > 0, "wave returns positive width");
+        assertEq(True, result.height > 0, "wave returns positive height");
+        assertEq(True, result.data instanceof binary, "wave returns binary data");
+    }
+
+    swirlActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/swirl");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "degrees": 90.0,
+        });
+        assertEq(100, result.width, "swirl preserves width");
+        assertEq(80, result.height, "swirl preserves height");
+        assertEq(True, result.data instanceof binary, "swirl returns binary data");
+    }
+
+    implodeActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/implode");
+
+        # Implode
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "amount": 0.5,
+        });
+        assertEq(100, result.width, "implode preserves width");
+        assertEq(80, result.height, "implode preserves height");
+        assertEq(True, result.data instanceof binary, "implode returns binary data");
+
+        # Explode (negative)
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "amount": -0.5,
+        });
+        assertEq(True, result.data instanceof binary, "explode returns binary data");
+    }
+
+    shadowActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/shadow");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "alpha": 0.8,
+            "sigma": 3.0,
+        });
+        assertEq(True, result.width > 0, "shadow returns positive width");
+        assertEq(True, result.height > 0, "shadow returns positive height");
+        assertEq(True, result.data instanceof binary, "shadow returns binary data");
+    }
+
+    shadeActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/shade");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "azimuth": 30.0,
+            "elevation": 30.0,
+        });
+        assertEq(100, result.width, "shade preserves width");
+        assertEq(80, result.height, "shade preserves height");
+        assertEq(True, result.data instanceof binary, "shade returns binary data");
+
+        # Test with gray mode
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "gray": True,
+            "azimuth": 45.0,
+            "elevation": 45.0,
+        });
+        assertEq(True, result.data instanceof binary, "shade gray returns data");
+    }
+
+    addNoiseActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/add-noise");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "noise_type": "Gaussian",
+        });
+        assertEq(100, result.width, "add-noise preserves width");
+        assertEq(80, result.height, "add-noise preserves height");
+        assertEq(True, result.data instanceof binary, "add-noise returns binary data");
+
+        # Test with attenuate
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "noise_type": "Uniform",
+            "attenuate": 0.5,
+        });
+        assertEq(True, result.data instanceof binary, "add-noise with attenuate returns data");
+    }
+
+    blueShiftActionTest() {
+        AbstractDataProvider dp = getProvider("image/effects/blue-shift");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "blue-shift default preserves width");
+        assertEq(80, result.height, "blue-shift default preserves height");
+        assertEq(True, result.data instanceof binary, "blue-shift returns binary data");
+
+        # Test with custom factor
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "factor": 2.0,
+        });
+        assertEq(True, result.data instanceof binary, "blue-shift with factor returns data");
+    }
+
+    # ==================== Blur/Sharpen/Denoise Tests ====================
+
+    gaussianBlurActionTest() {
+        AbstractDataProvider dp = getProvider("image/gaussian-blur");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "sigma": 2.0,
+        });
+        assertEq(100, result.width, "gaussian-blur preserves width");
+        assertEq(80, result.height, "gaussian-blur preserves height");
+        assertEq(True, result.data instanceof binary, "gaussian-blur returns binary data");
+
+        # Test with explicit radius
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "radius": 3.0,
+            "sigma": 1.5,
+        });
+        assertEq(True, result.data instanceof binary, "gaussian-blur with radius returns data");
+    }
+
+    motionBlurActionTest() {
+        AbstractDataProvider dp = getProvider("image/motion-blur");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "radius": 0.0,
+            "sigma": 3.0,
+            "angle": 45.0,
+        });
+        assertEq(100, result.width, "motion-blur preserves width");
+        assertEq(80, result.height, "motion-blur preserves height");
+        assertEq(True, result.data instanceof binary, "motion-blur returns binary data");
+    }
+
+    adaptiveBlurActionTest() {
+        AbstractDataProvider dp = getProvider("image/adaptive-blur");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "sigma": 2.0,
+        });
+        assertEq(100, result.width, "adaptive-blur preserves width");
+        assertEq(80, result.height, "adaptive-blur preserves height");
+        assertEq(True, result.data instanceof binary, "adaptive-blur returns binary data");
+    }
+
+    rotationalBlurActionTest() {
+        AbstractDataProvider dp = getProvider("image/rotational-blur");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "angle": 10.0,
+        });
+        assertEq(100, result.width, "rotational-blur preserves width");
+        assertEq(80, result.height, "rotational-blur preserves height");
+        assertEq(True, result.data instanceof binary, "rotational-blur returns binary data");
+    }
+
+    adaptiveSharpenActionTest() {
+        AbstractDataProvider dp = getProvider("image/adaptive-sharpen");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "sigma": 1.0,
+        });
+        assertEq(100, result.width, "adaptive-sharpen preserves width");
+        assertEq(80, result.height, "adaptive-sharpen preserves height");
+        assertEq(True, result.data instanceof binary, "adaptive-sharpen returns binary data");
+    }
+
+    unsharpMaskActionTest() {
+        AbstractDataProvider dp = getProvider("image/unsharp-mask");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "radius": 0.0,
+            "sigma": 1.0,
+            "gain": 1.0,
+            "threshold": 0.05,
+        });
+        assertEq(100, result.width, "unsharp-mask preserves width");
+        assertEq(80, result.height, "unsharp-mask preserves height");
+        assertEq(True, result.data instanceof binary, "unsharp-mask returns binary data");
+    }
+
+    despeckleActionTest() {
+        AbstractDataProvider dp = getProvider("image/despeckle");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(100, result.width, "despeckle preserves width");
+        assertEq(80, result.height, "despeckle preserves height");
+        assertEq(True, result.data instanceof binary, "despeckle returns binary data");
+    }
+
+    reduceNoiseActionTest() {
+        AbstractDataProvider dp = getProvider("image/reduce-noise");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "radius": 2.0,
+        });
+        assertEq(100, result.width, "reduce-noise preserves width");
+        assertEq(80, result.height, "reduce-noise preserves height");
+        assertEq(True, result.data instanceof binary, "reduce-noise returns binary data");
+    }
+
+    waveletDenoiseActionTest() {
+        AbstractDataProvider dp = getProvider("image/wavelet-denoise");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "threshold": 10.0,
+        });
+        assertEq(100, result.width, "wavelet-denoise preserves width");
+        assertEq(80, result.height, "wavelet-denoise preserves height");
+        assertEq(True, result.data instanceof binary, "wavelet-denoise returns binary data");
+
+        # Test with softness
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "threshold": 10.0,
+            "softness": 0.5,
+        });
+        assertEq(True, result.data instanceof binary, "wavelet-denoise with softness returns data");
+    }
+
+    # ==================== Transform Tests ====================
+
+    trimActionTest() {
+        # Create an image with a border to trim
+        MagickImage img(100, 80, "white");
+        img.setFormat("PNG");
+        # Draw a small red rectangle in the center to give trim something to work with
+        binary imgdata = img.toData();
+
+        AbstractDataProvider dp = getProvider("image/trim");
+
+        hash<auto> result = dp.doRequest({
+            "data": imgdata,
+        });
+        # Trim may change dimensions (removes uniform border)
+        assertEq(True, result.width > 0, "trim returns positive width");
+        assertEq(True, result.height > 0, "trim returns positive height");
+        assertEq(True, result.data instanceof binary, "trim returns binary data");
+
+        # Test with fuzz
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "fuzz": 10.0,
+        });
+        assertEq(True, result.data instanceof binary, "trim with fuzz returns data");
+    }
+
+    borderActionTest() {
+        AbstractDataProvider dp = getProvider("image/border");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "color": "blue",
+            "width": 10,
+            "height": 10,
+        });
+        # Border increases dimensions by 2*width and 2*height
+        assertEq(120, result.width, "border increases width by 2*10");
+        assertEq(100, result.height, "border increases height by 2*10");
+        assertEq(True, result.data instanceof binary, "border returns binary data");
+    }
+
+    frameActionTest() {
+        AbstractDataProvider dp = getProvider("image/frame");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "color": "gray",
+            "width": 10,
+            "height": 10,
+            "inner_bevel": 3,
+            "outer_bevel": 3,
+        });
+        # Frame increases dimensions
+        assertEq(True, result.width > 100, "frame increases width");
+        assertEq(True, result.height > 80, "frame increases height");
+        assertEq(True, result.data instanceof binary, "frame returns binary data");
+    }
+
+    shearActionTest() {
+        AbstractDataProvider dp = getProvider("image/shear");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "x": 10.0,
+            "y": 0.0,
+        });
+        # Shear may change dimensions
+        assertEq(True, result.width > 0, "shear returns positive width");
+        assertEq(True, result.height > 0, "shear returns positive height");
+        assertEq(True, result.data instanceof binary, "shear returns binary data");
+
+        # Test with background
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "x": 5.0,
+            "y": 5.0,
+            "background": "black",
+        });
+        assertEq(True, result.data instanceof binary, "shear with background returns data");
+    }
+
+    deskewActionTest() {
+        AbstractDataProvider dp = getProvider("image/deskew");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "threshold": 40.0,
+        });
+        assertEq(True, result.width > 0, "deskew returns positive width");
+        assertEq(True, result.height > 0, "deskew returns positive height");
+        assertEq(True, result.data instanceof binary, "deskew returns binary data");
+    }
+
+    # ==================== Action Catalog Validation Tests ====================
+
+    actionCatalogValidationTest() {
+        # Get all actions for the ImageMagick app
+        list<hash<DataProviderActionInfo>> actions =
+            DataProviderActionCatalog::getActions("ImageMagick");
+        # Expected action count: 19 original + 40 new = 59
+        assertEq(59, actions.size(), "ImageMagick has 59 registered actions");
+
+        # Verify each action has required fields
+        foreach hash<DataProviderActionInfo> action in (actions) {
+            assertEq(True, exists action.display_name && action.display_name.length() > 0,
+                sprintf("action '%s' has display_name", action.action));
+            assertEq(True, exists action.short_desc && action.short_desc.length() > 0,
+                sprintf("action '%s' has short_desc", action.action));
+            assertEq(True, exists action.desc && action.desc.length() > 0,
+                sprintf("action '%s' has desc", action.action));
+            assertEq(True, exists action.options,
+                sprintf("action '%s' has options", action.action));
+            assertEq(True, exists action.output_type,
+                sprintf("action '%s' has output_type", action.action));
+        }
+
+        # Verify specific actions are present
+        hash<string, bool> actionNames;
+        foreach hash<DataProviderActionInfo> action in (actions) {
+            actionNames{action.action} = True;
+        }
+
+        # Original actions
+        list<string> expectedOriginal = (
+            "resize", "crop", "rotate", "flip", "blur", "sharpen",
+            "brightness-contrast", "composite", "annotate", "thumbnail",
+            "auto-orient", "strip", "charcoal", "sepia", "oil-paint",
+            "edge", "emboss", "convert-format", "get-info",
+        );
+        foreach string name in (expectedOriginal) {
+            assertEq(True, actionNames{name} ?? False,
+                sprintf("original action '%s' is registered", name));
+        }
+
+        # New color actions
+        list<string> expectedColor = (
+            "negate", "normalize", "equalize", "auto-gamma", "auto-level",
+            "enhance", "white-balance", "gamma", "modulate", "level",
+            "contrast-stretch", "linear-stretch", "sigmoidal-contrast",
+            "transform-colorspace", "threshold",
+        );
+        foreach string name in (expectedColor) {
+            assertEq(True, actionNames{name} ?? False,
+                sprintf("color action '%s' is registered", name));
+        }
+
+        # New effects
+        list<string> expectedEffects = (
+            "solarize", "posterize", "vignette", "sketch", "wave", "swirl",
+            "implode", "shadow", "shade", "add-noise", "blue-shift",
+        );
+        foreach string name in (expectedEffects) {
+            assertEq(True, actionNames{name} ?? False,
+                sprintf("effect action '%s' is registered", name));
+        }
+
+        # New blur/sharpen/denoise
+        list<string> expectedBlur = (
+            "gaussian-blur", "motion-blur", "adaptive-blur", "rotational-blur",
+            "adaptive-sharpen", "unsharp-mask", "despeckle", "reduce-noise",
+            "wavelet-denoise",
+        );
+        foreach string name in (expectedBlur) {
+            assertEq(True, actionNames{name} ?? False,
+                sprintf("blur/sharpen action '%s' is registered", name));
+        }
+
+        # New transforms
+        list<string> expectedTransforms = (
+            "trim", "border", "frame", "shear", "deskew",
+        );
+        foreach string name in (expectedTransforms) {
+            assertEq(True, actionNames{name} ?? False,
+                sprintf("transform action '%s' is registered", name));
+        }
+    }
+
+    # ==================== Negative Tests for New Actions ====================
+
+    newActionNegativeTests() {
+        # Test missing required input source
+        AbstractDataProvider gamma = getProvider("image/color/gamma");
+        assertThrows("REQUIRED-FIELD-GROUP-ERROR", \gamma.doRequest(), ({
+            "gamma_value": 1.5,
+        },));
+
+        # Test nonexistent file
+        AbstractDataProvider negate = getProvider("image/color/negate");
+        assertThrows("IMAGEMAGICK-ERROR", \negate.doRequest(), ({
+            "input_path": "/nonexistent/path.png",
+        },));
+
+        # Test add-noise with invalid noise type
+        AbstractDataProvider addNoise = getProvider("image/effects/add-noise");
+        assertThrows("RUNTIME-TYPE-ERROR", \addNoise.doRequest(), ({
+            "input_path": testImagePath,
+            "noise_type": "InvalidNoiseType",
+        },));
+
+        # Test transform-colorspace with invalid colorspace
+        AbstractDataProvider colorspace = getProvider("image/color/transform-colorspace");
+        assertThrows("RUNTIME-TYPE-ERROR", \colorspace.doRequest(), ({
+            "input_path": testImagePath,
+            "colorspace": "InvalidColorspace",
         },));
     }
 }

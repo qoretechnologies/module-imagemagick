@@ -23,6 +23,8 @@
 
 #! @file ImageMagickCropDataProvider.qc Crop action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickCropDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickCropDataProvider inherits ImageMagickImageActionBase {
         img.crop(req.width, req.height, req.x ?? 0, req.y ?? 0);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

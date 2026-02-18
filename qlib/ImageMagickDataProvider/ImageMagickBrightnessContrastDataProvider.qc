@@ -23,6 +23,8 @@
 
 #! @file ImageMagickBrightnessContrastDataProvider.qc Brightness/contrast action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickBrightnessContrastDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickBrightnessContrastDataProvider inherits ImageMagickImage
         img.brightnessContrast(req.brightness ?? 0.0, req.contrast ?? 0.0);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

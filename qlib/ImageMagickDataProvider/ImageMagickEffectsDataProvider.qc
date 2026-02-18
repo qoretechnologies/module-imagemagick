@@ -23,6 +23,8 @@
 
 #! @file ImageMagickEffectsDataProvider.qc Effects container
 
+public namespace ImageMagickDataProvider {
+
 #! Container for image effects
 public class ImageMagickEffectsDataProvider inherits AbstractDataProvider {
     public {
@@ -37,6 +39,26 @@ public class ImageMagickEffectsDataProvider inherits AbstractDataProvider {
 
     private {
         *hash<auto> opts;
+
+        #! Child data providers
+        const ChildMap = {
+            "charcoal": Class::forName("ImageMagickDataProvider::ImageMagickCharcoalDataProvider"),
+            "sepia": Class::forName("ImageMagickDataProvider::ImageMagickSepiaDataProvider"),
+            "oil-paint": Class::forName("ImageMagickDataProvider::ImageMagickOilPaintDataProvider"),
+            "edge": Class::forName("ImageMagickDataProvider::ImageMagickEdgeDataProvider"),
+            "emboss": Class::forName("ImageMagickDataProvider::ImageMagickEmbossDataProvider"),
+            "solarize": Class::forName("ImageMagickDataProvider::ImageMagickSolarizeDataProvider"),
+            "posterize": Class::forName("ImageMagickDataProvider::ImageMagickPosterizeDataProvider"),
+            "vignette": Class::forName("ImageMagickDataProvider::ImageMagickVignetteDataProvider"),
+            "sketch": Class::forName("ImageMagickDataProvider::ImageMagickSketchDataProvider"),
+            "wave": Class::forName("ImageMagickDataProvider::ImageMagickWaveDataProvider"),
+            "swirl": Class::forName("ImageMagickDataProvider::ImageMagickSwirlDataProvider"),
+            "implode": Class::forName("ImageMagickDataProvider::ImageMagickImplodeDataProvider"),
+            "shadow": Class::forName("ImageMagickDataProvider::ImageMagickShadowDataProvider"),
+            "shade": Class::forName("ImageMagickDataProvider::ImageMagickShadeDataProvider"),
+            "add-noise": Class::forName("ImageMagickDataProvider::ImageMagickAddNoiseDataProvider"),
+            "blue-shift": Class::forName("ImageMagickDataProvider::ImageMagickBlueShiftDataProvider"),
+        };
     }
 
     constructor(*hash<auto> opts) {
@@ -48,21 +70,19 @@ public class ImageMagickEffectsDataProvider inherits AbstractDataProvider {
     }
 
     private *list<string> getChildProviderNamesImpl() {
-        return ("charcoal", "sepia", "oil-paint", "edge", "emboss");
+        return keys ChildMap;
     }
 
     private *AbstractDataProvider getChildProviderImpl(string name) {
-        switch (name) {
-            case "charcoal": return new ImageMagickCharcoalDataProvider(opts);
-            case "sepia": return new ImageMagickSepiaDataProvider(opts);
-            case "oil-paint": return new ImageMagickOilPaintDataProvider(opts);
-            case "edge": return new ImageMagickEdgeDataProvider(opts);
-            case "emboss": return new ImageMagickEmbossDataProvider(opts);
+        *Class cls = ChildMap{name};
+        if (!cls) {
+            return;
         }
-        return NOTHING;
+        return cls.newObject(opts);
     }
 
     private hash<DataProviderInfo> getStaticInfoImpl() {
         return ProviderInfo;
     }
+}
 }

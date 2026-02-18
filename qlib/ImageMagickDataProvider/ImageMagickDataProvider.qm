@@ -63,6 +63,20 @@ module ImageMagickDataProvider {
             "short_desc": "Resize an image to specified dimensions",
             "desc": "Resize an image using high-quality filtering algorithms",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickResizeRequestDataType::Fields{"width", "height"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickResizeRequestDataType::Fields{"location", "filter"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickResizeRequestDataType::Fields
+                    - ("width", "height", "location", "filter"),
+            ),
+            "output_type": ImageMagickResizeDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -72,6 +86,20 @@ module ImageMagickDataProvider {
             "short_desc": "Crop an image to a specified region",
             "desc": "Extract a rectangular region from an image",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickCropRequestDataType::Fields{"width", "height"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickCropRequestDataType::Fields{"location", "x", "y"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickCropRequestDataType::Fields
+                    - ("width", "height", "location", "x", "y"),
+            ),
+            "output_type": ImageMagickCropDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -81,6 +109,19 @@ module ImageMagickDataProvider {
             "short_desc": "Rotate an image by a specified angle",
             "desc": "Rotate an image clockwise by the given number of degrees",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickRotateRequestDataType::Fields{"degrees",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickRotateRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickRotateRequestDataType::Fields - ("degrees", "location"),
+            ),
+            "output_type": ImageMagickRotateDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -90,6 +131,14 @@ module ImageMagickDataProvider {
             "short_desc": "Flip or mirror an image",
             "desc": "Flip an image vertically or horizontally",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickFlipRequestDataType::Fields{"location", "direction"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickFlipRequestDataType::Fields - ("location", "direction"),
+            ),
+            "output_type": ImageMagickFlipDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -99,6 +148,19 @@ module ImageMagickDataProvider {
             "short_desc": "Apply a blur filter to an image",
             "desc": "Apply a Gaussian blur filter with configurable radius and sigma",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBlurRequestDataType::Fields{"sigma",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBlurRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBlurRequestDataType::Fields - ("sigma", "location"),
+            ),
+            "output_type": ImageMagickBlurDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -108,6 +170,19 @@ module ImageMagickDataProvider {
             "short_desc": "Apply a sharpening filter to an image",
             "desc": "Sharpen an image with configurable radius and sigma",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSharpenRequestDataType::Fields{"sigma",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSharpenRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSharpenRequestDataType::Fields - ("sigma", "location"),
+            ),
+            "output_type": ImageMagickSharpenDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -117,6 +192,17 @@ module ImageMagickDataProvider {
             "short_desc": "Adjust image brightness and contrast",
             "desc": "Adjust the brightness and contrast of an image",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBrightnessContrastRequestDataType::Fields{
+                    "location", "brightness", "contrast",
+                }, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBrightnessContrastRequestDataType::Fields
+                    - ("location", "brightness", "contrast"),
+            ),
+            "output_type": ImageMagickBrightnessContrastDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -127,6 +213,17 @@ module ImageMagickDataProvider {
             "desc": "Composite (overlay) one image onto another using various blending operators "
                 "and gravity-based or coordinate-based positioning",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickCompositeRequestDataType::Fields{
+                    "location", "overlay_location", "operator",
+                }, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickCompositeRequestDataType::Fields
+                    - ("location", "overlay_location", "operator"),
+            ),
+            "output_type": ImageMagickCompositeDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -136,6 +233,22 @@ module ImageMagickDataProvider {
             "short_desc": "Add text annotation to an image",
             "desc": "Draw text on an image with configurable font, size, color, and position",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAnnotateRequestDataType::Fields{"text", "x", "y"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAnnotateRequestDataType::Fields{
+                    "location", "font_size", "fill_color",
+                }, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAnnotateRequestDataType::Fields
+                    - ("text", "x", "y", "location", "font_size", "fill_color"),
+            ),
+            "output_type": ImageMagickAnnotateDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -145,6 +258,20 @@ module ImageMagickDataProvider {
             "short_desc": "Create a thumbnail of an image",
             "desc": "Create a fast, optimized thumbnail of an image",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickThumbnailRequestDataType::Fields{"width", "height"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickThumbnailRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickThumbnailRequestDataType::Fields
+                    - ("width", "height", "location"),
+            ),
+            "output_type": ImageMagickThumbnailDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -154,6 +281,14 @@ module ImageMagickDataProvider {
             "short_desc": "Automatically orient an image based on EXIF data",
             "desc": "Adjust image orientation based on its EXIF orientation tag",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAutoOrientRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAutoOrientRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickAutoOrientDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -163,6 +298,14 @@ module ImageMagickDataProvider {
             "short_desc": "Remove all metadata and profiles from an image",
             "desc": "Strip all profiles, comments, and metadata from an image",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickStripRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickStripRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickStripDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -172,6 +315,17 @@ module ImageMagickDataProvider {
             "short_desc": "Apply a charcoal drawing effect",
             "desc": "Transform an image to look like a charcoal drawing",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickCharcoalRequestDataType::Fields{
+                    "location", "radius", "sigma",
+                }, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickCharcoalRequestDataType::Fields
+                    - ("location", "radius", "sigma"),
+            ),
+            "output_type": ImageMagickCharcoalDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -181,6 +335,14 @@ module ImageMagickDataProvider {
             "short_desc": "Apply a sepia tone effect",
             "desc": "Apply a warm sepia tone effect to an image",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSepiaRequestDataType::Fields{"location", "threshold"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSepiaRequestDataType::Fields - ("location", "threshold"),
+            ),
+            "output_type": ImageMagickSepiaDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -190,6 +352,14 @@ module ImageMagickDataProvider {
             "short_desc": "Apply an oil painting effect",
             "desc": "Transform an image to look like an oil painting",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickOilPaintRequestDataType::Fields{"location", "radius", "sigma"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickOilPaintRequestDataType::Fields - ("location", "radius", "sigma"),
+            ),
+            "output_type": ImageMagickOilPaintDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -199,6 +369,14 @@ module ImageMagickDataProvider {
             "short_desc": "Apply edge detection filter",
             "desc": "Detect and highlight edges in an image",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickEdgeRequestDataType::Fields{"location", "radius"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickEdgeRequestDataType::Fields - ("location", "radius"),
+            ),
+            "output_type": ImageMagickEdgeDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -208,6 +386,17 @@ module ImageMagickDataProvider {
             "short_desc": "Apply an emboss (3D) effect",
             "desc": "Apply a 3D embossing effect to an image",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickEmbossRequestDataType::Fields{
+                    "location", "radius", "sigma",
+                }, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickEmbossRequestDataType::Fields
+                    - ("location", "radius", "sigma"),
+            ),
+            "output_type": ImageMagickEmbossDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -217,6 +406,20 @@ module ImageMagickDataProvider {
             "short_desc": "Convert image to a different format",
             "desc": "Convert an image to a different format (PNG, JPEG, GIF, BMP, TIFF, etc.)",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickConvertFormatRequestDataType::Fields{"format",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickConvertFormatRequestDataType::Fields{"location", "quality"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickConvertFormatRequestDataType::Fields
+                    - ("format", "location", "quality"),
+            ),
+            "output_type": ImageMagickConvertFormatDataProvider::ResponseType,
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
@@ -227,6 +430,889 @@ module ImageMagickDataProvider {
             "desc": "Retrieve image metadata including dimensions, format, colorspace, "
                 "and other properties without fully decoding the image",
             "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickGetInfoRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickGetInfoRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickGetInfoDataProvider::ResponseType,
+        });
+
+        # ==================== Color Adjustment Actions ====================
+
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/negate",
+            "action": "negate",
+            "display_name": "Negate Colors",
+            "short_desc": "Negate image colors",
+            "desc": "Negate (invert) the colors of an image",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickNegateRequestDataType::Fields{"location", "gray_only"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickNegateRequestDataType::Fields - ("location", "gray_only"),
+            ),
+            "output_type": ImageMagickNegateDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/normalize",
+            "action": "normalize",
+            "display_name": "Normalize",
+            "short_desc": "Normalize image histogram",
+            "desc": "Auto-stretch the image histogram to span the full range of values",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickNormalizeRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickNormalizeRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickNormalizeDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/equalize",
+            "action": "equalize",
+            "display_name": "Equalize",
+            "short_desc": "Equalize image histogram",
+            "desc": "Equalize the image histogram for uniform intensity distribution",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickEqualizeRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickEqualizeRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickEqualizeDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/auto-gamma",
+            "action": "auto-gamma",
+            "display_name": "Auto Gamma",
+            "short_desc": "Auto-adjust image gamma",
+            "desc": "Automatically adjust image gamma for optimal brightness",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAutoGammaRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAutoGammaRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickAutoGammaDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/auto-level",
+            "action": "auto-level",
+            "display_name": "Auto Level",
+            "short_desc": "Auto-adjust image levels",
+            "desc": "Automatically adjust image levels for optimal contrast",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAutoLevelRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAutoLevelRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickAutoLevelDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/enhance",
+            "action": "enhance",
+            "display_name": "Enhance",
+            "short_desc": "Enhance image quality",
+            "desc": "Reduce noise and enhance detail in the image",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickEnhanceRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickEnhanceRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickEnhanceDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/white-balance",
+            "action": "white-balance",
+            "display_name": "White Balance",
+            "short_desc": "Auto white balance",
+            "desc": "Automatically adjust the white balance of an image",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickWhiteBalanceRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickWhiteBalanceRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickWhiteBalanceDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/gamma",
+            "action": "gamma",
+            "display_name": "Gamma Correction",
+            "short_desc": "Apply gamma correction",
+            "desc": "Apply gamma correction to an image. Values less than 1.0 darken, "
+                "greater than 1.0 brighten.",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickGammaRequestDataType::Fields{"gamma_value",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickGammaRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickGammaRequestDataType::Fields - ("gamma_value", "location"),
+            ),
+            "output_type": ImageMagickGammaDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/modulate",
+            "action": "modulate",
+            "display_name": "Modulate",
+            "short_desc": "Adjust brightness, saturation, and hue",
+            "desc": "Adjust image brightness, saturation, and hue as percentages (100 = no change)",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickModulateRequestDataType::Fields{
+                    "location", "brightness", "saturation", "hue",
+                }, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickModulateRequestDataType::Fields
+                    - ("location", "brightness", "saturation", "hue"),
+            ),
+            "output_type": ImageMagickModulateDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/level",
+            "action": "level",
+            "display_name": "Level Adjustment",
+            "short_desc": "Adjust image levels",
+            "desc": "Adjust image levels by specifying black point, gamma, and white point",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickLevelRequestDataType::Fields{
+                    "black_point", "gamma_value", "white_point",
+                }, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickLevelRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickLevelRequestDataType::Fields
+                    - ("black_point", "gamma_value", "white_point", "location"),
+            ),
+            "output_type": ImageMagickLevelDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/contrast-stretch",
+            "action": "contrast-stretch",
+            "display_name": "Contrast Stretch",
+            "short_desc": "Apply contrast stretch",
+            "desc": "Stretch image contrast by mapping a percentage of darkest pixels to black "
+                "and lightest pixels to white",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickContrastStretchRequestDataType::Fields{
+                    "black_point", "white_point",
+                }, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickContrastStretchRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickContrastStretchRequestDataType::Fields
+                    - ("black_point", "white_point", "location"),
+            ),
+            "output_type": ImageMagickContrastStretchDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/linear-stretch",
+            "action": "linear-stretch",
+            "display_name": "Linear Stretch",
+            "short_desc": "Apply linear stretch",
+            "desc": "Apply a linear stretch to the image histogram",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickLinearStretchRequestDataType::Fields{
+                    "black_point", "white_point",
+                }, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickLinearStretchRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickLinearStretchRequestDataType::Fields
+                    - ("black_point", "white_point", "location"),
+            ),
+            "output_type": ImageMagickLinearStretchDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/sigmoidal-contrast",
+            "action": "sigmoidal-contrast",
+            "display_name": "Sigmoidal Contrast",
+            "short_desc": "Apply sigmoidal contrast",
+            "desc": "Apply a non-linear sigmoidal contrast adjustment to an image",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSigmoidalContrastRequestDataType::Fields{
+                    "strength", "midpoint",
+                }, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSigmoidalContrastRequestDataType::Fields{
+                    "location", "sharpen",
+                }, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSigmoidalContrastRequestDataType::Fields
+                    - ("strength", "midpoint", "location", "sharpen"),
+            ),
+            "output_type": ImageMagickSigmoidalContrastDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/transform-colorspace",
+            "action": "transform-colorspace",
+            "display_name": "Transform Colorspace",
+            "short_desc": "Transform image colorspace",
+            "desc": "Transform the image to a different colorspace (e.g. sRGB, Gray, CMYK)",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickTransformColorspaceRequestDataType::Fields{"colorspace",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickTransformColorspaceRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickTransformColorspaceRequestDataType::Fields
+                    - ("colorspace", "location"),
+            ),
+            "output_type": ImageMagickTransformColorspaceDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/color/threshold",
+            "action": "threshold",
+            "display_name": "Binary Threshold",
+            "short_desc": "Apply binary threshold",
+            "desc": "Convert image to binary black/white using a threshold value",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickThresholdRequestDataType::Fields{"threshold_value",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickThresholdRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickThresholdRequestDataType::Fields
+                    - ("threshold_value", "location"),
+            ),
+            "output_type": ImageMagickThresholdDataProvider::ResponseType,
+        });
+
+        # ==================== Additional Effects Actions ====================
+
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/solarize",
+            "action": "solarize",
+            "display_name": "Solarize",
+            "short_desc": "Apply solarize effect",
+            "desc": "Negate pixels above a threshold, creating a solarization effect",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSolarizeRequestDataType::Fields{"threshold",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSolarizeRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSolarizeRequestDataType::Fields - ("threshold", "location"),
+            ),
+            "output_type": ImageMagickSolarizeDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/posterize",
+            "action": "posterize",
+            "display_name": "Posterize",
+            "short_desc": "Posterize image colors",
+            "desc": "Reduce the number of color levels per channel for a poster-like effect",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickPosterizeRequestDataType::Fields{"levels",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickPosterizeRequestDataType::Fields{"location", "dither"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickPosterizeRequestDataType::Fields - ("levels", "location", "dither"),
+            ),
+            "output_type": ImageMagickPosterizeDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/vignette",
+            "action": "vignette",
+            "display_name": "Vignette",
+            "short_desc": "Apply vignette effect",
+            "desc": "Add a soft vignette (darkened edges) effect to an image",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickVignetteRequestDataType::Fields{"radius", "sigma"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickVignetteRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickVignetteRequestDataType::Fields
+                    - ("radius", "sigma", "location"),
+            ),
+            "output_type": ImageMagickVignetteDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/sketch",
+            "action": "sketch",
+            "display_name": "Pencil Sketch",
+            "short_desc": "Apply pencil sketch effect",
+            "desc": "Transform an image to look like a pencil sketch",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSketchRequestDataType::Fields{"radius", "sigma", "angle"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSketchRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSketchRequestDataType::Fields
+                    - ("radius", "sigma", "angle", "location"),
+            ),
+            "output_type": ImageMagickSketchDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/wave",
+            "action": "wave",
+            "display_name": "Wave Distortion",
+            "short_desc": "Apply wave distortion",
+            "desc": "Apply a sinusoidal wave distortion to an image. Image dimensions may change.",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickWaveRequestDataType::Fields{"amplitude", "wavelength"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickWaveRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickWaveRequestDataType::Fields
+                    - ("amplitude", "wavelength", "location"),
+            ),
+            "output_type": ImageMagickWaveDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/swirl",
+            "action": "swirl",
+            "display_name": "Swirl Distortion",
+            "short_desc": "Apply swirl distortion",
+            "desc": "Apply a swirl distortion to an image",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSwirlRequestDataType::Fields{"degrees",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSwirlRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickSwirlRequestDataType::Fields - ("degrees", "location"),
+            ),
+            "output_type": ImageMagickSwirlDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/implode",
+            "action": "implode",
+            "display_name": "Implode/Explode",
+            "short_desc": "Apply implode/explode effect",
+            "desc": "Implode pixels toward the center (positive) or explode outward (negative)",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickImplodeRequestDataType::Fields{"amount",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickImplodeRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickImplodeRequestDataType::Fields - ("amount", "location"),
+            ),
+            "output_type": ImageMagickImplodeDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/shadow",
+            "action": "shadow",
+            "display_name": "Shadow",
+            "short_desc": "Generate shadow image",
+            "desc": "Generate a shadow version of the image with configurable opacity and blur",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShadowRequestDataType::Fields{"alpha", "sigma"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShadowRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShadowRequestDataType::Fields
+                    - ("alpha", "sigma", "location"),
+            ),
+            "output_type": ImageMagickShadowDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/shade",
+            "action": "shade",
+            "display_name": "3D Shade",
+            "short_desc": "Apply 3D shade effect",
+            "desc": "Apply a 3D lighting/shading effect to an image using a distant light source",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShadeRequestDataType::Fields{"azimuth", "elevation"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShadeRequestDataType::Fields{"location", "gray"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShadeRequestDataType::Fields
+                    - ("azimuth", "elevation", "location", "gray"),
+            ),
+            "output_type": ImageMagickShadeDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/add-noise",
+            "action": "add-noise",
+            "display_name": "Add Noise",
+            "short_desc": "Add noise to image",
+            "desc": "Add random noise of a specified type to an image",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAddNoiseRequestDataType::Fields{"noise_type",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAddNoiseRequestDataType::Fields{"location", "attenuate"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAddNoiseRequestDataType::Fields
+                    - ("noise_type", "location", "attenuate"),
+            ),
+            "output_type": ImageMagickAddNoiseDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/effects/blue-shift",
+            "action": "blue-shift",
+            "display_name": "Blue Shift",
+            "short_desc": "Apply moonlight blue shift",
+            "desc": "Simulate moonlight illumination by shifting colors toward blue",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBlueShiftRequestDataType::Fields{"location", "factor"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBlueShiftRequestDataType::Fields - ("location", "factor"),
+            ),
+            "output_type": ImageMagickBlueShiftDataProvider::ResponseType,
+        });
+
+        # ==================== Blur/Sharpen/Denoise Actions ====================
+
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/gaussian-blur",
+            "action": "gaussian-blur",
+            "display_name": "Gaussian Blur",
+            "short_desc": "Apply Gaussian blur",
+            "desc": "Apply a Gaussian blur with configurable radius and sigma",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickGaussianBlurRequestDataType::Fields{"sigma",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickGaussianBlurRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickGaussianBlurRequestDataType::Fields - ("sigma", "location"),
+            ),
+            "output_type": ImageMagickGaussianBlurDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/motion-blur",
+            "action": "motion-blur",
+            "display_name": "Motion Blur",
+            "short_desc": "Apply motion blur",
+            "desc": "Apply directional motion blur to simulate camera movement",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickMotionBlurRequestDataType::Fields{
+                    "radius", "sigma", "angle",
+                }, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickMotionBlurRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickMotionBlurRequestDataType::Fields
+                    - ("radius", "sigma", "angle", "location"),
+            ),
+            "output_type": ImageMagickMotionBlurDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/adaptive-blur",
+            "action": "adaptive-blur",
+            "display_name": "Adaptive Blur",
+            "short_desc": "Apply adaptive blur",
+            "desc": "Apply a blur that adapts to image edges, preserving details",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAdaptiveBlurRequestDataType::Fields{"sigma",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAdaptiveBlurRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAdaptiveBlurRequestDataType::Fields - ("sigma", "location"),
+            ),
+            "output_type": ImageMagickAdaptiveBlurDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/rotational-blur",
+            "action": "rotational-blur",
+            "display_name": "Rotational Blur",
+            "short_desc": "Apply rotational blur",
+            "desc": "Apply a rotational (spin) blur to an image",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickRotationalBlurRequestDataType::Fields{"angle",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickRotationalBlurRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickRotationalBlurRequestDataType::Fields - ("angle", "location"),
+            ),
+            "output_type": ImageMagickRotationalBlurDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/adaptive-sharpen",
+            "action": "adaptive-sharpen",
+            "display_name": "Adaptive Sharpen",
+            "short_desc": "Apply adaptive sharpening",
+            "desc": "Apply sharpening that adapts to image edges for better detail enhancement",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAdaptiveSharpenRequestDataType::Fields{"sigma",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAdaptiveSharpenRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickAdaptiveSharpenRequestDataType::Fields - ("sigma", "location"),
+            ),
+            "output_type": ImageMagickAdaptiveSharpenDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/unsharp-mask",
+            "action": "unsharp-mask",
+            "display_name": "Unsharp Mask",
+            "short_desc": "Apply unsharp mask",
+            "desc": "Sharpen an image using the unsharp mask technique",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickUnsharpMaskRequestDataType::Fields{
+                    "radius", "sigma", "gain", "threshold",
+                }, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickUnsharpMaskRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickUnsharpMaskRequestDataType::Fields
+                    - ("radius", "sigma", "gain", "threshold", "location"),
+            ),
+            "output_type": ImageMagickUnsharpMaskDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/despeckle",
+            "action": "despeckle",
+            "display_name": "Despeckle",
+            "short_desc": "Remove speckle noise",
+            "desc": "Reduce speckle noise in an image while preserving edges",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickDespeckleRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickDespeckleRequestDataType::Fields - ("location",),
+            ),
+            "output_type": ImageMagickDespeckleDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/reduce-noise",
+            "action": "reduce-noise",
+            "display_name": "Reduce Noise",
+            "short_desc": "Reduce image noise",
+            "desc": "Reduce noise in an image using a neighborhood averaging filter",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickReduceNoiseRequestDataType::Fields{"radius",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickReduceNoiseRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickReduceNoiseRequestDataType::Fields - ("radius", "location"),
+            ),
+            "output_type": ImageMagickReduceNoiseDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/wavelet-denoise",
+            "action": "wavelet-denoise",
+            "display_name": "Wavelet Denoise",
+            "short_desc": "Apply wavelet denoising",
+            "desc": "Apply wavelet-based denoising to reduce noise while preserving detail",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickWaveletDenoiseRequestDataType::Fields{"threshold",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickWaveletDenoiseRequestDataType::Fields{"location", "softness"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickWaveletDenoiseRequestDataType::Fields
+                    - ("threshold", "location", "softness"),
+            ),
+            "output_type": ImageMagickWaveletDenoiseDataProvider::ResponseType,
+        });
+
+        # ==================== Transform Actions ====================
+
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/trim",
+            "action": "trim",
+            "display_name": "Auto Trim",
+            "short_desc": "Auto-trim image borders",
+            "desc": "Automatically crop border pixels that match the edge color",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickTrimRequestDataType::Fields{"location", "fuzz"}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickTrimRequestDataType::Fields - ("location", "fuzz"),
+            ),
+            "output_type": ImageMagickTrimDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/border",
+            "action": "border",
+            "display_name": "Add Border",
+            "short_desc": "Add border to image",
+            "desc": "Add a solid color border around an image. Image dimensions increase.",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBorderRequestDataType::Fields{"color", "width", "height"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBorderRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickBorderRequestDataType::Fields
+                    - ("color", "width", "height", "location"),
+            ),
+            "output_type": ImageMagickBorderDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/frame",
+            "action": "frame",
+            "display_name": "Add Frame",
+            "short_desc": "Add decorative frame to image",
+            "desc": "Add a decorative 3D-beveled frame around an image. Image dimensions increase.",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickFrameRequestDataType::Fields{
+                    "color", "width", "height", "inner_bevel", "outer_bevel",
+                }, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickFrameRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickFrameRequestDataType::Fields
+                    - ("color", "width", "height", "inner_bevel", "outer_bevel", "location"),
+            ),
+            "output_type": ImageMagickFrameDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/shear",
+            "action": "shear",
+            "display_name": "Shear Transform",
+            "short_desc": "Apply shear transformation",
+            "desc": "Shear an image along the X and/or Y axis. Image dimensions may change.",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShearRequestDataType::Fields{"x", "y"}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShearRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickShearRequestDataType::Fields - ("x", "y", "location"),
+            ),
+            "output_type": ImageMagickShearDataProvider::ResponseType,
+        });
+        DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
+            "app": ImageMagickDataProvider::AppName,
+            "path": "/image/deskew",
+            "action": "deskew",
+            "display_name": "Deskew",
+            "short_desc": "Deskew scanned image",
+            "desc": "Straighten a skewed scanned image or document",
+            "action_code": DPAT_API,
+            "options": DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickDeskewRequestDataType::Fields{"threshold",}, {
+                    "preselected": True,
+                    "required": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickDeskewRequestDataType::Fields{"location",}, {
+                    "preselected": True,
+                },
+            ) + DataProviderActionCatalog::getActionOptionFromFields(
+                ImageMagickDeskewRequestDataType::Fields - ("threshold", "location"),
+            ),
+            "output_type": ImageMagickDeskewDataProvider::ResponseType,
         });
     };
 }

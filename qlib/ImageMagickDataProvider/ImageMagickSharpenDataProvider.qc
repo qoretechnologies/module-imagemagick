@@ -23,6 +23,8 @@
 
 #! @file ImageMagickSharpenDataProvider.qc Sharpen action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickSharpenDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickSharpenDataProvider inherits ImageMagickImageActionBase 
         img.sharpen(req.radius ?? 0.0, req.sigma);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

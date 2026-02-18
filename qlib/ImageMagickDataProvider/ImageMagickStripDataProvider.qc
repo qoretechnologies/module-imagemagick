@@ -23,6 +23,8 @@
 
 #! @file ImageMagickStripDataProvider.qc Strip metadata action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickStripDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickStripDataProvider inherits ImageMagickImageActionBase {
         img.strip();
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

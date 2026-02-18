@@ -23,6 +23,8 @@
 
 #! @file ImageMagickAutoOrientDataProvider.qc Auto orient action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickAutoOrientDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickAutoOrientDataProvider inherits ImageMagickImageActionBa
         img.autoOrient();
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

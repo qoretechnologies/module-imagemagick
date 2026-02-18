@@ -23,6 +23,8 @@
 
 #! @file ImageMagickEdgeDataProvider.qc Edge detection action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickEdgeDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickEdgeDataProvider inherits ImageMagickImageActionBase {
         img.edge(req.radius ?? 1.0);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

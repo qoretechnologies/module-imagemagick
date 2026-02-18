@@ -23,6 +23,8 @@
 
 #! @file ImageMagickRotateDataProvider.qc Rotate action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickRotateDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickRotateDataProvider inherits ImageMagickImageActionBase {
         img.rotate(req.degrees, req.background ?? "white");
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

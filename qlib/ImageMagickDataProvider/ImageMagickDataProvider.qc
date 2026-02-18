@@ -40,6 +40,13 @@ public class ImageMagickDataProvider inherits AbstractDataProvider {
 
     private {
         *hash<auto> opts;
+
+        #! Child data providers
+        const ChildMap = {
+            "image": Class::forName("ImageMagickDataProvider::ImageMagickImageDataProvider"),
+            "convert": Class::forName("ImageMagickDataProvider::ImageMagickConvertDataProvider"),
+            "info": Class::forName("ImageMagickDataProvider::ImageMagickInfoDataProvider"),
+        };
     }
 
     constructor(*hash<auto> opts) {
@@ -55,19 +62,15 @@ public class ImageMagickDataProvider inherits AbstractDataProvider {
     }
 
     private *list<string> getChildProviderNamesImpl() {
-        return ("image", "convert", "info");
+        return keys ChildMap;
     }
 
     private *AbstractDataProvider getChildProviderImpl(string name) {
-        switch (name) {
-            case "image":
-                return new ImageMagickImageDataProvider(opts);
-            case "convert":
-                return new ImageMagickConvertDataProvider(opts);
-            case "info":
-                return new ImageMagickInfoDataProvider(opts);
+        *Class cls = ChildMap{name};
+        if (!cls) {
+            return;
         }
-        return NOTHING;
+        return cls.newObject(opts);
     }
 
     private hash<DataProviderInfo> getStaticInfoImpl() {

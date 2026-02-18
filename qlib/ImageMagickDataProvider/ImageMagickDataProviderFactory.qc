@@ -23,6 +23,8 @@
 
 #! @file ImageMagickDataProviderFactory.qc ImageMagick data provider factory
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickDataProviderFactory inherits AbstractDataProviderFactory {
     public {
         const FactoryInfo = <DataProviderFactoryInfo>{
@@ -51,4 +53,5 @@ public class ImageMagickDataProviderFactory inherits AbstractDataProviderFactory
     private Class getClassImpl() {
         return Class::forName("ImageMagickDataProvider::ImageMagickDataProvider");
     }
+}
 }

@@ -23,6 +23,8 @@
 
 #! @file ImageMagickConvertDataProvider.qc Convert container
 
+public namespace ImageMagickDataProvider {
+
 #! Container for format conversion operations
 public class ImageMagickConvertDataProvider inherits AbstractDataProvider {
     public {
@@ -61,4 +63,5 @@ public class ImageMagickConvertDataProvider inherits AbstractDataProvider {
     private hash<DataProviderInfo> getStaticInfoImpl() {
         return ProviderInfo;
     }
+}
 }

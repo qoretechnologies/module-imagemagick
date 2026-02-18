@@ -23,6 +23,8 @@
 
 #! @file ImageMagickGetInfoDataProvider.qc Get image info action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -75,4 +77,5 @@ public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase 
             "signature": img.signature(),
         };
     }
+}
 }

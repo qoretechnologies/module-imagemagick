@@ -23,6 +23,8 @@
 
 #! @file ImageMagickCompositeDataProvider.qc Composite action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickCompositeDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -81,4 +83,5 @@ public class ImageMagickCompositeDataProvider inherits ImageMagickImageActionBas
         }
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

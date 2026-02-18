@@ -23,6 +23,8 @@
 
 #! @file ImageMagickImageActionBase.qc Base class for image action data providers
 
+public namespace ImageMagickDataProvider {
+
 #! Base class for ImageMagick image action providers
 /** Provides common functionality for loading images and returning results.
 */
@@ -83,4 +85,5 @@ public class ImageMagickImageActionBase inherits AbstractDataProvider {
         }
         return response;
     }
+}
 }

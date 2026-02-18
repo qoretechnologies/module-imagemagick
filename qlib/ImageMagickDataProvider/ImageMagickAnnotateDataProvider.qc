@@ -23,6 +23,8 @@
 
 #! @file ImageMagickAnnotateDataProvider.qc Annotate action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickAnnotateDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -74,4 +76,5 @@ public class ImageMagickAnnotateDataProvider inherits ImageMagickImageActionBase
         );
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

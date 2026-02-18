@@ -160,6 +160,79 @@ public namespace ImageMagickDataProvider {
         },
     );
 
+    #! Noise type allowed values for add-noise operation
+    public const NoiseTypeAllowedValues = (
+        <AllowedValueInfo>{
+            "value": "Uniform",
+            "display_name": "Uniform",
+            "desc": "Uniform noise distribution",
+        },
+        <AllowedValueInfo>{
+            "value": "Gaussian",
+            "display_name": "Gaussian",
+            "desc": "Gaussian (normal) noise distribution",
+        },
+        <AllowedValueInfo>{
+            "value": "MultiplicativeGaussian",
+            "display_name": "Multiplicative Gaussian",
+            "desc": "Multiplicative Gaussian noise",
+        },
+        <AllowedValueInfo>{
+            "value": "Impulse",
+            "display_name": "Impulse",
+            "desc": "Impulse (salt and pepper) noise",
+        },
+        <AllowedValueInfo>{
+            "value": "Laplacian",
+            "display_name": "Laplacian",
+            "desc": "Laplacian noise distribution",
+        },
+        <AllowedValueInfo>{
+            "value": "Poisson",
+            "display_name": "Poisson",
+            "desc": "Poisson noise distribution",
+        },
+        <AllowedValueInfo>{
+            "value": "Random",
+            "display_name": "Random",
+            "desc": "Random noise distribution",
+        },
+    );
+
+    #! Colorspace type allowed values
+    public const ColorspaceTypeAllowedValues = (
+        <AllowedValueInfo>{
+            "value": "sRGB",
+            "display_name": "sRGB",
+            "desc": "Standard RGB colorspace",
+        },
+        <AllowedValueInfo>{
+            "value": "RGB",
+            "display_name": "RGB",
+            "desc": "Linear RGB colorspace",
+        },
+        <AllowedValueInfo>{
+            "value": "CMYK",
+            "display_name": "CMYK",
+            "desc": "Cyan, Magenta, Yellow, Key (Black) colorspace",
+        },
+        <AllowedValueInfo>{
+            "value": "Gray",
+            "display_name": "Grayscale",
+            "desc": "Grayscale colorspace",
+        },
+        <AllowedValueInfo>{
+            "value": "HSL",
+            "display_name": "HSL",
+            "desc": "Hue, Saturation, Lightness colorspace",
+        },
+        <AllowedValueInfo>{
+            "value": "Lab",
+            "display_name": "Lab",
+            "desc": "CIE Lab colorspace",
+        },
+    );
+
     #! Composite operator allowed values
     public const CompositeOpAllowedValues = (
         <AllowedValueInfo>{

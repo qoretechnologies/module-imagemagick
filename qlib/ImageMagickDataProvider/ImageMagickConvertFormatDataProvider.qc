@@ -23,6 +23,8 @@
 
 #! @file ImageMagickConvertFormatDataProvider.qc Format conversion action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickConvertFormatDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -68,4 +70,5 @@ public class ImageMagickConvertFormatDataProvider inherits ImageMagickImageActio
         }
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

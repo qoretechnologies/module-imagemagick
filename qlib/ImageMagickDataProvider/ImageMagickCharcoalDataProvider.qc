@@ -23,6 +23,8 @@
 
 #! @file ImageMagickCharcoalDataProvider.qc Charcoal effect action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickCharcoalDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickCharcoalDataProvider inherits ImageMagickImageActionBase
         img.charcoal(req.radius ?? 1.0, req.sigma ?? 1.0);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

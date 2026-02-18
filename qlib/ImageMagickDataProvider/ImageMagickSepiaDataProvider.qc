@@ -23,6 +23,8 @@
 
 #! @file ImageMagickSepiaDataProvider.qc Sepia tone action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickSepiaDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickSepiaDataProvider inherits ImageMagickImageActionBase {
         img.sepiaTone(req.threshold ?? 52000.0);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

@@ -23,6 +23,8 @@
 
 #! @file ImageMagickInfoDataProvider.qc Info container
 
+public namespace ImageMagickDataProvider {
+
 #! Container for image info operations
 public class ImageMagickInfoDataProvider inherits AbstractDataProvider {
     public {
@@ -61,4 +63,5 @@ public class ImageMagickInfoDataProvider inherits AbstractDataProvider {
     private hash<DataProviderInfo> getStaticInfoImpl() {
         return ProviderInfo;
     }
+}
 }

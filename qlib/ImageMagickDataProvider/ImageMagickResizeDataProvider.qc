@@ -23,6 +23,8 @@
 
 #! @file ImageMagickResizeDataProvider.qc Resize action
 
+public namespace ImageMagickDataProvider {
+
 #! Resize image action provider
 public class ImageMagickResizeDataProvider inherits ImageMagickImageActionBase {
     public {
@@ -67,4 +69,5 @@ public class ImageMagickResizeDataProvider inherits ImageMagickImageActionBase {
         img.resize(req.width, req.height, filter);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

@@ -23,6 +23,8 @@
 
 #! @file ImageMagickEmbossDataProvider.qc Emboss effect action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickEmbossDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickEmbossDataProvider inherits ImageMagickImageActionBase {
         img.emboss(req.radius ?? 0.0, req.sigma ?? 1.0);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

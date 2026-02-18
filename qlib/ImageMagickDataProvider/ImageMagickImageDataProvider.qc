@@ -23,6 +23,8 @@
 
 #! @file ImageMagickImageDataProvider.qc Image operations container
 
+public namespace ImageMagickDataProvider {
+
 #! Container for image manipulation operations
 public class ImageMagickImageDataProvider inherits AbstractDataProvider {
     public {
@@ -37,6 +39,38 @@ public class ImageMagickImageDataProvider inherits AbstractDataProvider {
 
     private {
         *hash<auto> opts;
+
+        #! Child data providers
+        const ChildMap = {
+            "resize": Class::forName("ImageMagickDataProvider::ImageMagickResizeDataProvider"),
+            "crop": Class::forName("ImageMagickDataProvider::ImageMagickCropDataProvider"),
+            "rotate": Class::forName("ImageMagickDataProvider::ImageMagickRotateDataProvider"),
+            "flip": Class::forName("ImageMagickDataProvider::ImageMagickFlipDataProvider"),
+            "blur": Class::forName("ImageMagickDataProvider::ImageMagickBlurDataProvider"),
+            "sharpen": Class::forName("ImageMagickDataProvider::ImageMagickSharpenDataProvider"),
+            "brightness-contrast": Class::forName("ImageMagickDataProvider::ImageMagickBrightnessContrastDataProvider"),
+            "composite": Class::forName("ImageMagickDataProvider::ImageMagickCompositeDataProvider"),
+            "annotate": Class::forName("ImageMagickDataProvider::ImageMagickAnnotateDataProvider"),
+            "thumbnail": Class::forName("ImageMagickDataProvider::ImageMagickThumbnailDataProvider"),
+            "auto-orient": Class::forName("ImageMagickDataProvider::ImageMagickAutoOrientDataProvider"),
+            "strip": Class::forName("ImageMagickDataProvider::ImageMagickStripDataProvider"),
+            "effects": Class::forName("ImageMagickDataProvider::ImageMagickEffectsDataProvider"),
+            "color": Class::forName("ImageMagickDataProvider::ImageMagickColorDataProvider"),
+            "gaussian-blur": Class::forName("ImageMagickDataProvider::ImageMagickGaussianBlurDataProvider"),
+            "motion-blur": Class::forName("ImageMagickDataProvider::ImageMagickMotionBlurDataProvider"),
+            "adaptive-blur": Class::forName("ImageMagickDataProvider::ImageMagickAdaptiveBlurDataProvider"),
+            "rotational-blur": Class::forName("ImageMagickDataProvider::ImageMagickRotationalBlurDataProvider"),
+            "adaptive-sharpen": Class::forName("ImageMagickDataProvider::ImageMagickAdaptiveSharpenDataProvider"),
+            "unsharp-mask": Class::forName("ImageMagickDataProvider::ImageMagickUnsharpMaskDataProvider"),
+            "despeckle": Class::forName("ImageMagickDataProvider::ImageMagickDespeckleDataProvider"),
+            "reduce-noise": Class::forName("ImageMagickDataProvider::ImageMagickReduceNoiseDataProvider"),
+            "wavelet-denoise": Class::forName("ImageMagickDataProvider::ImageMagickWaveletDenoiseDataProvider"),
+            "trim": Class::forName("ImageMagickDataProvider::ImageMagickTrimDataProvider"),
+            "border": Class::forName("ImageMagickDataProvider::ImageMagickBorderDataProvider"),
+            "frame": Class::forName("ImageMagickDataProvider::ImageMagickFrameDataProvider"),
+            "shear": Class::forName("ImageMagickDataProvider::ImageMagickShearDataProvider"),
+            "deskew": Class::forName("ImageMagickDataProvider::ImageMagickDeskewDataProvider"),
+        };
     }
 
     constructor(*hash<auto> opts) {
@@ -48,31 +82,19 @@ public class ImageMagickImageDataProvider inherits AbstractDataProvider {
     }
 
     private *list<string> getChildProviderNamesImpl() {
-        return ("resize", "crop", "rotate", "flip", "blur", "sharpen",
-                "brightness-contrast", "composite", "annotate", "thumbnail",
-                "auto-orient", "strip", "effects");
+        return keys ChildMap;
     }
 
     private *AbstractDataProvider getChildProviderImpl(string name) {
-        switch (name) {
-            case "resize": return new ImageMagickResizeDataProvider(opts);
-            case "crop": return new ImageMagickCropDataProvider(opts);
-            case "rotate": return new ImageMagickRotateDataProvider(opts);
-            case "flip": return new ImageMagickFlipDataProvider(opts);
-            case "blur": return new ImageMagickBlurDataProvider(opts);
-            case "sharpen": return new ImageMagickSharpenDataProvider(opts);
-            case "brightness-contrast": return new ImageMagickBrightnessContrastDataProvider(opts);
-            case "composite": return new ImageMagickCompositeDataProvider(opts);
-            case "annotate": return new ImageMagickAnnotateDataProvider(opts);
-            case "thumbnail": return new ImageMagickThumbnailDataProvider(opts);
-            case "auto-orient": return new ImageMagickAutoOrientDataProvider(opts);
-            case "strip": return new ImageMagickStripDataProvider(opts);
-            case "effects": return new ImageMagickEffectsDataProvider(opts);
+        *Class cls = ChildMap{name};
+        if (!cls) {
+            return;
         }
-        return NOTHING;
+        return cls.newObject(opts);
     }
 
     private hash<DataProviderInfo> getStaticInfoImpl() {
         return ProviderInfo;
     }
+}
 }

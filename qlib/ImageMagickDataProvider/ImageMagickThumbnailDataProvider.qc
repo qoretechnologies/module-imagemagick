@@ -23,6 +23,8 @@
 
 #! @file ImageMagickThumbnailDataProvider.qc Thumbnail action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickThumbnailDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -65,4 +67,5 @@ public class ImageMagickThumbnailDataProvider inherits ImageMagickImageActionBas
         img.thumbnail(req.width, req.height);
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }

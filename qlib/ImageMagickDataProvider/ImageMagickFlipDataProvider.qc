@@ -23,6 +23,8 @@
 
 #! @file ImageMagickFlipDataProvider.qc Flip action
 
+public namespace ImageMagickDataProvider {
+
 public class ImageMagickFlipDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
@@ -70,4 +72,5 @@ public class ImageMagickFlipDataProvider inherits ImageMagickImageActionBase {
         }
         return ImageMagickImageActionBase::makeResponse(img, req);
     }
+}
 }
