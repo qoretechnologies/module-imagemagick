@@ -30,7 +30,7 @@ public namespace ImageMagickDataProvider {
             "type": BinaryOrNothingType,
             "display_name": "Output Image Data",
             "short_desc": "The processed image data",
-            "desc": "Binary data of the processed image. Only included when 'return_data' is true "
+            "desc": "Binary data of the processed image. Only included when `return_data` is `true` "
                 "(default when no output destination is specified).",
         },
         "width": {
@@ -61,14 +61,14 @@ public namespace ImageMagickDataProvider {
             "type": StringOrNothingType,
             "display_name": "Output File Path",
             "short_desc": "Path the output image was written to",
-            "desc": "File path where the output image was written, if 'output_path' was specified in "
+            "desc": "File path where the output image was written, if `output_path` was specified in "
                 "the request",
         },
         "output_location": {
             "type": StringOrNothingType,
             "display_name": "Output Location",
             "short_desc": "Location the output image was written to",
-            "desc": "File location where the output image was written, if 'output_location' was "
+            "desc": "File location where the output image was written, if `output_location` was "
                 "specified in the request",
         },
     };
@@ -79,15 +79,15 @@ public namespace ImageMagickDataProvider {
             "type": StringOrNothingType,
             "display_name": "Input File Path",
             "short_desc": "Path to input image file",
-            "desc": "File path to read the input image from. One of 'input_path', 'data', or "
-                "'location' must be provided.",
+            "desc": "File path to read the input image from. One of `input_path`, `data`, or "
+                "`location` must be provided.",
             "example_value": "/path/to/image.png",
         },
         "data": {
             "type": BinaryOrNothingType,
             "display_name": "Input Image Data",
             "short_desc": "Binary image data",
-            "desc": "Binary data of the input image. One of 'input_path', 'data', or 'location' "
+            "desc": "Binary data of the input image. One of `input_path`, `data`, or `location` "
                 "must be provided.",
         },
         "location": {
@@ -97,7 +97,7 @@ public namespace ImageMagickDataProvider {
             "desc": "A file location string as supported by the "
                 "[FileLocationHandler](https://docs.qore.org/current/modules/FileLocationHandler/html/index.html) "
                 "module (e.g. `file:///path/to/image.png`, `https://example.com/image.jpg`). "
-                "One of 'input_path', 'data', or 'location' must be provided.",
+                "One of `input_path`, `data`, or `location` must be provided.",
             "example_value": "file:///path/to/image.png",
         },
         "output_format": {
@@ -111,8 +111,8 @@ public namespace ImageMagickDataProvider {
             "type": StringOrNothingType,
             "display_name": "Output File Path",
             "short_desc": "Path to write the output image to",
-            "desc": "File path to write the processed output image to. If neither 'output_path' nor "
-                "'output_location' is provided, the image data is returned in the response only.",
+            "desc": "File path to write the processed output image to. If neither `output_path` nor "
+                "`output_location` is provided, the image data is returned in the response only.",
             "example_value": "/path/to/output.png",
         },
         "output_location": {
@@ -122,7 +122,7 @@ public namespace ImageMagickDataProvider {
             "desc": "A file location string as supported by the "
                 "[FileLocationHandler](https://docs.qore.org/current/modules/FileLocationHandler/html/index.html) "
                 "module (e.g. `file:///path/to/output.png`, `sftp://host/path/image.jpg`). "
-                "If neither 'output_path' nor 'output_location' is provided, the image data is returned "
+                "If neither `output_path` nor `output_location` is provided, the image data is returned "
                 "in the response only.",
             "example_value": "file:///path/to/output.png",
         },
@@ -567,16 +567,16 @@ public class ImageMagickCompositeRequestDataType inherits HashDataType {
                 "type": StringOrNothingType,
                 "display_name": "Overlay File Path",
                 "short_desc": "Path to overlay image file",
-                "desc": "File path to read the overlay image from. One of 'overlay_path', "
-                    "'overlay_data', or 'overlay_location' must be provided.",
+                "desc": "File path to read the overlay image from. One of `overlay_path`, "
+                    "`overlay_data`, or `overlay_location` must be provided.",
                 "example_value": "/path/to/overlay.png",
             },
             "overlay_data": {
                 "type": BinaryOrNothingType,
                 "display_name": "Overlay Image Data",
                 "short_desc": "Binary overlay image data",
-                "desc": "Binary data of the overlay image. One of 'overlay_path', 'overlay_data', "
-                    "or 'overlay_location' must be provided.",
+                "desc": "Binary data of the overlay image. One of `overlay_path`, `overlay_data`, "
+                    "or `overlay_location` must be provided.",
             },
             "overlay_location": {
                 "type": StringOrNothingType,
@@ -584,7 +584,7 @@ public class ImageMagickCompositeRequestDataType inherits HashDataType {
                 "short_desc": "Location of overlay image",
                 "desc": "A file location string for the overlay image as supported by the "
                     "[FileLocationHandler](https://docs.qore.org/current/modules/FileLocationHandler/html/index.html) "
-                    "module. One of 'overlay_path', 'overlay_data', or 'overlay_location' must be provided.",
+                    "module. One of `overlay_path`, `overlay_data`, or `overlay_location` must be provided.",
                 "example_value": "file:///path/to/overlay.png",
             },
             "operator": {
@@ -798,7 +798,7 @@ public class ImageMagickNegateRequestDataType inherits HashDataType {
                 "type": BoolOrNothingType,
                 "display_name": "Gray Only",
                 "short_desc": "Only negate grayscale values",
-                "desc": "When true, only negate the grayscale values in the image",
+                "desc": "When `true`, only negate the grayscale values in the image",
                 "default_value": False,
             },
         };
@@ -1038,7 +1038,7 @@ public class ImageMagickSigmoidalContrastRequestDataType inherits HashDataType {
                 "type": BoolOrNothingType,
                 "display_name": "Sharpen",
                 "short_desc": "Increase contrast when true",
-                "desc": "When true, increases contrast; when false, decreases contrast",
+                "desc": "When `true`, increases contrast; when `false`, decreases contrast",
                 "default_value": True,
             },
             "strength": {
@@ -1349,7 +1349,7 @@ public class ImageMagickShadeRequestDataType inherits HashDataType {
                 "type": BoolOrNothingType,
                 "display_name": "Grayscale",
                 "short_desc": "Output as grayscale",
-                "desc": "When true, output is a grayscale shaded image; when false, shading is "
+                "desc": "When `true`, output is a grayscale shaded image; when `false`, shading is "
                     "applied to the color image",
                 "default_value": True,
             },
