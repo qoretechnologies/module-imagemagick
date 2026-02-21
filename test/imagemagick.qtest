@@ -443,7 +443,7 @@ public class ImageMagickTest inherits QUnit::Test {
             assertEq(150, img.width());
             assertEq(112, img.height());
         } catch (hash<ExceptionInfo> ex) {
-            if (ex.err == "IMAGEMAGICK-ERROR" && ex.desc =~ /delegate library support not built-in/) {
+            if (ex.err == "IMAGEMAGICK-ERROR" && ex.desc =~ /delegate library support not built-in|DelegateLibrarySupportNotBuiltIn/i) {
                 testSkip("LQR delegate library not available");
             } else {
                 rethrow;
