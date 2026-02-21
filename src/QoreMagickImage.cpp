@@ -27,7 +27,7 @@
 #include "QoreMagickImage.h"
 
 void QoreMagickImage::setupProgressMonitor() {
-    if (wand && smh) {
+    if (wand) {
         MagickSetImageProgressMonitor(wand, progressMonitor, this);
     }
 }
@@ -35,7 +35,7 @@ void QoreMagickImage::setupProgressMonitor() {
 MagickBooleanType QoreMagickImage::progressMonitor(const char* tag, const MagickOffsetType offset,
                                                     const MagickSizeType size, void* client_data) {
     QoreMagickImage* self = static_cast<QoreMagickImage*>(client_data);
-    if (self->smh && self->smh->isInterruptRequested()) {
+    if (qore_check_cancel(nullptr, "image processing")) {
         self->interrupted.store(true, std::memory_order_release);
         return MagickFalse;  // Cancel the operation
     }
@@ -60,7 +60,7 @@ QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(
         return;
     }
     // Check for I/O interrupt before file operation
-    if (qore_check_io_interrupt(xsink, "reading image file")) {
+    if (qore_check_cancel(xsink, "reading image file")) {
         return;
     }
     if (MagickReadImage(wand, path) == MagickFalse) {
@@ -73,7 +73,7 @@ QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(
 QoreMagickImage::QoreMagickImage(const BinaryNode* data, ExceptionSink* xsink) : wand(NewMagickWand()) {
     setupProgressMonitor();
     // Check for I/O interrupt before blob read operation
-    if (qore_check_io_interrupt(xsink, "reading image from binary data")) {
+    if (qore_check_cancel(xsink, "reading image from binary data")) {
         return;
     }
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
@@ -87,7 +87,7 @@ QoreMagickImage::QoreMagickImage(const BinaryNode* data, const char* format,
                                  ExceptionSink* xsink) : wand(NewMagickWand()) {
     setupProgressMonitor();
     // Check for I/O interrupt before blob read operation
-    if (qore_check_io_interrupt(xsink, "reading image from binary data with format")) {
+    if (qore_check_cancel(xsink, "reading image from binary data with format")) {
         return;
     }
     MagickSetFormat(wand, format);
@@ -130,7 +130,7 @@ void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
         return;
     }
     // Check for I/O interrupt before file operation
-    if (qore_check_io_interrupt(xsink, "reading image file")) {
+    if (qore_check_cancel(xsink, "reading image file")) {
         return;
     }
     QoreAutoRWWriteLocker al(rwlock);
@@ -143,7 +143,7 @@ void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
 
 void QoreMagickImage::readData(const BinaryNode* data, ExceptionSink* xsink) {
     // Check for I/O interrupt before blob read operation
-    if (qore_check_io_interrupt(xsink, "reading image from binary data")) {
+    if (qore_check_cancel(xsink, "reading image from binary data")) {
         return;
     }
     QoreAutoRWWriteLocker al(rwlock);
@@ -157,7 +157,7 @@ void QoreMagickImage::readData(const BinaryNode* data, ExceptionSink* xsink) {
 void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* format,
                                          ExceptionSink* xsink) {
     // Check for I/O interrupt before blob read operation
-    if (qore_check_io_interrupt(xsink, "reading image from binary data with format")) {
+    if (qore_check_cancel(xsink, "reading image from binary data with format")) {
         return;
     }
     QoreAutoRWWriteLocker al(rwlock);
@@ -175,7 +175,7 @@ QoreHashNode* QoreMagickImage::pingFile(const char* path, ExceptionSink* xsink) 
         return nullptr;
     }
     // Check for I/O interrupt before file operation
-    if (qore_check_io_interrupt(xsink, "pinging image file")) {
+    if (qore_check_cancel(xsink, "pinging image file")) {
         return nullptr;
     }
     QoreAutoRWWriteLocker al(rwlock);
@@ -257,7 +257,7 @@ void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
         return;
     }
     // Check for I/O interrupt before file operation
-    if (qore_check_io_interrupt(xsink, "writing image file")) {
+    if (qore_check_cancel(xsink, "writing image file")) {
         return;
     }
     QoreAutoRWReadLocker al(rwlock);
@@ -274,7 +274,7 @@ void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* x
         return;
     }
     // Check for I/O interrupt before file operation
-    if (qore_check_io_interrupt(xsink, "writing image files")) {
+    if (qore_check_cancel(xsink, "writing image files")) {
         return;
     }
     QoreAutoRWReadLocker al(rwlock);
