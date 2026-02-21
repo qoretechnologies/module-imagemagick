@@ -1283,8 +1283,7 @@ nothing MagickImage::waveletDenoise(float threshold, float softness = 0.0) {
     @throw IMAGEMAGICK-ERROR error compositing the image
 */
 nothing MagickImage::composite(MagickImage[QoreMagickImage] source, string op, int x, int y) {
-    ReferenceHolder<QoreMagickImage> holder(source, xsink);
-    img->composite(source, op->c_str(), x, y, xsink);
+    img->composite(*source, op->c_str(), x, y, xsink);
 }
 
 //! Composites another image using gravity-based positioning
@@ -1295,8 +1294,7 @@ nothing MagickImage::composite(MagickImage[QoreMagickImage] source, string op, i
     @throw IMAGEMAGICK-ERROR error compositing the image
 */
 nothing MagickImage::compositeGravity(MagickImage[QoreMagickImage] source, string op, string gravity) {
-    ReferenceHolder<QoreMagickImage> holder(source, xsink);
-    img->compositeGravity(source, op->c_str(), gravity->c_str(), xsink);
+    img->compositeGravity(*source, op->c_str(), gravity->c_str(), xsink);
 }
 
 // --- Drawing Methods ---
@@ -1326,7 +1324,6 @@ nothing MagickImage::annotate(string text, float x, float y, float angle = 0.0,
     @throw IMAGEMAGICK-ERROR error drawing on the image
 */
 nothing MagickImage::draw(MagickDrawing[QoreMagickDrawing] drawing) {
-    ReferenceHolder<QoreMagickDrawing> holder(drawing, xsink);
     img->draw(drawing->getWand(), xsink);
 }
 
