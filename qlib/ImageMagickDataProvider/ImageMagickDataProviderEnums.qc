@@ -65,6 +65,7 @@ public namespace ImageMagickDataProvider {
 
     #! Image format allowed values
     public const ImageFormatAllowedValues = (
+        # Common web/standard formats
         <AllowedValueInfo>{
             "value": "PNG",
             "display_name": "PNG",
@@ -94,6 +95,247 @@ public namespace ImageMagickDataProvider {
             "value": "WEBP",
             "display_name": "WebP",
             "desc": "Google WebP format (good compression)",
+        },
+        # Modern web formats
+        <AllowedValueInfo>{
+            "value": "AVIF",
+            "display_name": "AVIF",
+            "desc": "AV1 Image File Format (next-gen web, excellent compression)",
+        },
+        <AllowedValueInfo>{
+            "value": "HEIC",
+            "display_name": "HEIC",
+            "desc": "High Efficiency Image Container (Apple/MPEG, excellent compression)",
+        },
+        <AllowedValueInfo>{
+            "value": "HEIF",
+            "display_name": "HEIF",
+            "desc": "High Efficiency Image Format (MPEG standard)",
+        },
+        <AllowedValueInfo>{
+            "value": "JXL",
+            "display_name": "JPEG XL",
+            "desc": "JPEG XL (next-gen, lossless and lossy, excellent compression)",
+        },
+        <AllowedValueInfo>{
+            "value": "APNG",
+            "display_name": "APNG",
+            "desc": "Animated Portable Network Graphics",
+        },
+        # Vector and document formats
+        <AllowedValueInfo>{
+            "value": "SVG",
+            "display_name": "SVG",
+            "desc": "Scalable Vector Graphics (vector format)",
+        },
+        <AllowedValueInfo>{
+            "value": "PDF",
+            "display_name": "PDF",
+            "desc": "Portable Document Format",
+        },
+        <AllowedValueInfo>{
+            "value": "EPS",
+            "display_name": "EPS",
+            "desc": "Encapsulated PostScript",
+        },
+        <AllowedValueInfo>{
+            "value": "PS",
+            "display_name": "PostScript",
+            "desc": "Adobe PostScript",
+        },
+        # Professional / editor formats
+        <AllowedValueInfo>{
+            "value": "PSD",
+            "display_name": "PSD",
+            "desc": "Adobe Photoshop Document",
+        },
+        <AllowedValueInfo>{
+            "value": "XCF",
+            "display_name": "XCF",
+            "desc": "GIMP native format",
+        },
+        <AllowedValueInfo>{
+            "value": "EXR",
+            "display_name": "OpenEXR",
+            "desc": "OpenEXR high dynamic range format",
+        },
+        <AllowedValueInfo>{
+            "value": "DPX",
+            "display_name": "DPX",
+            "desc": "Digital Picture Exchange (motion picture industry)",
+        },
+        <AllowedValueInfo>{
+            "value": "HDR",
+            "display_name": "HDR",
+            "desc": "Radiance HDR high dynamic range format",
+        },
+        # Icons and cursors
+        <AllowedValueInfo>{
+            "value": "ICO",
+            "display_name": "ICO",
+            "desc": "Windows Icon format",
+        },
+        <AllowedValueInfo>{
+            "value": "CUR",
+            "display_name": "CUR",
+            "desc": "Windows Cursor format",
+        },
+        # JPEG variants
+        <AllowedValueInfo>{
+            "value": "JP2",
+            "display_name": "JPEG 2000",
+            "desc": "JPEG 2000 (wavelet-based compression)",
+        },
+        # Legacy and niche formats
+        <AllowedValueInfo>{
+            "value": "TGA",
+            "display_name": "TGA",
+            "desc": "Truevision TGA (Targa)",
+        },
+        <AllowedValueInfo>{
+            "value": "PCX",
+            "display_name": "PCX",
+            "desc": "PC Paintbrush Exchange",
+        },
+        <AllowedValueInfo>{
+            "value": "WBMP",
+            "display_name": "WBMP",
+            "desc": "Wireless Application Protocol Bitmap",
+        },
+        <AllowedValueInfo>{
+            "value": "PICT",
+            "display_name": "PICT",
+            "desc": "Apple Macintosh QuickDraw/PICT",
+        },
+        # Raw camera formats
+        <AllowedValueInfo>{
+            "value": "DNG",
+            "display_name": "DNG",
+            "desc": "Adobe Digital Negative (universal raw)",
+        },
+        <AllowedValueInfo>{
+            "value": "CR2",
+            "display_name": "CR2",
+            "desc": "Canon Raw 2",
+        },
+        <AllowedValueInfo>{
+            "value": "NEF",
+            "display_name": "NEF",
+            "desc": "Nikon Electronic Format (raw)",
+        },
+        <AllowedValueInfo>{
+            "value": "ARW",
+            "display_name": "ARW",
+            "desc": "Sony Alpha Raw",
+        },
+        <AllowedValueInfo>{
+            "value": "ORF",
+            "display_name": "ORF",
+            "desc": "Olympus Raw Format",
+        },
+        <AllowedValueInfo>{
+            "value": "RW2",
+            "display_name": "RW2",
+            "desc": "Panasonic Raw",
+        },
+        <AllowedValueInfo>{
+            "value": "RAF",
+            "display_name": "RAF",
+            "desc": "Fujifilm Raw",
+        },
+        <AllowedValueInfo>{
+            "value": "PEF",
+            "display_name": "PEF",
+            "desc": "Pentax Electronic Format (raw)",
+        },
+        # Scientific and specialized
+        <AllowedValueInfo>{
+            "value": "FITS",
+            "display_name": "FITS",
+            "desc": "Flexible Image Transport System (astronomy)",
+        },
+        <AllowedValueInfo>{
+            "value": "DDS",
+            "display_name": "DDS",
+            "desc": "DirectDraw Surface (3D/game textures)",
+        },
+        # Portable bitmap family
+        <AllowedValueInfo>{
+            "value": "PNM",
+            "display_name": "PNM",
+            "desc": "Portable Any Map (PBM/PGM/PPM family)",
+        },
+        <AllowedValueInfo>{
+            "value": "PBM",
+            "display_name": "PBM",
+            "desc": "Portable Bitmap (monochrome)",
+        },
+        <AllowedValueInfo>{
+            "value": "PGM",
+            "display_name": "PGM",
+            "desc": "Portable Graymap (grayscale)",
+        },
+        <AllowedValueInfo>{
+            "value": "PPM",
+            "display_name": "PPM",
+            "desc": "Portable Pixmap (color)",
+        },
+        <AllowedValueInfo>{
+            "value": "PAM",
+            "display_name": "PAM",
+            "desc": "Portable Arbitrary Map (generalized PNM)",
+        },
+        # Raw pixel data formats
+        <AllowedValueInfo>{
+            "value": "RGB",
+            "display_name": "RGB",
+            "desc": "Raw RGB pixel data",
+        },
+        <AllowedValueInfo>{
+            "value": "RGBA",
+            "display_name": "RGBA",
+            "desc": "Raw RGBA pixel data (with alpha)",
+        },
+        <AllowedValueInfo>{
+            "value": "CMYK",
+            "display_name": "CMYK",
+            "desc": "Raw CMYK pixel data (print)",
+        },
+        <AllowedValueInfo>{
+            "value": "GRAY",
+            "display_name": "GRAY",
+            "desc": "Raw grayscale pixel data",
+        },
+        <AllowedValueInfo>{
+            "value": "YUV",
+            "display_name": "YUV",
+            "desc": "Raw YUV pixel data (video)",
+        },
+        # Other notable formats
+        <AllowedValueInfo>{
+            "value": "JBIG",
+            "display_name": "JBIG",
+            "desc": "Joint Bi-level Image Experts Group (fax/document compression)",
+        },
+        <AllowedValueInfo>{
+            "value": "JNG",
+            "display_name": "JNG",
+            "desc": "JPEG Network Graphics",
+        },
+        <AllowedValueInfo>{
+            "value": "MNG",
+            "display_name": "MNG",
+            "desc": "Multiple-image Network Graphics (animated)",
+        },
+        <AllowedValueInfo>{
+            "value": "DJVU",
+            "display_name": "DjVu",
+            "desc": "DjVu (scanned documents, high compression)",
+        },
+        <AllowedValueInfo>{
+            "value": "SGI",
+            "display_name": "SGI",
+            "desc": "Silicon Graphics IRIS image",
         },
     );
 

@@ -104,7 +104,9 @@ public namespace ImageMagickDataProvider {
             "type": StringOrNothingType,
             "display_name": "Output Format",
             "short_desc": "Output image format",
-            "desc": "Format for the output image. If not specified, the input format is preserved.",
+            "desc": "Format for the output image. If not specified, the input format is "
+                "preserved. Common formats are listed, but any ImageMagick-supported format "
+                "name can be used (200+ formats supported).",
             "allowed_values": ImageFormatAllowedValues,
         },
         "output_path": {
@@ -539,7 +541,9 @@ public class ImageMagickConvertFormatRequestDataType inherits HashDataType {
                 "type": StringType,
                 "display_name": "Target Format",
                 "short_desc": "Target image format",
-                "desc": "Format to convert the image to",
+                "desc": "Format to convert the image to. Common formats are listed, but any "
+                    "ImageMagick-supported format name can be used (200+ formats supported "
+                    "including raw camera, scientific, and specialized formats).",
                 "allowed_values": ImageFormatAllowedValues,
                 "example_value": "JPEG",
             },

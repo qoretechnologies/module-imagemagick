@@ -404,7 +404,10 @@ module ImageMagickDataProvider {
             "action": "convert-format",
             "display_name": "Convert Format",
             "short_desc": "Convert image to a different format",
-            "desc": "Convert an image to a different format (PNG, JPEG, GIF, BMP, TIFF, etc.)",
+            "desc": "Convert an image to a different format. Common formats are listed in "
+                "the dropdown, but ImageMagick supports 200+ formats including raw camera "
+                "formats, scientific formats, and more. Use `MagickImage::queryFormats()` "
+                "to list all supported formats, or type any format name directly.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickConvertFormatRequestDataType::Fields{"format",}, {
