@@ -1,0 +1,2126 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+# @file qimage CLI tool for ImageMagick image processing operations
+
+/*  Copyright 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+%modern
+
+%requires imagemagick
+%requires Util
+
+%try-module yaml
+%define NoYaml
+%endtry
+
+%try-module json
+%define NoJson
+%endtry
+
+%exec-class QImageMain
+
+const VERSION = "1.0";
+
+const Opts = {
+    # Global
+    "output":       "o,output=s",
+    "in_place":     "i,in-place",
+    "quality":      "q,quality=i",
+    "fmt":          "F,format=s",
+    "nocolor":      "C,no-color",
+    "verbose":      "v,verbose:i+",
+    "help":         "h,help",
+    "version":      "V,version",
+
+    # Common transform
+    "method":       "m,method=s",
+    "width":        "width=i",
+    "height":       "height=i",
+    "x":            "x-pos,x=i",
+    "y":            "y-pos,y=i",
+
+    # Resize
+    "filter":       "filter=s",
+    "delta_x":      "delta-x=f",
+    "rigidity":     "rigidity=f",
+    "dpi_x":        "dpi-x=f",
+    "dpi_y":        "dpi-y=f",
+
+    # Crop
+    "fuzz":         "fuzz=f",
+    "columns":      "columns=i",
+    "rows":         "rows=i",
+
+    # Rotate
+    "degrees":      "degrees=f",
+    "background":   "background=s",
+    "direction":    "direction=s",
+    "shear_x":      "shear-x=f",
+    "shear_y":      "shear-y=f",
+
+    # Adjust/Color
+    "brightness":   "brightness=f",
+    "contrast":     "contrast=f",
+    "gamma":        "gamma=f",
+    "black_point":  "black-point=f",
+    "white_point":  "white-point=f",
+    "hue":          "hue=f",
+    "saturation":   "saturation=f",
+    "colorspace":   "colorspace=s",
+    "strength":     "strength=f",
+    "midpoint":     "midpoint=f",
+    "sharpen_flag": "sharpen",
+
+    # Blur/Sharpen/Effects
+    "radius":       "radius=f",
+    "sigma":        "sigma=f",
+    "angle":        "angle=f",
+    "gain":         "gain=f",
+    "threshold":    "threshold=f",
+
+    # Effects
+    "amplitude":    "amplitude=f",
+    "wavelength":   "wavelength=f",
+    "amount":       "amount=f",
+    "alpha":        "alpha=f",
+    "azimuth":      "azimuth=f",
+    "elevation":    "elevation=f",
+    "levels":       "levels=i",
+    "dither":       "dither",
+    "gray":         "gray",
+    "factor":       "factor=f",
+
+    # Noise
+    "noise_type":   "type=s",
+    "attenuate":    "attenuate=f",
+    "softness":     "softness=f",
+
+    # Composite
+    "overlay":      "overlay=s",
+    "op":           "op=s",
+    "gravity":      "gravity=s",
+
+    # Annotate
+    "text":         "text=s",
+    "font":         "font=s",
+    "font_size":    "font-size=f",
+    "fill":         "fill=s",
+    "stroke":       "stroke=s",
+
+    # Border/Frame
+    "bcolor":       "color=s",
+    "inner_bevel":  "inner-bevel=i",
+    "outer_bevel":  "outer-bevel=i",
+
+    # Props/Profile/Pixel
+    "get":          "get=s",
+    "set":          "set=s",
+    "del":          "delete=s",
+    "list_flag":    "list",
+    "extr":         "extract=s",
+
+    # Draw commands
+    "commands_file": "commands-file=s",
+    "commands":     "commands=s",
+
+    # Convert
+    "depth":        "depth=i",
+};
+
+#! All valid commands
+const Commands = {
+    "info": "Show image metadata",
+    "identify": "Full verbose identification",
+    "convert": "Convert image format",
+    "resize": "Resize image",
+    "crop": "Crop/trim image",
+    "rotate": "Rotate/flip/orient image",
+    "adjust": "Color/brightness adjustments",
+    "blur": "Blur operations",
+    "sharpen": "Sharpen operations",
+    "effect": "Visual effects",
+    "noise": "Noise add/remove",
+    "composite": "Composite images",
+    "annotate": "Add text annotation",
+    "draw": "Draw shapes and text from commands",
+    "border": "Add border or frame",
+    "strip": "Strip all metadata",
+    "props": "Get/set image properties",
+    "profile": "Manage ICC/EXIF/IPTC profiles",
+    "pixel": "Get/set pixel colors",
+    "fonts": "List available fonts",
+    "formats": "List supported formats",
+};
+
+#! Commands that require an output file
+const TransformCommands = {
+    "convert": True,
+    "resize": True,
+    "crop": True,
+    "rotate": True,
+    "adjust": True,
+    "blur": True,
+    "sharpen": True,
+    "effect": True,
+    "noise": True,
+    "composite": True,
+    "annotate": True,
+    "draw": True,
+    "border": True,
+    "strip": True,
+};
+
+class QImageMain {
+    private {
+        hash<auto> opts;
+        *string command;
+        Util::TerminalColor color;
+    }
+
+    constructor() {
+        GetOpt getopt(Opts);
+        opts = getopt.parse3(\ARGV);
+
+        color = new Util::TerminalColor(!opts.nocolor);
+
+        if (opts.help && !ARGV) {
+            doHelp(0);
+        }
+        if (opts.version) {
+            printf("qimage v%s\n", VERSION);
+            exit(0);
+        }
+
+        if (!ARGV) {
+            doHelp();
+        }
+
+        command = shift ARGV;
+
+        if (!Commands{command}) {
+            printf("%s unknown command %y\n\n", color.error("ERROR:"), command);
+            doHelp();
+        }
+
+        if (opts.help) {
+            doCommandHelp();
+            exit(0);
+        }
+
+        switch (command) {
+            case "fonts": doFonts(); break;
+            case "formats": doFormats(); break;
+            case "info": doInfo(); break;
+            case "identify": doIdentify(); break;
+            case "props": doProps(); break;
+            case "profile": doProfile(); break;
+            case "pixel": doPixel(); break;
+            case "convert": doConvert(); break;
+            case "resize": doResize(); break;
+            case "crop": doCrop(); break;
+            case "rotate": doRotate(); break;
+            case "adjust": doAdjust(); break;
+            case "blur": doBlur(); break;
+            case "sharpen": doSharpen(); break;
+            case "effect": doEffect(); break;
+            case "noise": doNoise(); break;
+            case "composite": doComposite(); break;
+            case "annotate": doAnnotate(); break;
+            case "draw": doDraw(); break;
+            case "border": doBorder(); break;
+            case "strip": doStrip(); break;
+        }
+    }
+
+    # ── Help ─────────────────────────────────────────────────────────────
+
+    private doHelp(int exit_code = 1) {
+        printf("%s v%s - ImageMagick image processing tool for Qore\n\n", color.bold("qimage"), VERSION);
+
+        printf("%s\n", color.bold("Usage:"));
+        printf("  qimage <command> [options] [arguments]\n");
+
+        printf("\n%s\n", color.bold("Query Commands:"));
+        printf("  %s           List available fonts\n", color.key("fonts"));
+        printf("  %s         List supported image formats\n", color.key("formats"));
+
+        printf("\n%s\n", color.bold("Info Commands:"));
+        printf("  %s            Show image metadata summary\n", color.key("info"));
+        printf("  %s        Full verbose identification\n", color.key("identify"));
+        printf("  %s           Get/set image properties\n", color.key("props"));
+        printf("  %s         Manage ICC/EXIF/IPTC profiles\n", color.key("profile"));
+        printf("  %s           Get/set pixel colors\n", color.key("pixel"));
+
+        printf("\n%s\n", color.bold("Transform Commands:"));
+        printf("  %s         Convert image format\n", color.key("convert"));
+        printf("  %s          Resize image\n", color.key("resize"));
+        printf("  %s            Crop/trim image\n", color.key("crop"));
+        printf("  %s          Rotate/flip/orient image\n", color.key("rotate"));
+        printf("  %s          Color/brightness adjustments\n", color.key("adjust"));
+        printf("  %s            Blur operations\n", color.key("blur"));
+        printf("  %s         Sharpen operations\n", color.key("sharpen"));
+        printf("  %s          Visual effects\n", color.key("effect"));
+        printf("  %s           Noise add/remove\n", color.key("noise"));
+        printf("  %s       Composite images\n", color.key("composite"));
+        printf("  %s        Add text annotation\n", color.key("annotate"));
+        printf("  %s            Draw shapes/text from YAML/JSON commands\n", color.key("draw"));
+        printf("  %s          Add border or frame\n", color.key("border"));
+        printf("  %s           Strip all metadata\n", color.key("strip"));
+
+        printf("\n%s\n", color.bold("Global Options:"));
+        printf("  %s        Output file %s\n", color.key("-o, --output <file>"),
+            color.dim("(transform commands)"));
+        printf("  %s             Modify input file in place\n", color.key("-i, --in-place"));
+        printf("  %s         Output quality %s\n", color.key("-q, --quality <0-100>"),
+            color.dim("(0-100)"));
+        printf("  %s         Output format override\n", color.key("-F, --format <fmt>"));
+        printf("  %s             Disable color output\n", color.key("-C, --no-color"));
+        printf("  %s              Increase verbosity\n", color.key("-v, --verbose"));
+        printf("  %s                 Show help %s\n", color.key("-h, --help"),
+            color.dim("(use with command for details)"));
+        printf("  %s              Show version\n", color.key("-V, --version"));
+
+        printf("\n%s\n", color.bold("Examples:"));
+        printf("  %s\n", color.dim("# Get image info:"));
+        printf("  qimage info photo.jpg\n");
+        printf("  %s\n", color.dim("# Resize to 800x600:"));
+        printf("  qimage resize photo.jpg -o thumb.jpg --width 800 --height 600\n");
+        printf("  %s\n", color.dim("# Apply sepia effect:"));
+        printf("  qimage effect photo.jpg -o sepia.jpg --method sepia --threshold 80\n");
+        printf("  %s\n", color.dim("# Convert to WebP:"));
+        printf("  qimage convert photo.jpg -o photo.webp --quality 85\n");
+        printf("  %s\n", color.dim("# List fonts:"));
+        printf("  qimage fonts\n");
+        exit(exit_code);
+    }
+
+    private doCommandHelp() {
+        switch (command) {
+            case "fonts":
+                printf("%s\n", color.bold("qimage fonts [pattern]"));
+                printf("\nList available fonts. Optionally filter by glob pattern.\n");
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage fonts\n");
+                printf("  qimage fonts \"Helvetica*\"\n");
+                break;
+
+            case "formats":
+                printf("%s\n", color.bold("qimage formats [pattern]"));
+                printf("\nList supported image formats. Optionally filter by glob pattern.\n");
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage formats\n");
+                printf("  qimage formats \"PNG*\"\n");
+                break;
+
+            case "info":
+                printf("%s\n", color.bold("qimage info <file> [-v]"));
+                printf("\nShow image metadata: dimensions, format, colorspace, depth, resolution,\n");
+                printf("quality, colors, and signature. Use -v to include EXIF properties.\n");
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage info photo.jpg\n");
+                printf("  qimage info photo.jpg -v\n");
+                break;
+
+            case "identify":
+                printf("%s\n", color.bold("qimage identify <file>"));
+                printf("\nDisplay full verbose identification output from ImageMagick.\n");
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage identify photo.jpg\n");
+                break;
+
+            case "convert":
+                printf("%s\n", color.bold("qimage convert <input> -o <output> [options]"));
+                printf("\nConvert image format. The output format is determined by the file extension\n");
+                printf("or the --format flag.\n");
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s     Output format %s\n", color.key("--format <fmt>"),
+                    color.dim("(png, jpeg, webp, tiff, ...)"));
+                printf("  %s   Output quality %s\n", color.key("--quality <0-100>"),
+                    color.dim("(0-100)"));
+                printf("  %s      Bit depth %s\n", color.key("--depth <n>"),
+                    color.dim("(8, 16, or 32)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage convert photo.jpg -o photo.webp\n");
+                printf("  qimage convert photo.png -o photo.jpg --quality 90\n");
+                printf("  qimage convert photo.jpg -o photo.tiff --depth 16\n");
+                break;
+
+            case "resize":
+                printf("%s\n", color.bold("qimage resize <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s     High-quality resize with filter %s\n",
+                    color.key("resize"), color.dim("(default)"));
+                printf("  %s      Fast scaling without filtering\n", color.key("scale"));
+                printf("  %s  Optimized thumbnail generation\n", color.key("thumbnail"));
+                printf("  %s   Data-dependent triangulation\n", color.key("adaptive"));
+                printf("  %s     Pixel sampling %s\n", color.key("sample"),
+                    color.dim("(fastest, no interpolation)"));
+                printf("  %s     Content-aware seam carving\n", color.key("liquid"));
+                printf("  %s   Change image resolution %s\n", color.key("resample"),
+                    color.dim("(DPI)"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s        Target width in pixels\n", color.key("--width <n>"));
+                printf("  %s       Target height in pixels\n", color.key("--height <n>"));
+                printf("  %s   Resize filter %s\n", color.key("--filter <name>"),
+                    color.dim("(Lanczos, Mitchell, Catrom, Gaussian, Box, ...)"));
+                printf("  %s    Delta X for liquid rescale\n", color.key("--delta-x <f>"));
+                printf("  %s  Rigidity for liquid rescale\n", color.key("--rigidity <f>"));
+                printf("  %s      Target X DPI %s\n", color.key("--dpi-x <f>"),
+                    color.dim("(resample method)"));
+                printf("  %s      Target Y DPI %s\n", color.key("--dpi-y <f>"),
+                    color.dim("(resample method)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage resize photo.jpg -o small.jpg --width 800 --height 600\n");
+                printf("  qimage resize photo.jpg -o thumb.jpg -m thumbnail --width 200 --height 200\n");
+                printf("  qimage resize photo.jpg -o fast.jpg -m scale --width 400 --height 300\n");
+                printf("  qimage resize photo.jpg -o liquid.jpg -m liquid --width 600 --height 400\n");
+                printf("  qimage resize photo.jpg -o hires.jpg -m resample --dpi-x 300 --dpi-y 300\n");
+                break;
+
+            case "crop":
+                printf("%s\n", color.bold("qimage crop <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s       Crop rectangular region %s\n",
+                    color.key("crop"), color.dim("(default)"));
+                printf("  %s       Auto-trim uniform edges\n", color.key("trim"));
+                printf("  %s     Set canvas size and position\n", color.key("extent"));
+                printf("  %s       Remove rectangular region\n", color.key("chop"));
+                printf("  %s      Remove pixels from edges\n", color.key("shave"));
+                printf("  %s     Insert blank region\n", color.key("splice"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s        Region width\n", color.key("--width <n>"));
+                printf("  %s       Region height\n", color.key("--height <n>"));
+                printf("  %s            X offset\n", color.key("-x <n>"));
+                printf("  %s            Y offset\n", color.key("-y <n>"));
+                printf("  %s       Color similarity tolerance %s\n", color.key("--fuzz <f>"),
+                    color.dim("(trim method)"));
+                printf("  %s    Columns to shave %s\n", color.key("--columns <n>"),
+                    color.dim("(shave method)"));
+                printf("  %s       Rows to shave %s\n", color.key("--rows <n>"),
+                    color.dim("(shave method)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage crop photo.jpg -o cropped.jpg --width 400 --height 300 --x 100 --y 50\n");
+                printf("  qimage crop photo.jpg -o trimmed.jpg -m trim --fuzz 10\n");
+                printf("  qimage crop photo.jpg -o canvas.jpg -m extent --width 1000 --height 800\n");
+                printf("  qimage crop photo.jpg -o shaved.jpg -m shave --columns 20 --rows 20\n");
+                break;
+
+            case "rotate":
+                printf("%s\n", color.bold("qimage rotate <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s         Rotate by degrees %s\n",
+                    color.key("rotate"), color.dim("(default)"));
+                printf("  %s           Flip vertically or horizontally\n", color.key("flip"));
+                printf("  %s      Mirror on top-left to bottom-right diagonal\n",
+                    color.key("transpose"));
+                printf("  %s     Mirror on top-right to bottom-left diagonal\n",
+                    color.key("transverse"));
+                printf("  %s    Auto-orient by EXIF tag\n", color.key("auto-orient"));
+                printf("  %s         Remove skew from scanned images\n", color.key("deskew"));
+                printf("  %s          Shear transform\n", color.key("shear"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s     Rotation angle %s\n", color.key("--degrees <f>"),
+                    color.dim("(rotate method)"));
+                printf("  %s  Background color %s\n", color.key("--background <color>"),
+                    color.dim("(default: white)"));
+                printf("  %s  Flip direction %s\n", color.key("--direction <v|h>"),
+                    color.dim("(v=vertical, h=horizontal)"));
+                printf("  %s   Deskew threshold\n", color.key("--threshold <f>"));
+                printf("  %s     X shear angle\n", color.key("--shear-x <f>"));
+                printf("  %s     Y shear angle\n", color.key("--shear-y <f>"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage rotate photo.jpg -o rotated.jpg --degrees 45\n");
+                printf("  qimage rotate photo.jpg -o flipped.jpg -m flip --direction v\n");
+                printf("  qimage rotate photo.jpg -i -m auto-orient\n");
+                printf("  qimage rotate scan.jpg -o straight.jpg -m deskew --threshold 40\n");
+                printf("  qimage rotate photo.jpg -o sheared.jpg -m shear --shear-x 10 --shear-y 0\n");
+                break;
+
+            case "adjust":
+                printf("%s\n", color.bold("qimage adjust <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s  Adjust brightness and contrast %s\n",
+                    color.key("brightness-contrast"), color.dim("(default)"));
+                printf("  %s                Gamma correction\n", color.key("gamma"));
+                printf("  %s                Adjust levels (black/gamma/white)\n", color.key("level"));
+                printf("  %s             Modulate brightness/saturation/hue\n", color.key("modulate"));
+                printf("  %s               Invert colors\n", color.key("negate"));
+                printf("  %s            Enhance contrast by normalizing\n", color.key("normalize"));
+                printf("  %s             Equalize histogram\n", color.key("equalize"));
+                printf("  %s           Automatic gamma correction\n", color.key("auto-gamma"));
+                printf("  %s           Automatic level adjustment\n", color.key("auto-level"));
+                printf("  %s  Sigmoidal contrast curve\n", color.key("sigmoidal-contrast"));
+                printf("  %s     Stretch contrast range\n", color.key("contrast-stretch"));
+                printf("  %s       Linear stretch contrast\n", color.key("linear-stretch"));
+                printf("  %s              Digital filter enhancement\n", color.key("enhance"));
+                printf("  %s        Auto white balance correction\n", color.key("white-balance"));
+                printf("  %s           Change image colorspace\n", color.key("colorspace"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s   Brightness value\n", color.key("--brightness <f>"));
+                printf("  %s     Contrast value\n", color.key("--contrast <f>"));
+                printf("  %s         Gamma value\n", color.key("--gamma <f>"));
+                printf("  %s   Black point\n", color.key("--black-point <f>"));
+                printf("  %s   White point\n", color.key("--white-point <f>"));
+                printf("  %s           Hue rotation\n", color.key("--hue <f>"));
+                printf("  %s    Saturation level\n", color.key("--saturation <f>"));
+                printf("  %s  Colorspace name %s\n", color.key("--colorspace <name>"),
+                    color.dim("(sRGB, CMYK, Gray, HSL, Lab, RGB)"));
+                printf("  %s      Contrast strength\n", color.key("--strength <f>"));
+                printf("  %s      Midpoint for sigmoidal\n", color.key("--midpoint <f>"));
+                printf("  %s          Sharpen vs soften %s\n", color.key("--sharpen"),
+                    color.dim("(sigmoidal-contrast)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage adjust photo.jpg -o bright.jpg --brightness 20 --contrast 10\n");
+                printf("  qimage adjust photo.jpg -o corrected.jpg -m gamma --gamma 1.2\n");
+                printf("  qimage adjust photo.jpg -o bw.jpg -m negate\n");
+                printf("  qimage adjust photo.jpg -i -m white-balance\n");
+                printf("  qimage adjust photo.jpg -o gray.jpg -m colorspace --colorspace Gray\n");
+                break;
+
+            case "blur":
+                printf("%s\n", color.bold("qimage blur <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s         Standard blur %s\n",
+                    color.key("blur"), color.dim("(default)"));
+                printf("  %s     Gaussian blur\n", color.key("gaussian"));
+                printf("  %s     Adaptive blur %s\n", color.key("adaptive"),
+                    color.dim("(edge-preserving)"));
+                printf("  %s       Motion blur\n", color.key("motion"));
+                printf("  %s    Selective blur %s\n", color.key("selective"),
+                    color.dim("(threshold-based)"));
+                printf("  %s   Rotational blur\n", color.key("rotational"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s     Blur radius\n", color.key("--radius <f>"));
+                printf("  %s      Blur sigma %s\n", color.key("--sigma <f>"),
+                    color.dim("(standard deviation)"));
+                printf("  %s      Angle in degrees %s\n", color.key("--angle <f>"),
+                    color.dim("(motion/rotational)"));
+                printf("  %s  Threshold %s\n", color.key("--threshold <f>"),
+                    color.dim("(selective)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage blur photo.jpg -o blurred.jpg --radius 5 --sigma 2\n");
+                printf("  qimage blur photo.jpg -o smooth.jpg -m gaussian --radius 3 --sigma 1.5\n");
+                printf("  qimage blur photo.jpg -o motion.jpg -m motion --radius 10 --sigma 3 --angle 45\n");
+                printf("  qimage blur photo.jpg -o spin.jpg -m rotational --angle 5\n");
+                break;
+
+            case "sharpen":
+                printf("%s\n", color.bold("qimage sharpen <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s        Standard sharpen %s\n",
+                    color.key("sharpen"), color.dim("(default)"));
+                printf("  %s       Adaptive sharpen %s\n", color.key("adaptive"),
+                    color.dim("(edge-aware)"));
+                printf("  %s   Unsharp mask %s\n", color.key("unsharp-mask"),
+                    color.dim("(professional sharpening)"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s     Sharpen radius\n", color.key("--radius <f>"));
+                printf("  %s      Sharpen sigma\n", color.key("--sigma <f>"));
+                printf("  %s       Gain amount %s\n", color.key("--gain <f>"),
+                    color.dim("(unsharp-mask)"));
+                printf("  %s  Threshold %s\n", color.key("--threshold <f>"),
+                    color.dim("(unsharp-mask)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage sharpen photo.jpg -o sharp.jpg --radius 0 --sigma 1\n");
+                printf("  qimage sharpen photo.jpg -o sharp.jpg -m unsharp-mask --radius 2 --sigma 1 --gain 1.5 --threshold 0.05\n");
+                break;
+
+            case "effect":
+                printf("%s\n", color.bold("qimage effect <input> -o <output> --method <name> [options]"));
+                printf("\n%s %s\n", color.bold("Methods:"), color.dim("(--method is required)"));
+                printf("  %s      Charcoal drawing\n", color.key("charcoal"));
+                printf("  %s          Edge detection\n", color.key("edge"));
+                printf("  %s        3D emboss effect\n", color.key("emboss"));
+                printf("  %s     Oil painting effect\n", color.key("oil-paint"));
+                printf("  %s        Pencil sketch\n", color.key("sketch"));
+                printf("  %s      Solarize (invert tones above threshold)\n", color.key("solarize"));
+                printf("  %s         Sepia tone\n", color.key("sepia"));
+                printf("  %s      Vignette (soft dark edges)\n", color.key("vignette"));
+                printf("  %s        Drop shadow\n", color.key("shadow"));
+                printf("  %s         3D lighting/shading\n", color.key("shade"));
+                printf("  %s          Wave distortion\n", color.key("wave"));
+                printf("  %s         Swirl distortion\n", color.key("swirl"));
+                printf("  %s       Implosion effect\n", color.key("implode"));
+                printf("  %s     Posterize to N color levels\n", color.key("posterize"));
+                printf("  %s     Black & white threshold\n", color.key("threshold"));
+                printf("  %s    Blue/moonlight shift\n", color.key("blue-shift"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s     Effect radius\n", color.key("--radius <f>"));
+                printf("  %s      Effect sigma\n", color.key("--sigma <f>"));
+                printf("  %s      Angle %s\n", color.key("--angle <f>"),
+                    color.dim("(sketch)"));
+                printf("  %s  Threshold %s\n", color.key("--threshold <f>"),
+                    color.dim("(sepia, solarize, threshold)"));
+                printf("  %s     Levels %s\n", color.key("--levels <n>"),
+                    color.dim("(posterize)"));
+                printf("  %s      Alpha/opacity %s\n", color.key("--alpha <f>"),
+                    color.dim("(shadow)"));
+                printf("  %s    Azimuth %s\n", color.key("--azimuth <f>"),
+                    color.dim("(shade)"));
+                printf("  %s  Elevation %s\n", color.key("--elevation <f>"),
+                    color.dim("(shade)"));
+                printf("  %s             Gray shading %s\n", color.key("--gray"),
+                    color.dim("(shade)"));
+                printf("  %s  Amplitude %s\n", color.key("--amplitude <f>"),
+                    color.dim("(wave)"));
+                printf("  %s Wavelength %s\n", color.key("--wavelength <f>"),
+                    color.dim("(wave)"));
+                printf("  %s     Amount %s\n", color.key("--amount <f>"),
+                    color.dim("(implode)"));
+                printf("  %s     Degrees %s\n", color.key("--degrees <f>"),
+                    color.dim("(swirl)"));
+                printf("  %s     Factor %s\n", color.key("--factor <f>"),
+                    color.dim("(blue-shift, default: 1.5)"));
+                printf("  %s            Enable dithering %s\n", color.key("--dither"),
+                    color.dim("(posterize)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage effect photo.jpg -o charcoal.jpg -m charcoal --radius 1 --sigma 1\n");
+                printf("  qimage effect photo.jpg -o sepia.jpg -m sepia --threshold 80\n");
+                printf("  qimage effect photo.jpg -o sketch.jpg -m sketch --radius 5 --sigma 1 --angle 45\n");
+                printf("  qimage effect photo.jpg -o waves.jpg -m wave --amplitude 10 --wavelength 100\n");
+                printf("  qimage effect photo.jpg -o poster.jpg -m posterize --levels 4\n");
+                break;
+
+            case "noise":
+                printf("%s\n", color.bold("qimage noise <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s               Add random noise %s\n",
+                    color.key("add"), color.dim("(default)"));
+                printf("  %s         Remove speckle noise\n", color.key("despeckle"));
+                printf("  %s            Reduce noise\n", color.key("reduce"));
+                printf("  %s   Wavelet-based denoising\n", color.key("wavelet-denoise"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s   Noise type %s\n", color.key("--type <name>"),
+                    color.dim("(uniform, gaussian, impulse, laplacian, poisson, random)"));
+                printf("  %s  Noise attenuation %s\n", color.key("--attenuate <f>"),
+                    color.dim("(add method, default: 1.0)"));
+                printf("  %s     Radius %s\n", color.key("--radius <f>"),
+                    color.dim("(reduce method)"));
+                printf("  %s  Threshold %s\n", color.key("--threshold <f>"),
+                    color.dim("(wavelet-denoise)"));
+                printf("  %s   Softness %s\n", color.key("--softness <f>"),
+                    color.dim("(wavelet-denoise, default: 0.0)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage noise photo.jpg -o noisy.jpg --type gaussian\n");
+                printf("  qimage noise photo.jpg -o clean.jpg -m despeckle\n");
+                printf("  qimage noise photo.jpg -o clean.jpg -m wavelet-denoise --threshold 10\n");
+                break;
+
+            case "composite":
+                printf("%s\n", color.bold("qimage composite <base> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s      Composite at x,y position %s\n",
+                    color.key("overlay"), color.dim("(default)"));
+                printf("  %s      Composite with gravity alignment\n", color.key("gravity"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s   Overlay image file %s\n", color.key("--overlay <file>"),
+                    color.dim("(required)"));
+                printf("  %s         Composite operator %s\n", color.key("--op <name>"),
+                    color.dim("(over, multiply, screen, overlay, difference, plus, dissolve)"));
+                printf("  %s            X position %s\n", color.key("-x <n>"),
+                    color.dim("(overlay method)"));
+                printf("  %s            Y position %s\n", color.key("-y <n>"),
+                    color.dim("(overlay method)"));
+                printf("  %s  Gravity alignment %s\n", color.key("--gravity <name>"),
+                    color.dim("(center, north, south, east, west, northwest, ...)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage composite base.jpg -o out.jpg --overlay logo.png --op over --x 10 --y 10\n");
+                printf("  qimage composite base.jpg -o out.jpg --overlay logo.png -m gravity --op over --gravity southeast\n");
+                break;
+
+            case "annotate":
+                printf("%s\n", color.bold("qimage annotate <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s       Text to draw %s\n", color.key("--text <string>"),
+                    color.dim("(required)"));
+                printf("  %s            X position\n", color.key("-x <n>"));
+                printf("  %s            Y position\n", color.key("-y <n>"));
+                printf("  %s      Rotation angle %s\n", color.key("--angle <f>"),
+                    color.dim("(default: 0)"));
+                printf("  %s    Font name\n", color.key("--font <name>"));
+                printf("  %s  Font size\n", color.key("--font-size <f>"));
+                printf("  %s    Fill color %s\n", color.key("--fill <color>"),
+                    color.dim("(default: black)"));
+                printf("  %s  Stroke color %s\n", color.key("--stroke <color>"),
+                    color.dim("(default: none)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage annotate photo.jpg -o labeled.jpg --text \"Hello\" --x 10 --y 30\n");
+                printf("  qimage annotate photo.jpg -o labeled.jpg --text \"Title\" --x 50 --y 50 --font Helvetica --font-size 24 --fill white\n");
+                break;
+
+            case "draw":
+                printf("%s\n", color.bold("qimage draw <input> -o <output> [options]"));
+                printf("\nDraw shapes and text on an image using a YAML/JSON command list.\n");
+                printf("Commands can come from a file, inline string, or piped stdin.\n");
+                printf("\n%s\n", color.bold("Input:"));
+                printf("  %s  Read commands from file %s\n",
+                    color.key("--commands-file <f>"), color.dim("(YAML/JSON, or \"-\" for stdin)"));
+                printf("  %s      Inline YAML/JSON string\n", color.key("--commands <str>"));
+                printf("  %s                        Pipe YAML/JSON to stdin\n",
+                    color.dim("(stdin)"));
+                printf("\n%s\n", color.bold("Command Format:"));
+                printf("  A list of operation objects, or %s:\n",
+                    color.key("{\"commands\": [...]}"));
+                printf("\n%s\n", color.bold("Style Operations:"));
+                printf("  %s  Set fill color\n",
+                    color.key("{op: set_fill_color, color: \"red\"}"));
+                printf("  %s  Set outline color\n",
+                    color.key("{op: set_stroke_color, color: \"black\"}"));
+                printf("  %s  Set outline width\n",
+                    color.key("{op: set_stroke_width, width: 2.0}"));
+                printf("  %s  Fill opacity 0.0-1.0\n",
+                    color.key("{op: set_fill_opacity, opacity: 0.5}"));
+                printf("  %s  Stroke opacity\n",
+                    color.key("{op: set_stroke_opacity, opacity: 0.8}"));
+                printf("  %s  Set font by name\n",
+                    color.key("{op: set_font, font: \"Helvetica\"}"));
+                printf("  %s  Set font size\n",
+                    color.key("{op: set_font_size, size: 24.0}"));
+                printf("  %s  Font family\n",
+                    color.key("{op: set_font_family, family: \"Times\"}"));
+                printf("  %s  Font weight %s\n",
+                    color.key("{op: set_font_weight, weight: 700}"),
+                    color.dim("(400=normal, 700=bold)"));
+                printf("  %s  Font style %s\n",
+                    color.key("{op: set_font_style, style: \"italic\"}"),
+                    color.dim("(normal, italic, oblique)"));
+                printf("\n%s\n", color.bold("Shape Operations:"));
+                printf("  %s\n",
+                    color.key("{op: line, sx: 0, sy: 0, ex: 100, ey: 100}"));
+                printf("  %s\n",
+                    color.key("{op: rectangle, x1: 10, y1: 10, x2: 200, y2: 100}"));
+                printf("  %s\n",
+                    color.key("{op: round_rectangle, x1: 10, y1: 10, x2: 200, y2: 100, rx: 5, ry: 5}"));
+                printf("  %s  %s\n",
+                    color.key("{op: circle, ox: 100, oy: 100, px: 150, py: 100}"),
+                    color.dim("(center + perimeter point)"));
+                printf("  %s\n",
+                    color.key("{op: ellipse, ox: 100, oy: 100, rx: 50, ry: 30, start: 0, end: 360}"));
+                printf("  %s\n",
+                    color.key("{op: arc, sx: 10, sy: 10, ex: 100, ey: 100, sd: 0, ed: 180}"));
+                printf("  %s\n",
+                    color.key("{op: point, x: 50, y: 50}"));
+                printf("  %s\n",
+                    color.key("{op: polygon, points: [{x: 0, y: 0}, {x: 50, y: 100}, ...]}"));
+                printf("  %s\n",
+                    color.key("{op: polyline, points: [{x: 0, y: 0}, {x: 50, y: 100}, ...]}"));
+                printf("\n%s\n", color.bold("Text:"));
+                printf("  %s\n",
+                    color.key("{op: text, x: 10, y: 30, text: \"Hello World\"}"));
+                printf("\n%s\n", color.bold("Transforms:"));
+                printf("  %s\n",
+                    color.key("{op: rotate, degrees: 45}"));
+                printf("  %s\n",
+                    color.key("{op: translate, x: 10, y: 20}"));
+                printf("  %s\n",
+                    color.key("{op: scale, x: 2.0, y: 2.0}"));
+                printf("  %s / %s\n",
+                    color.key("{op: skew_x, degrees: 10}"),
+                    color.key("{op: skew_y, degrees: 10}"));
+                printf("\n%s\n", color.bold("State:"));
+                printf("  %s / %s  %s\n",
+                    color.key("{op: push}"), color.key("{op: pop}"),
+                    color.dim("Save/restore drawing state"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  %s\n", color.dim("# Draw from a JSON file:"));
+                printf("  qimage draw photo.jpg -o drawn.jpg --commands-file shapes.json\n");
+                printf("  %s\n", color.dim("# Draw from a YAML file:"));
+                printf("  qimage draw photo.jpg -o drawn.jpg --commands-file shapes.yaml\n");
+                printf("  %s\n", color.dim("# Inline JSON:"));
+                printf("  qimage draw photo.jpg -o drawn.jpg --commands '[{\"op\":\"set_fill_color\",\"color\":\"red\"},{\"op\":\"rectangle\",\"x1\":10,\"y1\":10,\"x2\":100,\"y2\":50}]'\n");
+                printf("  %s\n", color.dim("# Pipe from stdin:"));
+                printf("  cat shapes.yaml | qimage draw photo.jpg -o drawn.jpg\n");
+                printf("\n%s\n", color.dim("Example YAML commands file:"));
+                printf("  - op: set_fill_color\n");
+                printf("    color: blue\n");
+                printf("  - op: set_stroke_color\n");
+                printf("    color: black\n");
+                printf("  - op: set_stroke_width\n");
+                printf("    width: 2\n");
+                printf("  - op: rectangle\n");
+                printf("    x1: 10\n");
+                printf("    y1: 10\n");
+                printf("    x2: 190\n");
+                printf("    y2: 90\n");
+                printf("  - op: set_font_size\n");
+                printf("    size: 18\n");
+                printf("  - op: set_fill_color\n");
+                printf("    color: white\n");
+                printf("  - op: text\n");
+                printf("    x: 20\n");
+                printf("    y: 55\n");
+                printf("    text: Hello World\n");
+                break;
+
+            case "border":
+                printf("%s\n", color.bold("qimage border <input> -o <output> [options]"));
+                printf("\n%s\n", color.bold("Methods:"));
+                printf("  %s       Simple color border %s\n",
+                    color.key("border"), color.dim("(default)"));
+                printf("  %s        Decorative beveled frame\n", color.key("frame"));
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s    Border/frame color %s\n", color.key("--color <color>"),
+                    color.dim("(default: black)"));
+                printf("  %s        Border width\n", color.key("--width <n>"));
+                printf("  %s       Border height\n", color.key("--height <n>"));
+                printf("  %s  Inner bevel %s\n", color.key("--inner-bevel <n>"),
+                    color.dim("(frame method)"));
+                printf("  %s  Outer bevel %s\n", color.key("--outer-bevel <n>"),
+                    color.dim("(frame method)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage border photo.jpg -o bordered.jpg --color red --width 5 --height 5\n");
+                printf("  qimage border photo.jpg -o framed.jpg -m frame --color gold --width 10 --height 10 --inner-bevel 3 --outer-bevel 3\n");
+                break;
+
+            case "strip":
+                printf("%s\n", color.bold("qimage strip <input> -o <output>"));
+                printf("\nRemove all profiles, comments, and metadata from image.\n");
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage strip photo.jpg -o clean.jpg\n");
+                printf("  qimage strip photo.jpg -i\n");
+                break;
+
+            case "props":
+                printf("%s\n", color.bold("qimage props <file> [options]"));
+                printf("\nGet, set, or delete image properties (EXIF, comments, etc.).\n");
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s  Get properties matching pattern %s\n",
+                    color.key("--get <pattern>"), color.dim("(default: \"*\")"));
+                printf("  %s  Set property %s\n", color.key("--set <name=value>"),
+                    color.dim("(requires -o or -i)"));
+                printf("  %s  Delete property %s\n", color.key("--delete <name>"),
+                    color.dim("(requires -o or -i)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage props photo.jpg\n");
+                printf("  qimage props photo.jpg --get \"exif:*\"\n");
+                printf("  qimage props photo.jpg -i --set \"comment=My Photo\"\n");
+                printf("  qimage props photo.jpg -i --delete comment\n");
+                break;
+
+            case "profile":
+                printf("%s\n", color.bold("qimage profile <file> [options]"));
+                printf("\nManage ICC, EXIF, IPTC, and XMP profiles.\n");
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s              List profile names %s\n", color.key("--list"),
+                    color.dim("(default)"));
+                printf("  %s      Get profile info\n", color.key("--get <name>"));
+                printf("  %s  Set profile from file %s\n",
+                    color.key("--set <name=file>"), color.dim("(requires -o or -i)"));
+                printf("  %s  Extract profile to file\n",
+                    color.key("--extract <name=file>"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage profile photo.jpg --list\n");
+                printf("  qimage profile photo.jpg --get icc\n");
+                printf("  qimage profile photo.jpg --extract icc=profile.icc\n");
+                printf("  qimage profile photo.jpg -i --set icc=srgb.icc\n");
+                break;
+
+            case "pixel":
+                printf("%s\n", color.bold("qimage pixel <file> [options]"));
+                printf("\nGet or set individual pixel colors.\n");
+                printf("\n%s\n", color.bold("Options:"));
+                printf("  %s    Get pixel color at x,y\n", color.key("--get <x,y>"));
+                printf("  %s  Set pixel color %s\n", color.key("--set <x,y=color>"),
+                    color.dim("(requires -o or -i)"));
+                printf("\n%s\n", color.bold("Examples:"));
+                printf("  qimage pixel photo.jpg --get 100,50\n");
+                printf("  qimage pixel photo.jpg -i --set 100,50=red\n");
+                break;
+        }
+    }
+
+    # ── I/O Helpers ──────────────────────────────────────────────────────
+
+    private MagickImage readInput(string path) {
+        if (!is_readable(path)) {
+            printf("%s cannot read file %y\n", color.error("ERROR:"), path);
+            exit(1);
+        }
+        try {
+            return new MagickImage(path);
+        } catch (hash<ExceptionInfo> ex) {
+            printf("%s failed to load %y: %s\n", color.error("ERROR:"), path, ex.desc);
+            exit(1);
+        }
+    }
+
+    private writeOutput(MagickImage img, string input_path) {
+        *string output_path;
+        if (opts.in_place) {
+            output_path = input_path;
+        } else if (opts.output) {
+            output_path = opts.output;
+        } else {
+            printf("%s output required: use %s or %s\n", color.error("ERROR:"),
+                color.key("-o <file>"), color.key("-i"));
+            exit(1);
+        }
+
+        if (opts.fmt) {
+            img.setFormat(opts.fmt);
+        } else {
+            # Infer format from output file extension
+            *string ext = (output_path =~ x/\.([^.]+)$/)[0];
+            if (ext) {
+                img.setFormat(ext.upr());
+            }
+        }
+        if (opts.quality) {
+            img.setCompressionQuality(opts.quality);
+        }
+
+        try {
+            img.writeFile(output_path);
+        } catch (hash<ExceptionInfo> ex) {
+            printf("%s failed to write %y: %s\n", color.error("ERROR:"), output_path, ex.desc);
+            exit(1);
+        }
+
+        if ((opts.verbose ?? 0) > 0) {
+            hash<ImageInfo> info = img.getInfo();
+            printf("%s %s (%sx%s %s)\n", color.success("Wrote"), color.key(output_path),
+                color.number(sprintf("%d", info.width)), color.number(sprintf("%d", info.height)),
+                color.type(info.format));
+        }
+    }
+
+    private requireOutput() {
+        if (!opts.output && !opts.in_place) {
+            printf("%s %s requires %s or %s\n", color.error("ERROR:"), command,
+                color.key("-o <file>"), color.key("-i"));
+            printf("\n  Usage: qimage %s <input> -o <output> [options]\n", command);
+            exit(1);
+        }
+    }
+
+    private string requireArg(string name) {
+        *string arg = shift ARGV;
+        if (!arg) {
+            printf("%s %s requires %s argument\n", color.error("ERROR:"), command, name);
+            printf("\n  Run %s for usage\n", color.key(sprintf("qimage %s --help", command)));
+            exit(1);
+        }
+        return arg;
+    }
+
+    private float requireFloat(string name, *float val) {
+        if (!exists val) {
+            printf("%s %s requires %s\n", color.error("ERROR:"), command, color.key("--" + name));
+            exit(1);
+        }
+        return val;
+    }
+
+    private int requireInt(string name, *int val) {
+        if (!exists val) {
+            printf("%s %s requires %s\n", color.error("ERROR:"), command, color.key("--" + name));
+            exit(1);
+        }
+        return val;
+    }
+
+    private string requireString(string name, *string val) {
+        if (!exists val) {
+            printf("%s %s requires %s\n", color.error("ERROR:"), command, color.key("--" + name));
+            exit(1);
+        }
+        return val;
+    }
+
+    # ── Tier 1: Standalone Commands ──────────────────────────────────────
+
+    private doFonts() {
+        string pattern = ARGV[0] ?? "*";
+        list<string> fonts = MagickImage::queryFonts(pattern);
+        if (!fonts) {
+            printf("%s no fonts matching %y\n", color.warning("WARNING:"), pattern);
+            return;
+        }
+
+        printf("%s (%s)\n\n", color.bold("Available Fonts"),
+            color.number(sprintf("%d", fonts.size())));
+
+        foreach string font in (fonts) {
+            printf("  %s\n", color.value(font));
+        }
+    }
+
+    private doFormats() {
+        string pattern = ARGV[0] ?? "*";
+        list<string> formats = MagickImage::queryFormats(pattern);
+        if (!formats) {
+            printf("%s no formats matching %y\n", color.warning("WARNING:"), pattern);
+            return;
+        }
+
+        printf("%s (%s)\n\n", color.bold("Supported Formats"),
+            color.number(sprintf("%d", formats.size())));
+
+        # Display in columns
+        int max_len = 0;
+        foreach string fmt in (formats) {
+            if (fmt.length() > max_len) {
+                max_len = fmt.length();
+            }
+        }
+        int col_width = max_len + 2;
+        int cols = 80 / col_width;
+        if (cols < 1) {
+            cols = 1;
+        }
+
+        int i = 0;
+        foreach string fmt in (formats) {
+            printf("  %s", color.type(sprintf("%-" + sprintf("%d", col_width) + "s", fmt)));
+            if ((++i % cols) == 0) {
+                printf("\n");
+            }
+        }
+        if (i % cols) {
+            printf("\n");
+        }
+    }
+
+    # ── Tier 2: Read-only Commands ───────────────────────────────────────
+
+    private doInfo() {
+        string path = requireArg("<file>");
+        MagickImage img = readInput(path);
+        hash<ImageInfo> info = img.getInfo();
+
+        printf("%s %s\n\n", color.bold("Image:"), color.key(path));
+
+        printf("  %s  %s x %s pixels\n", color.key(sprintf("%-18s", "Dimensions:")),
+            color.number(sprintf("%d", info.width)),
+            color.number(sprintf("%d", info.height)));
+        printf("  %s  %s\n", color.key(sprintf("%-18s", "Format:")),
+            color.type(info.format));
+        printf("  %s  %s\n", color.key(sprintf("%-18s", "Colorspace:")),
+            color.value(info.colorspace));
+        printf("  %s  %s\n", color.key(sprintf("%-18s", "Type:")),
+            color.value(info.image_type));
+        printf("  %s  %s bits/channel\n", color.key(sprintf("%-18s", "Depth:")),
+            color.number(sprintf("%d", info.depth)));
+        printf("  %s  %s x %s DPI\n", color.key(sprintf("%-18s", "Resolution:")),
+            color.number(sprintf("%.1f", info.resolution.x)),
+            color.number(sprintf("%.1f", info.resolution.y)));
+        if (info.compression_quality > 0) {
+            printf("  %s  %s\n", color.key(sprintf("%-18s", "Quality:")),
+                color.number(sprintf("%d", info.compression_quality)));
+        }
+        printf("  %s  %s\n", color.key(sprintf("%-18s", "Colors:")),
+            color.number(sprintf("%d", info.colors)));
+        if (info.number_images > 1) {
+            printf("  %s  %s\n", color.key(sprintf("%-18s", "Images:")),
+                color.number(sprintf("%d", info.number_images)));
+        }
+        printf("  %s  %s\n", color.key(sprintf("%-18s", "Signature:")),
+            color.dim(info.signature));
+
+        if ((opts.verbose ?? 0) > 0) {
+            hash<auto> props = img.getProperties("*");
+            if (props) {
+                printf("\n%s\n", color.bold("Properties:"));
+                foreach hash<auto> pair in (props.pairIterator()) {
+                    printf("  %s  %s\n", color.key(sprintf("%-35s", pair.key + ":")),
+                        color.value(pair.value.toString()));
+                }
+            }
+        }
+    }
+
+    private doIdentify() {
+        string path = requireArg("<file>");
+        MagickImage img = readInput(path);
+        string ident = img.identify();
+
+        # Colorize key: value lines
+        list<string> lines = ident.split("\n");
+        foreach string line in (lines) {
+            if (*list<string> parts = (line =~ x/^(\s*)([\w\s\-]+):\s*(.*)$/)) {
+                printf("%s%s: %s\n", parts[0], color.key(parts[1]), color.value(parts[2]));
+            } else {
+                printf("%s\n", line);
+            }
+        }
+    }
+
+    private doProps() {
+        string path = requireArg("<file>");
+        MagickImage img = readInput(path);
+
+        if (opts.set) {
+            doPropsSet(img, path);
+        } else if (opts.del) {
+            doPropsDel(img, path);
+        } else {
+            doPropsGet(img);
+        }
+    }
+
+    private doPropsSet(MagickImage img, string path) {
+        if (!opts.output && !opts.in_place) {
+            printf("%s --set requires %s or %s\n", color.error("ERROR:"),
+                color.key("-o <file>"), color.key("-i"));
+            exit(1);
+        }
+        *list<string> parts = (opts.set =~ x/^([^=]+)=(.*)$/);
+        if (!parts) {
+            printf("%s --set format must be %s\n", color.error("ERROR:"),
+                color.key("name=value"));
+            exit(1);
+        }
+        img.setProperty(parts[0], parts[1]);
+        writeOutput(img, path);
+        printf("%s set property %s = %s\n", color.success("OK:"),
+            color.key(parts[0]), color.value(parts[1]));
+    }
+
+    private doPropsDel(MagickImage img, string path) {
+        if (!opts.output && !opts.in_place) {
+            printf("%s --delete requires %s or %s\n", color.error("ERROR:"),
+                color.key("-o <file>"), color.key("-i"));
+            exit(1);
+        }
+        img.deleteProperty(opts.del);
+        writeOutput(img, path);
+        printf("%s deleted property %s\n", color.success("OK:"), color.key(opts.del));
+    }
+
+    private doPropsGet(MagickImage img) {
+        string pattern = opts.get ?? "*";
+        hash<auto> props = img.getProperties(pattern);
+        if (!props) {
+            printf("%s no properties matching %y\n", color.warning("WARNING:"), pattern);
+            return;
+        }
+        printf("%s (%s)\n\n", color.bold("Properties"),
+            color.number(sprintf("%d", props.size())));
+        foreach hash<auto> pair in (props.pairIterator()) {
+            printf("  %s  %s\n", color.key(sprintf("%-35s", pair.key + ":")),
+                color.value(pair.value.toString()));
+        }
+    }
+
+    private doProfile() {
+        string path = requireArg("<file>");
+        MagickImage img = readInput(path);
+
+        if (opts.set) {
+            doProfileSet(img, path);
+        } else if (opts.extr) {
+            doProfileExtract(img);
+        } else if (opts.get) {
+            doProfileGet(img);
+        } else {
+            doProfileList(img);
+        }
+    }
+
+    private doProfileSet(MagickImage img, string path) {
+        if (!opts.output && !opts.in_place) {
+            printf("%s --set requires %s or %s\n", color.error("ERROR:"),
+                color.key("-o <file>"), color.key("-i"));
+            exit(1);
+        }
+        *list<string> parts = (opts.set =~ x/^([^=]+)=(.*)$/);
+        if (!parts) {
+            printf("%s --set format must be %s\n", color.error("ERROR:"),
+                color.key("name=file"));
+            exit(1);
+        }
+        binary data;
+        try {
+            data = ReadOnlyFile::readBinaryFile(parts[1]);
+        } catch (hash<ExceptionInfo> ex) {
+            printf("%s failed to read %y: %s\n", color.error("ERROR:"), parts[1], ex.desc);
+            exit(1);
+        }
+        img.setProfile(parts[0], data);
+        writeOutput(img, path);
+        printf("%s set profile %s from %s (%s bytes)\n", color.success("OK:"),
+            color.key(parts[0]), color.value(parts[1]),
+            color.number(sprintf("%d", data.size())));
+    }
+
+    private doProfileExtract(MagickImage img) {
+        *list<string> parts = (opts.extr =~ x/^([^=]+)=(.*)$/);
+        if (!parts) {
+            printf("%s --extract format must be %s\n", color.error("ERROR:"),
+                color.key("name=file"));
+            exit(1);
+        }
+        *binary data = img.getProfile(parts[0]);
+        if (!data) {
+            printf("%s no %s profile found\n", color.error("ERROR:"), parts[0]);
+            exit(1);
+        }
+        try {
+            File f();
+            f.open2(parts[1], O_CREAT | O_TRUNC | O_WRONLY);
+            f.write(data);
+        } catch (hash<ExceptionInfo> ex) {
+            printf("%s failed to write %y: %s\n", color.error("ERROR:"), parts[1], ex.desc);
+            exit(1);
+        }
+        printf("%s extracted %s profile to %s (%s bytes)\n", color.success("OK:"),
+            color.key(parts[0]), color.value(parts[1]),
+            color.number(sprintf("%d", data.size())));
+    }
+
+    private doProfileGet(MagickImage img) {
+        *binary data = img.getProfile(opts.get);
+        if (!data) {
+            printf("%s no %s profile found\n", color.warning("WARNING:"), opts.get);
+            return;
+        }
+        printf("%s %s (%s bytes)\n", color.bold("Profile:"), color.key(opts.get),
+            color.number(sprintf("%d", data.size())));
+    }
+
+    private doProfileList(MagickImage img) {
+        list<string> names = img.getProfileNames();
+        if (!names) {
+            printf("%s no profiles found\n", color.dim("(none)"));
+            return;
+        }
+        printf("%s (%s)\n\n", color.bold("Profiles"),
+            color.number(sprintf("%d", names.size())));
+        foreach string name in (names) {
+            *binary pdata = img.getProfile(name);
+            printf("  %s  %s\n", color.key(sprintf("%-12s", name)),
+                pdata ? color.number(sprintf("%d bytes", pdata.size())) : color.dim("empty"));
+        }
+    }
+
+    private doPixel() {
+        string path = requireArg("<file>");
+        MagickImage img = readInput(path);
+
+        if (opts.set) {
+            doPixelSet(img, path);
+        } else if (opts.get) {
+            doPixelGet(img);
+        } else {
+            printf("%s pixel requires %s or %s\n", color.error("ERROR:"),
+                color.key("--get <x,y>"), color.key("--set <x,y=color>"));
+            exit(1);
+        }
+    }
+
+    private doPixelSet(MagickImage img, string path) {
+        if (!opts.output && !opts.in_place) {
+            printf("%s --set requires %s or %s\n", color.error("ERROR:"),
+                color.key("-o <file>"), color.key("-i"));
+            exit(1);
+        }
+        *list<string> parts = (opts.set =~ x/^(\d+),(\d+)=(.+)$/);
+        if (!parts) {
+            printf("%s --set format must be %s\n", color.error("ERROR:"),
+                color.key("x,y=color"));
+            exit(1);
+        }
+        img.setPixelColor(parts[0].toInt(), parts[1].toInt(), parts[2]);
+        writeOutput(img, path);
+        printf("%s set pixel (%s,%s) = %s\n", color.success("OK:"),
+            color.number(parts[0]), color.number(parts[1]), color.value(parts[2]));
+    }
+
+    private doPixelGet(MagickImage img) {
+        *list<string> parts = (opts.get =~ x/^(\d+),(\d+)$/);
+        if (!parts) {
+            printf("%s --get format must be %s\n", color.error("ERROR:"),
+                color.key("x,y"));
+            exit(1);
+        }
+        string pixel_color = img.getPixelColor(parts[0].toInt(), parts[1].toInt());
+        printf("%s (%s,%s) = %s\n", color.bold("Pixel"),
+            color.number(parts[0]), color.number(parts[1]), color.value(pixel_color));
+    }
+
+    # ── Tier 3: Transform Commands ───────────────────────────────────────
+
+    private doConvert() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        if (opts.depth) {
+            img.setDepth(opts.depth);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doResize() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = opts.method ?? "resize";
+
+        switch (method) {
+            case "resize": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                string filter = opts.filter ?? "Lanczos";
+                img.resize(w, h, filter);
+                break;
+            }
+            case "scale": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                img.scale(w, h);
+                break;
+            }
+            case "thumbnail": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                img.thumbnail(w, h);
+                break;
+            }
+            case "adaptive": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                img.adaptiveResize(w, h);
+                break;
+            }
+            case "sample": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                img.sample(w, h);
+                break;
+            }
+            case "liquid": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                float dx = opts.delta_x ?? 0.0;
+                float rig = opts.rigidity ?? 0.0;
+                img.liquidRescale(w, h, dx, rig);
+                break;
+            }
+            case "resample": {
+                float dx = requireFloat("dpi-x", opts.dpi_x);
+                float dy = requireFloat("dpi-y", opts.dpi_y);
+                string filter = opts.filter ?? "Lanczos";
+                img.resample(dx, dy, filter);
+                break;
+            }
+            default:
+                printf("%s unknown resize method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n",
+                    color.value("resize, scale, thumbnail, adaptive, sample, liquid, resample"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doCrop() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = opts.method ?? "crop";
+
+        switch (method) {
+            case "crop": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                int cx = opts.x ?? 0;
+                int cy = opts.y ?? 0;
+                img.crop(w, h, cx, cy);
+                break;
+            }
+            case "trim": {
+                float fuzz = opts.fuzz ?? 0.0;
+                img.trim(fuzz);
+                break;
+            }
+            case "extent": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                int cx = opts.x ?? 0;
+                int cy = opts.y ?? 0;
+                img.extent(w, h, cx, cy);
+                break;
+            }
+            case "chop": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                int cx = requireInt("x", opts.x);
+                int cy = requireInt("y", opts.y);
+                img.chop(w, h, cx, cy);
+                break;
+            }
+            case "shave": {
+                int c = requireInt("columns", opts.columns);
+                int r = requireInt("rows", opts.rows);
+                img.shave(c, r);
+                break;
+            }
+            case "splice": {
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                int cx = requireInt("x", opts.x);
+                int cy = requireInt("y", opts.y);
+                img.splice(w, h, cx, cy);
+                break;
+            }
+            default:
+                printf("%s unknown crop method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n",
+                    color.value("crop, trim, extent, chop, shave, splice"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doRotate() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = opts.method ?? "rotate";
+
+        switch (method) {
+            case "rotate": {
+                float deg = requireFloat("degrees", opts.degrees);
+                string bg = opts.background ?? "white";
+                img.rotate(deg, bg);
+                break;
+            }
+            case "flip": {
+                string dir = opts.direction ?? "v";
+                if (dir == "v" || dir == "vertical") {
+                    img.flip();
+                } else if (dir == "h" || dir == "horizontal") {
+                    img.flop();
+                } else {
+                    printf("%s --direction must be %s or %s\n", color.error("ERROR:"),
+                        color.value("v"), color.value("h"));
+                    exit(1);
+                }
+                break;
+            }
+            case "transpose":
+                img.transpose();
+                break;
+            case "transverse":
+                img.transverse();
+                break;
+            case "auto-orient":
+                img.autoOrient();
+                break;
+            case "deskew": {
+                float thr = requireFloat("threshold", opts.threshold);
+                img.deskew(thr);
+                break;
+            }
+            case "shear": {
+                float sx = requireFloat("shear-x", opts.shear_x);
+                float sy = requireFloat("shear-y", opts.shear_y);
+                string bg = opts.background ?? "white";
+                img.shear(sx, sy, bg);
+                break;
+            }
+            default:
+                printf("%s unknown rotate method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n",
+                    color.value("rotate, flip, transpose, transverse, auto-orient, deskew, shear"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doAdjust() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = opts.method ?? "brightness-contrast";
+
+        switch (method) {
+            case "brightness-contrast": {
+                float b = opts.brightness ?? 0.0;
+                float c = opts.contrast ?? 0.0;
+                img.brightnessContrast(b, c);
+                break;
+            }
+            case "gamma": {
+                float g = requireFloat("gamma", opts.gamma);
+                img.gamma(g);
+                break;
+            }
+            case "level": {
+                float bp = requireFloat("black-point", opts.black_point);
+                float g = requireFloat("gamma", opts.gamma);
+                float wp = requireFloat("white-point", opts.white_point);
+                img.level(bp, g, wp);
+                break;
+            }
+            case "modulate": {
+                float b = opts.brightness ?? 100.0;
+                float s = opts.saturation ?? 100.0;
+                float h = opts.hue ?? 100.0;
+                img.modulate(b, s, h);
+                break;
+            }
+            case "negate":
+                img.negate(opts.gray ?? False);
+                break;
+            case "normalize":
+                img.normalize();
+                break;
+            case "equalize":
+                img.equalize();
+                break;
+            case "auto-gamma":
+                img.autoGamma();
+                break;
+            case "auto-level":
+                img.autoLevel();
+                break;
+            case "sigmoidal-contrast": {
+                float str = requireFloat("strength", opts.strength);
+                float mp = requireFloat("midpoint", opts.midpoint);
+                bool sharpen = opts.sharpen_flag ?? True;
+                img.sigmoidalContrast(sharpen, str, mp);
+                break;
+            }
+            case "contrast-stretch": {
+                float bp = requireFloat("black-point", opts.black_point);
+                float wp = requireFloat("white-point", opts.white_point);
+                img.contrastStretch(bp, wp);
+                break;
+            }
+            case "linear-stretch": {
+                float bp = requireFloat("black-point", opts.black_point);
+                float wp = requireFloat("white-point", opts.white_point);
+                img.linearStretch(bp, wp);
+                break;
+            }
+            case "enhance":
+                img.enhance();
+                break;
+            case "white-balance":
+                img.whiteBalance();
+                break;
+            case "colorspace": {
+                string cs = requireString("colorspace", opts.colorspace);
+                img.transformColorspace(cs);
+                break;
+            }
+            default:
+                printf("%s unknown adjust method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n", color.value("brightness-contrast, gamma, level, "
+                    "modulate, negate, normalize, equalize, auto-gamma, auto-level, "
+                    "sigmoidal-contrast, contrast-stretch, linear-stretch, enhance, "
+                    "white-balance, colorspace"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doBlur() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = opts.method ?? "blur";
+
+        switch (method) {
+            case "blur": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                img.blur(r, s);
+                break;
+            }
+            case "gaussian": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                img.gaussianBlur(r, s);
+                break;
+            }
+            case "adaptive": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                img.adaptiveBlur(r, s);
+                break;
+            }
+            case "motion": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                float a = requireFloat("angle", opts.angle);
+                img.motionBlur(r, s, a);
+                break;
+            }
+            case "selective": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                float t = requireFloat("threshold", opts.threshold);
+                img.selectiveBlur(r, s, t);
+                break;
+            }
+            case "rotational": {
+                float a = requireFloat("angle", opts.angle);
+                img.rotationalBlur(a);
+                break;
+            }
+            default:
+                printf("%s unknown blur method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n",
+                    color.value("blur, gaussian, adaptive, motion, selective, rotational"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doSharpen() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = opts.method ?? "sharpen";
+
+        switch (method) {
+            case "sharpen": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                img.sharpen(r, s);
+                break;
+            }
+            case "adaptive": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                img.adaptiveSharpen(r, s);
+                break;
+            }
+            case "unsharp-mask": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                float g = requireFloat("gain", opts.gain);
+                float t = requireFloat("threshold", opts.threshold);
+                img.unsharpMask(r, s, g, t);
+                break;
+            }
+            default:
+                printf("%s unknown sharpen method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n",
+                    color.value("sharpen, adaptive, unsharp-mask"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doEffect() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = requireString("method", opts.method);
+
+        switch (method) {
+            case "charcoal": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                img.charcoal(r, s);
+                break;
+            }
+            case "edge": {
+                float r = requireFloat("radius", opts.radius);
+                img.edge(r);
+                break;
+            }
+            case "emboss": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                img.emboss(r, s);
+                break;
+            }
+            case "oil-paint": {
+                float r = requireFloat("radius", opts.radius);
+                float s = opts.sigma ?? 1.0;
+                img.oilPaint(r, s);
+                break;
+            }
+            case "sketch": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                float a = requireFloat("angle", opts.angle);
+                img.sketch(r, s, a);
+                break;
+            }
+            case "solarize": {
+                float t = requireFloat("threshold", opts.threshold);
+                img.solarize(t);
+                break;
+            }
+            case "sepia": {
+                float t = requireFloat("threshold", opts.threshold);
+                img.sepiaTone(t);
+                break;
+            }
+            case "vignette": {
+                float r = requireFloat("radius", opts.radius);
+                float s = requireFloat("sigma", opts.sigma);
+                int vx = opts.x ?? 0;
+                int vy = opts.y ?? 0;
+                img.vignette(r, s, vx, vy);
+                break;
+            }
+            case "shadow": {
+                float a = requireFloat("alpha", opts.alpha);
+                float s = requireFloat("sigma", opts.sigma);
+                int sx = opts.x ?? 0;
+                int sy = opts.y ?? 0;
+                img.shadow(a, s, sx, sy);
+                break;
+            }
+            case "shade": {
+                float az = requireFloat("azimuth", opts.azimuth);
+                float el = requireFloat("elevation", opts.elevation);
+                bool g = opts.gray ?? False;
+                img.shade(g, az, el);
+                break;
+            }
+            case "wave": {
+                float amp = requireFloat("amplitude", opts.amplitude);
+                float wl = requireFloat("wavelength", opts.wavelength);
+                img.wave(amp, wl);
+                break;
+            }
+            case "swirl": {
+                float deg = requireFloat("degrees", opts.degrees);
+                img.swirl(deg);
+                break;
+            }
+            case "implode": {
+                float amt = requireFloat("amount", opts.amount);
+                img.implode(amt);
+                break;
+            }
+            case "posterize": {
+                int lvl = requireInt("levels", opts.levels);
+                bool d = opts.dither ?? False;
+                img.posterize(lvl, d);
+                break;
+            }
+            case "threshold": {
+                float t = requireFloat("threshold", opts.threshold);
+                img.threshold(t);
+                break;
+            }
+            case "blue-shift": {
+                float f = opts.factor ?? 1.5;
+                img.blueShift(f);
+                break;
+            }
+            default:
+                printf("%s unknown effect method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n", color.value("charcoal, edge, emboss, oil-paint, "
+                    "sketch, solarize, sepia, vignette, shadow, shade, wave, swirl, implode, "
+                    "posterize, threshold, blue-shift"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doNoise() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = opts.method ?? "add";
+
+        switch (method) {
+            case "add": {
+                string nt = opts.noise_type ?? "gaussian";
+                float att = opts.attenuate ?? 1.0;
+                img.addNoise(nt, att);
+                break;
+            }
+            case "despeckle":
+                img.despeckle();
+                break;
+            case "reduce": {
+                float r = requireFloat("radius", opts.radius);
+                img.reduceNoise(r);
+                break;
+            }
+            case "wavelet-denoise": {
+                float t = requireFloat("threshold", opts.threshold);
+                float s = opts.softness ?? 0.0;
+                img.waveletDenoise(t, s);
+                break;
+            }
+            default:
+                printf("%s unknown noise method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n",
+                    color.value("add, despeckle, reduce, wavelet-denoise"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doComposite() {
+        string path = requireArg("<base>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string overlay_path = requireString("overlay", opts.overlay);
+        MagickImage overlay = readInput(overlay_path);
+        string comp_op = opts.op ?? "over";
+
+        string method = opts.method ?? "overlay";
+
+        switch (method) {
+            case "overlay": {
+                int cx = opts.x ?? 0;
+                int cy = opts.y ?? 0;
+                img.composite(overlay, comp_op, cx, cy);
+                break;
+            }
+            case "gravity": {
+                string grav = requireString("gravity", opts.gravity);
+                img.compositeGravity(overlay, comp_op, grav);
+                break;
+            }
+            default:
+                printf("%s unknown composite method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n", color.value("overlay, gravity"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doAnnotate() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string text = requireString("text", opts.text);
+        float ax = float(opts.x ?? 0);
+        float ay = float(opts.y ?? 0);
+        float a_angle = opts.angle ?? 0.0;
+        string a_font = opts.font ?? "";
+        float a_size = opts.font_size ?? 0.0;
+        string a_fill = opts.fill ?? "black";
+        string a_stroke = opts.stroke ?? "";
+
+        img.annotate(text, ax, ay, a_angle, a_font, a_size, a_fill, a_stroke);
+
+        writeOutput(img, path);
+    }
+
+    private doDraw() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        list<hash<auto>> commands = loadCommands();
+
+        MagickDrawing drawing();
+        int cmd_idx = 0;
+        foreach hash<auto> cmd in (commands) {
+            *string op = cmd.op;
+            if (!op) {
+                printf("%s draw command %d missing %s key: %y\n", color.error("ERROR:"),
+                    cmd_idx, color.key("op"), cmd);
+                exit(1);
+            }
+            try {
+                executeDrawOp(drawing, op, cmd);
+            } catch (hash<ExceptionInfo> ex) {
+                printf("%s draw command %d (%s) failed: %s\n", color.error("ERROR:"),
+                    cmd_idx, color.key(op), ex.desc);
+                exit(1);
+            }
+            ++cmd_idx;
+        }
+
+        img.draw(drawing);
+        writeOutput(img, path);
+
+        if ((opts.verbose ?? 0) > 0) {
+            printf("%s %s draw operation%s applied\n", color.success("OK:"),
+                color.number(sprintf("%d", commands.size())),
+                commands.size() == 1 ? "" : "s");
+        }
+    }
+
+    private executeDrawOp(MagickDrawing drawing, string op, hash<auto> cmd) {
+        switch (op) {
+            # ── Style operations ──
+            case "set_fill_color":
+                drawing.setFillColor(string(cmd.color));
+                break;
+            case "set_stroke_color":
+                drawing.setStrokeColor(string(cmd.color));
+                break;
+            case "set_stroke_width":
+                drawing.setStrokeWidth(float(cmd.width));
+                break;
+            case "set_fill_opacity":
+                drawing.setFillOpacity(float(cmd.opacity));
+                break;
+            case "set_stroke_opacity":
+                drawing.setStrokeOpacity(float(cmd.opacity));
+                break;
+            case "set_font":
+                drawing.setFont(string(cmd.font));
+                break;
+            case "set_font_size":
+                drawing.setFontSize(float(cmd.size));
+                break;
+            case "set_font_family":
+                drawing.setFontFamily(string(cmd.family));
+                break;
+            case "set_font_weight":
+                drawing.setFontWeight(int(cmd.weight));
+                break;
+            case "set_font_style":
+                drawing.setFontStyle(string(cmd.style));
+                break;
+
+            # ── Shape operations ──
+            case "line":
+                drawing.line(float(cmd.sx), float(cmd.sy), float(cmd.ex), float(cmd.ey));
+                break;
+            case "rectangle":
+                drawing.rectangle(float(cmd.x1), float(cmd.y1), float(cmd.x2), float(cmd.y2));
+                break;
+            case "round_rectangle":
+                drawing.roundRectangle(float(cmd.x1), float(cmd.y1), float(cmd.x2), float(cmd.y2),
+                    float(cmd.rx), float(cmd.ry));
+                break;
+            case "circle":
+                drawing.circle(float(cmd.ox), float(cmd.oy), float(cmd.px), float(cmd.py));
+                break;
+            case "ellipse":
+                drawing.ellipse(float(cmd.ox), float(cmd.oy), float(cmd.rx), float(cmd.ry),
+                    float(cmd.start), float(cmd.end));
+                break;
+            case "arc":
+                drawing.arc(float(cmd.sx), float(cmd.sy), float(cmd.ex), float(cmd.ey),
+                    float(cmd.sd), float(cmd.ed));
+                break;
+            case "point":
+                drawing.point(float(cmd.x), float(cmd.y));
+                break;
+            case "polygon":
+                drawing.polygon(convertPoints(cmd.points));
+                break;
+            case "polyline":
+                drawing.polyline(convertPoints(cmd.points));
+                break;
+
+            # ── Text ──
+            case "text":
+                drawing.annotation(float(cmd.x), float(cmd.y), string(cmd.text));
+                break;
+
+            # ── Transforms ──
+            case "rotate":
+                drawing.rotate(float(cmd.degrees));
+                break;
+            case "translate":
+                drawing.translate(float(cmd.x), float(cmd.y));
+                break;
+            case "scale":
+                drawing.drawScale(float(cmd.x), float(cmd.y));
+                break;
+            case "skew_x":
+                drawing.skewX(float(cmd.degrees));
+                break;
+            case "skew_y":
+                drawing.skewY(float(cmd.degrees));
+                break;
+
+            # ── State ──
+            case "push":
+                drawing.push();
+                break;
+            case "pop":
+                drawing.pop();
+                break;
+
+            default:
+                printf("%s unknown draw operation %y\n", color.error("ERROR:"), op);
+                exit(1);
+        }
+    }
+
+    private list<hash<PointInfo>> convertPoints(auto raw_points) {
+        list<hash<PointInfo>> result();
+        foreach auto pt in (raw_points) {
+            push result, <PointInfo>{"x": float(pt.x), "y": float(pt.y)};
+        }
+        return result;
+    }
+
+    # ── Command Loading (YAML/JSON) ──────────────────────────────────────
+
+    private list<hash<auto>> loadCommands() {
+        *string input_str;
+        bool use_yaml = False;
+
+        if (opts.commands_file) {
+            if (opts.commands_file == "-") {
+                input_str = stdin.read(-1);
+            } else {
+                try {
+                    input_str = ReadOnlyFile::readTextFile(opts.commands_file);
+                } catch (hash<ExceptionInfo> ex) {
+                    printf("%s failed to read %y: %s\n", color.error("ERROR:"),
+                        opts.commands_file, ex.desc);
+                    exit(1);
+                }
+                if (opts.commands_file =~ /\.ya?ml$/i) {
+                    use_yaml = True;
+                }
+            }
+        } else if (opts.commands) {
+            input_str = opts.commands;
+        } else if (!TerminalColor::isTerminal()) {
+            input_str = stdin.read(-1);
+        } else {
+            printf("%s draw commands required; use %s, %s, or pipe to stdin\n",
+                color.error("ERROR:"),
+                color.key("--commands-file <file>"), color.key("--commands <yaml/json>"));
+            exit(1);
+        }
+        if (!input_str) {
+            printf("%s no draw commands received\n", color.error("ERROR:"));
+            exit(1);
+        }
+
+        auto parsed = parseData(input_str, use_yaml);
+
+        if (parsed.typeCode() == NT_LIST) {
+            return parsed;
+        }
+        if (parsed.typeCode() == NT_HASH && parsed.commands) {
+            return parsed.commands;
+        }
+        printf("%s invalid draw commands: expected a list or object with %s key\n",
+            color.error("ERROR:"), color.key("commands"));
+        exit(1);
+    }
+
+    private auto parseData(string input_str, bool prefer_yaml) {
+        if (prefer_yaml) {
+%ifdef NoYaml
+            printf("%s YAML module required for .yaml/.yml files but is not available\n",
+                color.error("ERROR:"));
+            exit(1);
+%else
+            try {
+                return parse_yaml(input_str);
+            } catch (hash<ExceptionInfo> ex) {
+                printf("%s invalid YAML: %s\n", color.error("ERROR:"), ex.desc);
+                exit(1);
+            }
+%endif
+        }
+
+%ifndef NoYaml
+        try {
+            return parse_yaml(input_str);
+        } catch () {
+            # fall through to JSON
+        }
+%endif
+
+%ifndef NoJson
+        try {
+            return parse_json(input_str);
+        } catch (hash<ExceptionInfo> ex) {
+%ifdef NoYaml
+            printf("%s invalid JSON: %s\n", color.error("ERROR:"), ex.desc);
+%else
+            printf("%s failed to parse as YAML or JSON: %s\n", color.error("ERROR:"), ex.desc);
+%endif
+            exit(1);
+        }
+%endif
+
+%ifdef NoYaml
+%ifdef NoJson
+        printf("%s neither YAML nor JSON modules are available\n", color.error("ERROR:"));
+        exit(1);
+%endif
+%endif
+    }
+
+    # ── Border/Frame ─────────────────────────────────────────────────────
+
+    private doBorder() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+
+        string method = opts.method ?? "border";
+
+        switch (method) {
+            case "border": {
+                string bc = opts.bcolor ?? "black";
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                img.border(bc, w, h);
+                break;
+            }
+            case "frame": {
+                string bc = opts.bcolor ?? "black";
+                int w = requireInt("width", opts.width);
+                int h = requireInt("height", opts.height);
+                int ib = requireInt("inner-bevel", opts.inner_bevel);
+                int ob = requireInt("outer-bevel", opts.outer_bevel);
+                img.frame(bc, w, h, ib, ob);
+                break;
+            }
+            default:
+                printf("%s unknown border method %y\n", color.error("ERROR:"), method);
+                printf("  Valid methods: %s\n", color.value("border, frame"));
+                exit(1);
+        }
+
+        writeOutput(img, path);
+    }
+
+    private doStrip() {
+        string path = requireArg("<input>");
+        requireOutput();
+        MagickImage img = readInput(path);
+        img.strip();
+        writeOutput(img, path);
+    }
+}

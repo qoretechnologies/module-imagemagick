@@ -22,6 +22,8 @@ if (UNIX AND NOT APPLE)
     set(LINUX TRUE)
 endif()
 
+include(GNUInstallDirs)
+
 find_package(Qore 2.0 REQUIRED)
 
 # Find ImageMagick 7 MagickWand library via pkg-config
@@ -179,6 +181,8 @@ else()
     install(FILES ${QPP_META_SRC}
             DESTINATION ${CMAKE_INSTALL_DATADIR}/qore/metadata)
 endif()
+
+install(PROGRAMS bin/qimage DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 qore_config_info()
 
