@@ -166,7 +166,7 @@ public class ImageMagickResizeRequestDataType inherits HashDataType {
                 "type": StringOrNothingType,
                 "display_name": "Filter",
                 "short_desc": "Resize filter algorithm",
-                "desc": "Filter algorithm to use for resizing. Default: Lanczos",
+                "desc": "Filter algorithm to use for resizing. Default: `Lanczos`",
                 "default_value": "Lanczos",
                 "allowed_values": FilterTypeAllowedValues,
             },
@@ -235,7 +235,7 @@ public class ImageMagickRotateRequestDataType inherits HashDataType {
                 "type": StringOrNothingType,
                 "display_name": "Background Color",
                 "short_desc": "Background color for exposed areas",
-                "desc": "Color for areas exposed by rotation. Default: white",
+                "desc": "Color for areas exposed by rotation. Default: `white`",
                 "default_value": "white",
             },
         };
@@ -255,7 +255,7 @@ public class ImageMagickFlipRequestDataType inherits HashDataType {
                 "type": StringType,
                 "display_name": "Direction",
                 "short_desc": "Flip direction",
-                "desc": "Direction to flip: 'vertical' (top to bottom) or 'horizontal' (left to right)",
+                "desc": "Direction to flip: `vertical` (top to bottom) or `horizontal` (left to right)",
                 "default_value": "vertical",
                 "allowed_values": FlipDirectionAllowedValues,
             },
@@ -551,7 +551,8 @@ public class ImageMagickConvertFormatRequestDataType inherits HashDataType {
                 "type": IntOrNothingType,
                 "display_name": "Quality",
                 "short_desc": "Compression quality (0-100)",
-                "desc": "Compression quality for lossy formats (0-100). Higher is better quality.",
+                "desc": "Compression quality for lossy formats (`0`–`100`). Higher values produce "
+                    "better quality but larger files.",
                 "default_value": 85,
             },
         };
@@ -595,7 +596,7 @@ public class ImageMagickCompositeRequestDataType inherits HashDataType {
                 "type": StringOrNothingType,
                 "display_name": "Composite Operator",
                 "short_desc": "Blending operator",
-                "desc": "Composite blending operator. Default: Over",
+                "desc": "Composite blending operator. Default: `Over`",
                 "default_value": "Over",
                 "allowed_values": CompositeOpAllowedValues,
             },
@@ -603,21 +604,24 @@ public class ImageMagickCompositeRequestDataType inherits HashDataType {
                 "type": StringOrNothingType,
                 "display_name": "Gravity",
                 "short_desc": "Placement gravity",
-                "desc": "Gravity for placing the overlay image. If specified, x and y offsets are ignored.",
+                "desc": "Gravity for placing the overlay image. If specified, `x` and `y` offsets "
+                    "are ignored.",
                 "allowed_values": GravityTypeAllowedValues,
             },
             "x": {
                 "type": IntOrNothingType,
                 "display_name": "X Offset",
                 "short_desc": "Horizontal offset in pixels",
-                "desc": "Horizontal offset for overlay placement (used when gravity is not specified)",
+                "desc": "Horizontal offset for overlay placement (used when `gravity` is not "
+                    "specified)",
                 "default_value": 0,
             },
             "y": {
                 "type": IntOrNothingType,
                 "display_name": "Y Offset",
                 "short_desc": "Vertical offset in pixels",
-                "desc": "Vertical offset for overlay placement (used when gravity is not specified)",
+                "desc": "Vertical offset for overlay placement (used when `gravity` is not "
+                    "specified)",
                 "default_value": 0,
             },
         };
@@ -680,7 +684,7 @@ public class ImageMagickAnnotateRequestDataType inherits HashDataType {
                 "type": StringOrNothingType,
                 "display_name": "Fill Color",
                 "short_desc": "Text fill color",
-                "desc": "Fill color for the text (e.g. 'black', 'white', '#FF0000')",
+                "desc": "Fill color for the text (e.g. `black`, `white`, `#FF0000`)",
                 "default_value": "black",
             },
             "stroke_color": {
@@ -793,7 +797,7 @@ public class ImageMagickGetInfoResponseDataType inherits HashDataType {
                 "type": IntType,
                 "display_name": "Compression Quality",
                 "short_desc": "Compression quality",
-                "desc": "Compression quality (0-100, format dependent)",
+                "desc": "Compression quality (`0`–`100`, format dependent)",
                 "example_value": 85,
             },
             "number_images": {
@@ -1017,14 +1021,14 @@ public class ImageMagickContrastStretchRequestDataType inherits HashDataType {
                 "type": FloatType,
                 "display_name": "Black Point",
                 "short_desc": "Percentage of pixels for black point",
-                "desc": "Percentage of pixels to map to black (0.0-100.0)",
+                "desc": "Percentage of pixels to map to black (`0.0`–`100.0`)",
                 "example_value": 1.0,
             },
             "white_point": {
                 "type": FloatType,
                 "display_name": "White Point",
                 "short_desc": "Percentage of pixels for white point",
-                "desc": "Percentage of pixels to map to white (0.0-100.0)",
+                "desc": "Percentage of pixels to map to white (`0.0`–`100.0`)",
                 "example_value": 1.0,
             },
         };
@@ -1044,14 +1048,14 @@ public class ImageMagickLinearStretchRequestDataType inherits HashDataType {
                 "type": FloatType,
                 "display_name": "Black Point",
                 "short_desc": "Percentage of pixels for black point",
-                "desc": "Percentage of pixels to map to black (0.0-100.0)",
+                "desc": "Percentage of pixels to map to black (`0.0`–`100.0`)",
                 "example_value": 2.0,
             },
             "white_point": {
                 "type": FloatType,
                 "display_name": "White Point",
                 "short_desc": "Percentage of pixels for white point",
-                "desc": "Percentage of pixels to map to white (0.0-100.0)",
+                "desc": "Percentage of pixels to map to white (`0.0`–`100.0`)",
                 "example_value": 2.0,
             },
         };
@@ -1078,7 +1082,7 @@ public class ImageMagickSigmoidalContrastRequestDataType inherits HashDataType {
                 "type": FloatType,
                 "display_name": "Strength",
                 "short_desc": "Contrast strength",
-                "desc": "Strength of the contrast adjustment (typically 3.0-20.0)",
+                "desc": "Strength of the contrast adjustment (typically `3.0`–`20.0`)",
                 "example_value": 5.0,
             },
             "midpoint": {
@@ -1390,14 +1394,14 @@ public class ImageMagickShadeRequestDataType inherits HashDataType {
                 "type": FloatType,
                 "display_name": "Azimuth",
                 "short_desc": "Light source azimuth in degrees",
-                "desc": "Azimuth angle of the light source in degrees (0-360)",
+                "desc": "Azimuth angle of the light source in degrees (`0`–`360`)",
                 "example_value": 135.0,
             },
             "elevation": {
                 "type": FloatType,
                 "display_name": "Elevation",
                 "short_desc": "Light source elevation in degrees",
-                "desc": "Elevation angle of the light source in degrees (0-90)",
+                "desc": "Elevation angle of the light source in degrees (`0`–`90`)",
                 "example_value": 30.0,
             },
         };
@@ -1730,7 +1734,7 @@ public class ImageMagickBorderRequestDataType inherits HashDataType {
                 "type": StringType,
                 "display_name": "Border Color",
                 "short_desc": "Color of the border",
-                "desc": "Color for the border (e.g. 'black', 'white', '#FF0000')",
+                "desc": "Color for the border (e.g. `black`, `white`, `#FF0000`)",
                 "example_value": "black",
             },
             "width": {
@@ -1766,7 +1770,7 @@ public class ImageMagickFrameRequestDataType inherits HashDataType {
                 "type": StringType,
                 "display_name": "Frame Color",
                 "short_desc": "Color of the frame",
-                "desc": "Color for the frame (e.g. 'gray', 'gold', '#C0C0C0')",
+                "desc": "Color for the frame (e.g. `gray`, `gold`, `#C0C0C0`)",
                 "example_value": "gray",
             },
             "width": {

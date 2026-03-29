@@ -45,9 +45,27 @@ module ImageMagickDataProvider {
         DataProviderActionCatalog::registerApp(<DataProviderAppInfo>{
             "name": ImageMagickDataProvider::AppName,
             "display_name": "ImageMagick",
-            "short_desc": "Image processing and manipulation",
-            "desc": "Process and manipulate images using ImageMagick: resize, crop, rotate, "
-                "apply effects, convert formats, and more",
+            "short_desc": "Image processing and manipulation with ImageMagick",
+            "desc": "Process and manipulate images using "
+                "[ImageMagick](https://imagemagick.org), a powerful image processing "
+                "library.\n\n"
+                "**Image Operations**:\n"
+                "- Resize, crop, rotate, flip, scale, and resample images\n"
+                "- Create thumbnails and apply content-aware liquid rescaling\n"
+                "- Trim borders, add borders and frames, shear, and deskew\n\n"
+                "**Effects and Filters**:\n"
+                "- Blur, sharpen, and denoise with multiple algorithms\n"
+                "- Artistic effects: charcoal, sepia, oil paint, sketch, and more\n"
+                "- Color adjustments: brightness, contrast, gamma, levels, and "
+                "colorspace conversion\n\n"
+                "**Drawing and Annotation**:\n"
+                "- Draw shapes, lines, polygons, and text on images\n"
+                "- Add watermarks, copyright text, and visual annotations\n\n"
+                "**Format and Metadata**:\n"
+                "- Convert between 200+ image formats (PNG, JPEG, WebP, AVIF, TIFF, "
+                "and more)\n"
+                "- Read and write EXIF, IPTC, XMP, and ICC color profiles\n"
+                "- Set image resolution, bit depth, and custom properties",
             "groups": (DataProvider::AppGroup::DesignCreative,),
             "logo": ImageMagickLogo,
             "logo_file_name": "imagemagick-logo.svg",
@@ -61,7 +79,11 @@ module ImageMagickDataProvider {
             "action": "resize",
             "display_name": "Resize Image",
             "short_desc": "Resize an image to specified dimensions",
-            "desc": "Resize an image using high-quality filtering algorithms",
+            "desc": "Resize an image to specific pixel dimensions using high-quality filtering "
+                "algorithms.\n\n"
+                "Common use cases include preparing images for web display, social media, "
+                "email templates, or print production. Choose from multiple filter algorithms "
+                "(e.g. `Lanczos`, `Mitchell`) to balance quality and performance.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickResizeRequestDataType::Fields{"width", "height"}, {
@@ -84,7 +106,10 @@ module ImageMagickDataProvider {
             "action": "crop",
             "display_name": "Crop Image",
             "short_desc": "Crop an image to a specified region",
-            "desc": "Extract a rectangular region from an image",
+            "desc": "Extract a rectangular region from an image by specifying the crop area's "
+                "width, height, and position.\n\n"
+                "Useful for removing unwanted borders, focusing on a specific subject, "
+                "or preparing images with exact dimensions for layouts and templates.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickCropRequestDataType::Fields{"width", "height"}, {
@@ -107,7 +132,10 @@ module ImageMagickDataProvider {
             "action": "rotate",
             "display_name": "Rotate Image",
             "short_desc": "Rotate an image by a specified angle",
-            "desc": "Rotate an image clockwise by the given number of degrees",
+            "desc": "Rotate an image clockwise by the given number of degrees. Areas exposed "
+                "by the rotation are filled with a configurable background color.\n\n"
+                "Useful for correcting image orientation, creating angled compositions, "
+                "or preparing images for specific layout requirements.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickRotateRequestDataType::Fields{"degrees",}, {
@@ -129,7 +157,10 @@ module ImageMagickDataProvider {
             "action": "flip",
             "display_name": "Flip Image",
             "short_desc": "Flip or mirror an image",
-            "desc": "Flip an image vertically or horizontally",
+            "desc": "Flip an image vertically (top to bottom) or horizontally (left to right "
+                "mirror).\n\n"
+                "Useful for creating mirror effects, correcting camera-mirrored selfies, "
+                "or producing symmetrical design elements.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickFlipRequestDataType::Fields{"location", "direction"}, {
@@ -146,7 +177,11 @@ module ImageMagickDataProvider {
             "action": "blur",
             "display_name": "Blur Image",
             "short_desc": "Apply a blur filter to an image",
-            "desc": "Apply a Gaussian blur filter with configurable radius and sigma",
+            "desc": "Apply a Gaussian blur filter with configurable radius and sigma "
+                "parameters.\n\n"
+                "Useful for softening images, creating background effects, reducing noise, "
+                "or producing depth-of-field effects for product photography and marketing "
+                "materials.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickBlurRequestDataType::Fields{"sigma",}, {
@@ -168,7 +203,11 @@ module ImageMagickDataProvider {
             "action": "sharpen",
             "display_name": "Sharpen Image",
             "short_desc": "Apply a sharpening filter to an image",
-            "desc": "Sharpen an image with configurable radius and sigma",
+            "desc": "Sharpen an image with configurable radius and sigma parameters to "
+                "enhance fine detail and edges.\n\n"
+                "Useful for improving clarity of photos after resizing, enhancing text "
+                "readability in scanned documents, or restoring detail in slightly "
+                "out-of-focus images.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSharpenRequestDataType::Fields{"sigma",}, {
@@ -190,7 +229,11 @@ module ImageMagickDataProvider {
             "action": "brightness-contrast",
             "display_name": "Adjust Brightness/Contrast",
             "short_desc": "Adjust image brightness and contrast",
-            "desc": "Adjust the brightness and contrast of an image",
+            "desc": "Adjust the brightness and contrast of an image using percentage "
+                "values.\n\n"
+                "Useful for correcting underexposed or overexposed photos, improving "
+                "visibility of scanned documents, or enhancing product images for "
+                "e-commerce listings.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickBrightnessContrastRequestDataType::Fields{
@@ -210,8 +253,11 @@ module ImageMagickDataProvider {
             "action": "composite",
             "display_name": "Composite Images",
             "short_desc": "Overlay one image onto another",
-            "desc": "Composite (overlay) one image onto another using various blending operators "
-                "and gravity-based or coordinate-based positioning",
+            "desc": "Composite (overlay) one image onto another using various blending "
+                "operators and gravity-based or coordinate-based positioning.\n\n"
+                "Common use cases include adding watermarks and logos, creating image "
+                "collages, overlaying graphics onto photos, and combining layers for "
+                "design compositions.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickCompositeRequestDataType::Fields{
@@ -231,7 +277,11 @@ module ImageMagickDataProvider {
             "action": "annotate",
             "display_name": "Annotate Image",
             "short_desc": "Add text annotation to an image",
-            "desc": "Draw text on an image with configurable font, size, color, and position",
+            "desc": "Draw text on an image with configurable font, size, color, and "
+                "position.\n\n"
+                "Useful for adding copyright notices, watermarks, captions, labels, "
+                "timestamps, or other text overlays to images. Supports custom fonts "
+                "and precise positioning.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickAnnotateRequestDataType::Fields{"text", "x", "y"}, {
@@ -256,7 +306,10 @@ module ImageMagickDataProvider {
             "action": "thumbnail",
             "display_name": "Create Thumbnail",
             "short_desc": "Create a thumbnail of an image",
-            "desc": "Create a fast, optimized thumbnail of an image",
+            "desc": "Create a fast, optimized thumbnail of an image at the specified "
+                "dimensions.\n\n"
+                "Optimized for speed over quality — ideal for generating preview images, "
+                "gallery thumbnails, or image index pages in bulk processing workflows.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickThumbnailRequestDataType::Fields{"width", "height"}, {
@@ -279,7 +332,12 @@ module ImageMagickDataProvider {
             "action": "auto-orient",
             "display_name": "Auto Orient",
             "short_desc": "Automatically orient an image based on EXIF data",
-            "desc": "Adjust image orientation based on its EXIF orientation tag",
+            "desc": "Automatically adjust image orientation based on its EXIF orientation "
+                "tag.\n\n"
+                "Essential for processing photos from smartphones and digital cameras, "
+                "which often store rotation information in EXIF metadata rather than "
+                "rotating the actual pixel data. Ensures images display correctly "
+                "regardless of how the camera was held.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickAutoOrientRequestDataType::Fields{"location",}, {
@@ -296,7 +354,10 @@ module ImageMagickDataProvider {
             "action": "strip",
             "display_name": "Strip Metadata",
             "short_desc": "Remove all metadata and profiles from an image",
-            "desc": "Strip all profiles, comments, and metadata from an image",
+            "desc": "Strip all profiles, comments, and metadata from an image.\n\n"
+                "Useful for reducing file size before web publishing, removing sensitive "
+                "location data (GPS coordinates) from photos, or cleaning images for "
+                "privacy compliance before sharing.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickStripRequestDataType::Fields{"location",}, {
@@ -313,7 +374,10 @@ module ImageMagickDataProvider {
             "action": "charcoal",
             "display_name": "Charcoal Effect",
             "short_desc": "Apply a charcoal drawing effect",
-            "desc": "Transform an image to look like a charcoal drawing",
+            "desc": "Transform an image to look like a charcoal drawing with configurable "
+                "intensity.\n\n"
+                "Creates an artistic black-and-white sketch effect. Useful for creating "
+                "stylized profile pictures, artistic prints, or design assets.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickCharcoalRequestDataType::Fields{
@@ -333,7 +397,10 @@ module ImageMagickDataProvider {
             "action": "sepia",
             "display_name": "Sepia Tone",
             "short_desc": "Apply a sepia tone effect",
-            "desc": "Apply a warm sepia tone effect to an image",
+            "desc": "Apply a warm sepia tone effect to an image for a vintage, antique "
+                "appearance.\n\n"
+                "Useful for creating nostalgic or vintage-themed marketing materials, "
+                "photo albums, and artistic presentations.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSepiaRequestDataType::Fields{"location", "threshold"}, {
@@ -350,7 +417,10 @@ module ImageMagickDataProvider {
             "action": "oil-paint",
             "display_name": "Oil Paint Effect",
             "short_desc": "Apply an oil painting effect",
-            "desc": "Transform an image to look like an oil painting",
+            "desc": "Transform an image to look like an oil painting with configurable "
+                "brush size.\n\n"
+                "Creates an artistic painterly effect useful for creating stylized "
+                "artwork, decorative prints, or unique visual content.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickOilPaintRequestDataType::Fields{"location", "radius", "sigma"}, {
@@ -367,7 +437,10 @@ module ImageMagickDataProvider {
             "action": "edge",
             "display_name": "Edge Detection",
             "short_desc": "Apply edge detection filter",
-            "desc": "Detect and highlight edges in an image",
+            "desc": "Detect and highlight edges in an image, producing a high-contrast "
+                "outline.\n\n"
+                "Useful for image analysis, creating line-art versions of photos, or "
+                "generating outlines for tracing and design work.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickEdgeRequestDataType::Fields{"location", "radius"}, {
@@ -384,7 +457,10 @@ module ImageMagickDataProvider {
             "action": "emboss",
             "display_name": "Emboss Effect",
             "short_desc": "Apply an emboss (3D) effect",
-            "desc": "Apply a 3D embossing effect to an image",
+            "desc": "Apply a 3D embossing effect to an image, making it appear raised or "
+                "stamped.\n\n"
+                "Creates a textured, relief-like appearance useful for creating decorative "
+                "backgrounds, artistic effects, or visual textures.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickEmbossRequestDataType::Fields{
@@ -404,10 +480,14 @@ module ImageMagickDataProvider {
             "action": "convert-format",
             "display_name": "Convert Format",
             "short_desc": "Convert image to a different format",
-            "desc": "Convert an image to a different format. Common formats are listed in "
-                "the dropdown, but ImageMagick supports 200+ formats including raw camera "
-                "formats, scientific formats, and more. Use `MagickImage::queryFormats()` "
-                "to list all supported formats, or type any format name directly.",
+            "desc": "Convert an image to a different format with configurable compression "
+                "quality.\n\n"
+                "Common formats are listed in the dropdown, but ImageMagick supports "
+                "200+ formats including raw camera formats, scientific formats, and more. "
+                "Any valid ImageMagick format name can be typed directly.\n\n"
+                "Useful for batch format conversion (e.g. TIFF to JPEG for web), "
+                "optimizing file sizes, preparing images for specific platforms, or "
+                "converting between professional and web-friendly formats.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickConvertFormatRequestDataType::Fields{"format",}, {
@@ -431,7 +511,10 @@ module ImageMagickDataProvider {
             "display_name": "Get Image Info",
             "short_desc": "Get image metadata and dimensions",
             "desc": "Retrieve image metadata including dimensions, format, colorspace, "
-                "and other properties without fully decoding the image",
+                "resolution, and other properties.\n\n"
+                "Useful for inventory and cataloging workflows, validating image "
+                "specifications before processing, quality assurance checks, or building "
+                "image asset databases.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickGetInfoRequestDataType::Fields{"location",}, {
@@ -451,7 +534,10 @@ module ImageMagickDataProvider {
             "action": "negate",
             "display_name": "Negate Colors",
             "short_desc": "Negate image colors",
-            "desc": "Negate (invert) the colors of an image",
+            "desc": "Negate (invert) the colors of an image, producing a photographic "
+                "negative effect.\n\n"
+                "Useful for creating artistic effects, generating negative versions of "
+                "X-rays or scanned documents, or producing inverted design elements.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickNegateRequestDataType::Fields{"location", "gray_only"}, {
@@ -468,7 +554,11 @@ module ImageMagickDataProvider {
             "action": "normalize",
             "display_name": "Normalize",
             "short_desc": "Normalize image histogram",
-            "desc": "Auto-stretch the image histogram to span the full range of values",
+            "desc": "Automatically stretch the image histogram to span the full range of "
+                "values, improving overall contrast.\n\n"
+                "Useful for quickly improving photos that appear washed out or flat, "
+                "enhancing scanned documents for readability, or as a preprocessing "
+                "step before further color adjustments.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickNormalizeRequestDataType::Fields{"location",}, {
@@ -485,7 +575,11 @@ module ImageMagickDataProvider {
             "action": "equalize",
             "display_name": "Equalize",
             "short_desc": "Equalize image histogram",
-            "desc": "Equalize the image histogram for uniform intensity distribution",
+            "desc": "Equalize the image histogram to produce a more uniform intensity "
+                "distribution across the tonal range.\n\n"
+                "Useful for improving contrast in images with uneven lighting, enhancing "
+                "details in dark or bright regions, or normalizing a batch of images "
+                "to a consistent appearance.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickEqualizeRequestDataType::Fields{"location",}, {
@@ -502,7 +596,10 @@ module ImageMagickDataProvider {
             "action": "auto-gamma",
             "display_name": "Auto Gamma",
             "short_desc": "Auto-adjust image gamma",
-            "desc": "Automatically adjust image gamma for optimal brightness",
+            "desc": "Automatically adjust image gamma for optimal brightness by analyzing "
+                "the image histogram.\n\n"
+                "Useful for quick brightness correction of photos that are too dark or "
+                "too bright without manual parameter tuning.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickAutoGammaRequestDataType::Fields{"location",}, {
@@ -519,7 +616,10 @@ module ImageMagickDataProvider {
             "action": "auto-level",
             "display_name": "Auto Level",
             "short_desc": "Auto-adjust image levels",
-            "desc": "Automatically adjust image levels for optimal contrast",
+            "desc": "Automatically adjust image levels for optimal contrast by stretching "
+                "the darkest and lightest pixels to the full range.\n\n"
+                "Useful for quickly improving contrast in photos without manual parameter "
+                "tuning. Works well as a one-click enhancement for batch processing.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickAutoLevelRequestDataType::Fields{"location",}, {
@@ -536,7 +636,10 @@ module ImageMagickDataProvider {
             "action": "enhance",
             "display_name": "Enhance",
             "short_desc": "Enhance image quality",
-            "desc": "Reduce noise and enhance detail in the image",
+            "desc": "Apply a noise reduction and detail enhancement filter to improve "
+                "overall image quality.\n\n"
+                "Useful for cleaning up photos taken in poor lighting conditions or "
+                "improving the appearance of compressed images.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickEnhanceRequestDataType::Fields{"location",}, {
@@ -553,7 +656,11 @@ module ImageMagickDataProvider {
             "action": "white-balance",
             "display_name": "White Balance",
             "short_desc": "Auto white balance",
-            "desc": "Automatically adjust the white balance of an image",
+            "desc": "Automatically adjust the white balance of an image to correct color "
+                "casts.\n\n"
+                "Useful for fixing photos taken under artificial lighting (fluorescent, "
+                "tungsten) that appear too warm or too cool, ensuring natural-looking "
+                "colors in product photography and marketing images.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickWhiteBalanceRequestDataType::Fields{"location",}, {
@@ -570,8 +677,11 @@ module ImageMagickDataProvider {
             "action": "gamma",
             "display_name": "Gamma Correction",
             "short_desc": "Apply gamma correction",
-            "desc": "Apply gamma correction to an image. Values less than 1.0 darken, "
-                "greater than 1.0 brighten.",
+            "desc": "Apply gamma correction to an image. Values less than `1.0` darken "
+                "the image, values greater than `1.0` brighten it.\n\n"
+                "Useful for fine-tuning image brightness in a perceptually uniform way, "
+                "compensating for display differences, or preparing images for print "
+                "production.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickGammaRequestDataType::Fields{"gamma_value",}, {
@@ -593,7 +703,11 @@ module ImageMagickDataProvider {
             "action": "modulate",
             "display_name": "Modulate",
             "short_desc": "Adjust brightness, saturation, and hue",
-            "desc": "Adjust image brightness, saturation, and hue as percentages (100 = no change)",
+            "desc": "Adjust image brightness, saturation, and hue as percentages where "
+                "`100` means no change.\n\n"
+                "Useful for making images more vibrant (increase saturation), creating "
+                "muted tones (decrease saturation), or shifting the overall color "
+                "mood of an image.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickModulateRequestDataType::Fields{
@@ -613,7 +727,11 @@ module ImageMagickDataProvider {
             "action": "level",
             "display_name": "Level Adjustment",
             "short_desc": "Adjust image levels",
-            "desc": "Adjust image levels by specifying black point, gamma, and white point",
+            "desc": "Adjust image levels by specifying black point, gamma, and white point "
+                "for precise tonal control.\n\n"
+                "Provides fine-grained control over the image's tonal range — similar "
+                "to the Levels dialog in Photoshop. Useful for professional color "
+                "correction workflows.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickLevelRequestDataType::Fields{
@@ -638,8 +756,10 @@ module ImageMagickDataProvider {
             "action": "contrast-stretch",
             "display_name": "Contrast Stretch",
             "short_desc": "Apply contrast stretch",
-            "desc": "Stretch image contrast by mapping a percentage of darkest pixels to black "
-                "and lightest pixels to white",
+            "desc": "Stretch image contrast by mapping a percentage of the darkest pixels "
+                "to black and the lightest pixels to white.\n\n"
+                "Useful for improving contrast in images with a narrow tonal range, "
+                "such as hazy or low-contrast photographs.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickContrastStretchRequestDataType::Fields{
@@ -664,7 +784,10 @@ module ImageMagickDataProvider {
             "action": "linear-stretch",
             "display_name": "Linear Stretch",
             "short_desc": "Apply linear stretch",
-            "desc": "Apply a linear stretch to the image histogram",
+            "desc": "Apply a linear stretch to the image histogram, clipping a percentage "
+                "of pixels at each end of the tonal range.\n\n"
+                "Similar to contrast stretch but uses a linear mapping. Useful for "
+                "normalizing image brightness and contrast in batch processing.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickLinearStretchRequestDataType::Fields{
@@ -689,7 +812,10 @@ module ImageMagickDataProvider {
             "action": "sigmoidal-contrast",
             "display_name": "Sigmoidal Contrast",
             "short_desc": "Apply sigmoidal contrast",
-            "desc": "Apply a non-linear sigmoidal contrast adjustment to an image",
+            "desc": "Apply a non-linear sigmoidal contrast adjustment to an image.\n\n"
+                "Produces more natural-looking contrast enhancement than linear methods "
+                "by preserving highlight and shadow detail. Useful for professional "
+                "photo retouching and preparing images for print.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSigmoidalContrastRequestDataType::Fields{
@@ -716,7 +842,11 @@ module ImageMagickDataProvider {
             "action": "transform-colorspace",
             "display_name": "Transform Colorspace",
             "short_desc": "Transform image colorspace",
-            "desc": "Transform the image to a different colorspace (e.g. sRGB, Gray, CMYK)",
+            "desc": "Transform the image to a different colorspace (e.g. `sRGB`, `Gray`, "
+                "`CMYK`).\n\n"
+                "Essential for print production workflows (converting `sRGB` to `CMYK`), "
+                "creating grayscale versions of images, or preparing images for specific "
+                "output devices and color management pipelines.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickTransformColorspaceRequestDataType::Fields{"colorspace",}, {
@@ -739,7 +869,10 @@ module ImageMagickDataProvider {
             "action": "threshold",
             "display_name": "Binary Threshold",
             "short_desc": "Apply binary threshold",
-            "desc": "Convert image to binary black/white using a threshold value",
+            "desc": "Convert an image to binary black and white using a threshold value. "
+                "Pixels above the threshold become white, pixels below become black.\n\n"
+                "Useful for preparing images for OCR processing, creating high-contrast "
+                "masks, or converting scanned documents to clean black-and-white.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickThresholdRequestDataType::Fields{"threshold_value",}, {
@@ -765,7 +898,11 @@ module ImageMagickDataProvider {
             "action": "solarize",
             "display_name": "Solarize",
             "short_desc": "Apply solarize effect",
-            "desc": "Negate pixels above a threshold, creating a solarization effect",
+            "desc": "Negate pixels above a threshold, creating a solarization effect that "
+                "partially inverts the image.\n\n"
+                "Produces a distinctive artistic effect reminiscent of darkroom "
+                "solarization. Useful for creating eye-catching visual effects for "
+                "posters, album art, or creative marketing materials.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSolarizeRequestDataType::Fields{"threshold",}, {
@@ -787,7 +924,11 @@ module ImageMagickDataProvider {
             "action": "posterize",
             "display_name": "Posterize",
             "short_desc": "Posterize image colors",
-            "desc": "Reduce the number of color levels per channel for a poster-like effect",
+            "desc": "Reduce the number of color levels per channel for a bold, poster-like "
+                "effect.\n\n"
+                "Creates flat, graphic-style images with limited colors — useful for "
+                "creating pop-art effects, simplified graphics, or reducing color "
+                "complexity for specific output requirements.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickPosterizeRequestDataType::Fields{"levels",}, {
@@ -809,7 +950,10 @@ module ImageMagickDataProvider {
             "action": "vignette",
             "display_name": "Vignette",
             "short_desc": "Apply vignette effect",
-            "desc": "Add a soft vignette (darkened edges) effect to an image",
+            "desc": "Add a soft vignette effect that darkens the edges of an image, "
+                "drawing attention to the center.\n\n"
+                "Commonly used in portrait photography, product images, and social "
+                "media posts to create a professional, focused look.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickVignetteRequestDataType::Fields{"radius", "sigma"}, {
@@ -832,7 +976,10 @@ module ImageMagickDataProvider {
             "action": "sketch",
             "display_name": "Pencil Sketch",
             "short_desc": "Apply pencil sketch effect",
-            "desc": "Transform an image to look like a pencil sketch",
+            "desc": "Transform an image to look like a pencil sketch with configurable "
+                "stroke angle and intensity.\n\n"
+                "Creates a hand-drawn artistic effect useful for creating stylized "
+                "portraits, architectural illustrations, or design mockups.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSketchRequestDataType::Fields{"radius", "sigma", "angle"}, {
@@ -855,7 +1002,10 @@ module ImageMagickDataProvider {
             "action": "wave",
             "display_name": "Wave Distortion",
             "short_desc": "Apply wave distortion",
-            "desc": "Apply a sinusoidal wave distortion to an image. Image dimensions may change.",
+            "desc": "Apply a sinusoidal wave distortion to an image. Image dimensions "
+                "may change to accommodate the wave effect.\n\n"
+                "Creates a wavy, rippled appearance useful for creative effects, "
+                "water reflection simulations, or playful visual designs.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickWaveRequestDataType::Fields{"amplitude", "wavelength"}, {
@@ -878,7 +1028,10 @@ module ImageMagickDataProvider {
             "action": "swirl",
             "display_name": "Swirl Distortion",
             "short_desc": "Apply swirl distortion",
-            "desc": "Apply a swirl distortion to an image",
+            "desc": "Apply a swirl distortion that rotates pixels around the center of "
+                "the image.\n\n"
+                "Creates a spiral effect useful for creative visual effects, abstract "
+                "art, or eye-catching social media graphics.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSwirlRequestDataType::Fields{"degrees",}, {
@@ -900,7 +1053,10 @@ module ImageMagickDataProvider {
             "action": "implode",
             "display_name": "Implode/Explode",
             "short_desc": "Apply implode/explode effect",
-            "desc": "Implode pixels toward the center (positive) or explode outward (negative)",
+            "desc": "Implode pixels toward the center (positive values) or explode them "
+                "outward (negative values).\n\n"
+                "Creates a pinch or bulge distortion effect. Useful for creating "
+                "abstract visual effects or fun photo transformations.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickImplodeRequestDataType::Fields{"amount",}, {
@@ -922,7 +1078,10 @@ module ImageMagickDataProvider {
             "action": "shadow",
             "display_name": "Shadow",
             "short_desc": "Generate shadow image",
-            "desc": "Generate a shadow version of the image with configurable opacity and blur",
+            "desc": "Generate a shadow version of the image with configurable opacity, "
+                "blur, and offset.\n\n"
+                "Useful for creating drop shadow effects, designing image compositions "
+                "with depth, or generating shadow layers for further compositing.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickShadowRequestDataType::Fields{"alpha", "sigma"}, {
@@ -945,7 +1104,11 @@ module ImageMagickDataProvider {
             "action": "shade",
             "display_name": "3D Shade",
             "short_desc": "Apply 3D shade effect",
-            "desc": "Apply a 3D lighting/shading effect to an image using a distant light source",
+            "desc": "Apply a 3D lighting and shading effect to an image using a simulated "
+                "distant light source.\n\n"
+                "Creates a raised, textured appearance controlled by `azimuth` (light "
+                "direction) and `elevation` (light angle). Useful for creating texture "
+                "maps, relief effects, or enhancing surface detail.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickShadeRequestDataType::Fields{"azimuth", "elevation"}, {
@@ -968,7 +1131,10 @@ module ImageMagickDataProvider {
             "action": "add-noise",
             "display_name": "Add Noise",
             "short_desc": "Add noise to image",
-            "desc": "Add random noise of a specified type to an image",
+            "desc": "Add random noise of a specified type to an image.\n\n"
+                "Useful for creating film grain effects, testing image processing "
+                "algorithms, simulating sensor noise, or adding texture to images "
+                "for artistic purposes.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickAddNoiseRequestDataType::Fields{"noise_type",}, {
@@ -991,7 +1157,10 @@ module ImageMagickDataProvider {
             "action": "blue-shift",
             "display_name": "Blue Shift",
             "short_desc": "Apply moonlight blue shift",
-            "desc": "Simulate moonlight illumination by shifting colors toward blue",
+            "desc": "Simulate moonlight illumination by shifting colors toward blue.\n\n"
+                "Creates a cool, nighttime atmosphere useful for mood setting in "
+                "creative photography, generating twilight effects, or creating "
+                "atmospheric visual content.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickBlueShiftRequestDataType::Fields{"location", "factor"}, {
@@ -1011,7 +1180,10 @@ module ImageMagickDataProvider {
             "action": "gaussian-blur",
             "display_name": "Gaussian Blur",
             "short_desc": "Apply Gaussian blur",
-            "desc": "Apply a Gaussian blur with configurable radius and sigma",
+            "desc": "Apply a Gaussian blur with configurable radius and sigma "
+                "parameters.\n\n"
+                "A standard Gaussian blur suitable for general-purpose softening, "
+                "background effects, and noise reduction.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickGaussianBlurRequestDataType::Fields{"sigma",}, {
@@ -1033,7 +1205,11 @@ module ImageMagickDataProvider {
             "action": "motion-blur",
             "display_name": "Motion Blur",
             "short_desc": "Apply motion blur",
-            "desc": "Apply directional motion blur to simulate camera movement",
+            "desc": "Apply directional motion blur to simulate camera or subject "
+                "movement.\n\n"
+                "Creates a sense of speed or motion in an image. Useful for dynamic "
+                "action effects, simulating movement in product photography, or "
+                "creating cinematic motion trails.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickMotionBlurRequestDataType::Fields{
@@ -1058,7 +1234,11 @@ module ImageMagickDataProvider {
             "action": "adaptive-blur",
             "display_name": "Adaptive Blur",
             "short_desc": "Apply adaptive blur",
-            "desc": "Apply a blur that adapts to image edges, preserving details",
+            "desc": "Apply a blur that adapts to image edges, blurring smooth areas "
+                "while preserving sharp details.\n\n"
+                "Produces a more natural-looking blur than standard Gaussian — useful "
+                "for noise reduction that maintains edge sharpness, or creating "
+                "selective focus effects.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickAdaptiveBlurRequestDataType::Fields{"sigma",}, {
@@ -1080,7 +1260,10 @@ module ImageMagickDataProvider {
             "action": "rotational-blur",
             "display_name": "Rotational Blur",
             "short_desc": "Apply rotational blur",
-            "desc": "Apply a rotational (spin) blur to an image",
+            "desc": "Apply a rotational (spin) blur to an image, simulating circular "
+                "motion around the center.\n\n"
+                "Creates a radial motion effect useful for action photography effects, "
+                "creating dynamic backgrounds, or simulating rotational movement.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickRotationalBlurRequestDataType::Fields{"angle",}, {
@@ -1102,7 +1285,11 @@ module ImageMagickDataProvider {
             "action": "adaptive-sharpen",
             "display_name": "Adaptive Sharpen",
             "short_desc": "Apply adaptive sharpening",
-            "desc": "Apply sharpening that adapts to image edges for better detail enhancement",
+            "desc": "Apply sharpening that adapts to image edges for better detail "
+                "enhancement.\n\n"
+                "Sharpens areas of detail more than smooth areas, producing more "
+                "natural results than uniform sharpening. Ideal for enhancing photos "
+                "without amplifying noise in smooth regions.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickAdaptiveSharpenRequestDataType::Fields{"sigma",}, {
@@ -1124,7 +1311,11 @@ module ImageMagickDataProvider {
             "action": "unsharp-mask",
             "display_name": "Unsharp Mask",
             "short_desc": "Apply unsharp mask",
-            "desc": "Sharpen an image using the unsharp mask technique",
+            "desc": "Sharpen an image using the unsharp mask technique, which provides "
+                "fine control over sharpening intensity and threshold.\n\n"
+                "The industry-standard sharpening method used in professional photo "
+                "editing. The `threshold` parameter prevents noise amplification by "
+                "only sharpening areas with sufficient contrast.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickUnsharpMaskRequestDataType::Fields{
@@ -1149,7 +1340,10 @@ module ImageMagickDataProvider {
             "action": "despeckle",
             "display_name": "Despeckle",
             "short_desc": "Remove speckle noise",
-            "desc": "Reduce speckle noise in an image while preserving edges",
+            "desc": "Reduce speckle noise in an image while preserving edges using a "
+                "median filter.\n\n"
+                "Particularly effective for cleaning up scanned documents, reducing "
+                "salt-and-pepper noise, or improving images from low-quality sources.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickDespeckleRequestDataType::Fields{"location",}, {
@@ -1166,7 +1360,10 @@ module ImageMagickDataProvider {
             "action": "reduce-noise",
             "display_name": "Reduce Noise",
             "short_desc": "Reduce image noise",
-            "desc": "Reduce noise in an image using a neighborhood averaging filter",
+            "desc": "Reduce noise in an image using a neighborhood averaging filter with "
+                "a configurable radius.\n\n"
+                "Useful for smoothing noisy images from high-ISO photography, cleaning "
+                "up digitized analog media, or preprocessing images for analysis.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickReduceNoiseRequestDataType::Fields{"radius",}, {
@@ -1188,7 +1385,12 @@ module ImageMagickDataProvider {
             "action": "wavelet-denoise",
             "display_name": "Wavelet Denoise",
             "short_desc": "Apply wavelet denoising",
-            "desc": "Apply wavelet-based denoising to reduce noise while preserving detail",
+            "desc": "Apply wavelet-based denoising to reduce noise while preserving "
+                "fine detail.\n\n"
+                "An advanced denoising algorithm that works in the frequency domain "
+                "for superior noise reduction with minimal detail loss. Ideal for "
+                "high-ISO photos, low-light images, or any image where preserving "
+                "texture is important.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickWaveletDenoiseRequestDataType::Fields{"threshold",}, {
@@ -1214,7 +1416,11 @@ module ImageMagickDataProvider {
             "action": "trim",
             "display_name": "Auto Trim",
             "short_desc": "Auto-trim image borders",
-            "desc": "Automatically crop border pixels that match the edge color",
+            "desc": "Automatically crop border pixels that match the edge color of the "
+                "image.\n\n"
+                "Useful for removing uniform borders from scanned documents, cleaning "
+                "up screenshots, or trimming whitespace from exported graphics. The "
+                "`fuzz` parameter controls how closely colors must match to be trimmed.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickTrimRequestDataType::Fields{"location", "fuzz"}, {
@@ -1231,7 +1437,10 @@ module ImageMagickDataProvider {
             "action": "border",
             "display_name": "Add Border",
             "short_desc": "Add border to image",
-            "desc": "Add a solid color border around an image. Image dimensions increase.",
+            "desc": "Add a solid color border around an image. Image dimensions increase "
+                "by twice the border size on each axis.\n\n"
+                "Useful for adding margins to images for printing, creating consistent "
+                "padding around product photos, or framing images for gallery display.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickBorderRequestDataType::Fields{"color", "width", "height"}, {
@@ -1254,7 +1463,11 @@ module ImageMagickDataProvider {
             "action": "frame",
             "display_name": "Add Frame",
             "short_desc": "Add decorative frame to image",
-            "desc": "Add a decorative 3D-beveled frame around an image. Image dimensions increase.",
+            "desc": "Add a decorative 3D-beveled frame around an image with configurable "
+                "bevel depth. Image dimensions increase.\n\n"
+                "Creates a picture-frame effect with inner and outer bevels. Useful "
+                "for creating framed prints, decorative photo presentations, or "
+                "gallery-style image displays.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickFrameRequestDataType::Fields{
@@ -1279,7 +1492,11 @@ module ImageMagickDataProvider {
             "action": "shear",
             "display_name": "Shear Transform",
             "short_desc": "Apply shear transformation",
-            "desc": "Shear an image along the X and/or Y axis. Image dimensions may change.",
+            "desc": "Shear an image along the X and/or Y axis by specified angles. Image "
+                "dimensions may change.\n\n"
+                "Creates a parallelogram-like distortion. Useful for creating "
+                "perspective effects, italic-style transformations, or skewed design "
+                "elements.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickShearRequestDataType::Fields{"x", "y"}, {
@@ -1301,7 +1518,11 @@ module ImageMagickDataProvider {
             "action": "deskew",
             "display_name": "Deskew",
             "short_desc": "Deskew scanned image",
-            "desc": "Straighten a skewed scanned image or document",
+            "desc": "Straighten a skewed scanned image or document by automatically "
+                "detecting and correcting the rotation angle.\n\n"
+                "Essential for document processing workflows — automatically corrects "
+                "slight tilts in scanned pages, faxes, or photographed documents to "
+                "improve readability and OCR accuracy.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickDeskewRequestDataType::Fields{"threshold",}, {
@@ -1327,7 +1548,10 @@ module ImageMagickDataProvider {
             "display_name": "Scale Image",
             "short_desc": "Fast scale an image without filtering",
             "desc": "Scale an image to the specified dimensions using fast pixel sampling "
-                "without interpolation filtering",
+                "without interpolation filtering.\n\n"
+                "Faster than resize but with lower quality. Best suited for quick "
+                "previews, batch processing where speed is more important than "
+                "quality, or when the size change is small.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickScaleRequestDataType::Fields{"width", "height"}, {
@@ -1349,8 +1573,11 @@ module ImageMagickDataProvider {
             "action": "resample",
             "display_name": "Resample Image",
             "short_desc": "Resample image to a new DPI resolution",
-            "desc": "Resample an image to a new resolution (DPI), adjusting pixel dimensions "
-                "accordingly",
+            "desc": "Resample an image to a new resolution (DPI), adjusting pixel "
+                "dimensions accordingly.\n\n"
+                "Essential for print production — converts images between screen "
+                "resolution (`72` DPI) and print resolution (`300` DPI). Unlike "
+                "set-resolution, this action actually changes the pixel dimensions.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickResampleRequestDataType::Fields{"x_resolution", "y_resolution"}, {
@@ -1373,9 +1600,11 @@ module ImageMagickDataProvider {
             "action": "extent",
             "display_name": "Set Canvas Extent",
             "short_desc": "Resize canvas with optional offset",
-            "desc": "Set the image canvas size and position the image within it. Use to add "
-                "padding or change canvas dimensions. The padding color is determined by the "
-                "image's current background color.",
+            "desc": "Set the image canvas size and position the image within it.\n\n"
+                "Use to add padding or change canvas dimensions without scaling the "
+                "image content. The padding color is determined by the image's current "
+                "background color. Useful for creating uniform image dimensions for "
+                "galleries, adding margins, or centering images on a larger canvas.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickExtentRequestDataType::Fields{"width", "height"}, {
@@ -1398,8 +1627,11 @@ module ImageMagickDataProvider {
             "action": "selective-blur",
             "display_name": "Selective Blur",
             "short_desc": "Edge-preserving selective blur",
-            "desc": "Apply a blur that only affects pixels within a contrast threshold of the "
-                "center pixel, preserving edges and detail",
+            "desc": "Apply a blur that only affects pixels within a contrast threshold "
+                "of the center pixel, preserving edges and detail.\n\n"
+                "An edge-aware blur that smooths uniform areas while keeping sharp "
+                "boundaries intact. Useful for skin smoothing in portraits, noise "
+                "reduction in specific regions, or selective softening effects.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSelectiveBlurRequestDataType::Fields{"sigma", "threshold"}, {
@@ -1423,8 +1655,13 @@ module ImageMagickDataProvider {
             "display_name": "Liquid Rescale",
             "short_desc": "Content-aware resize using seam carving",
             "desc": "Resize an image using content-aware seam carving, which intelligently "
-                "removes or adds pixels along low-energy seams to preserve important content. "
-                "Requires ImageMagick built with liblqr support.",
+                "removes or adds pixels along low-energy seams to preserve important "
+                "content.\n\n"
+                "Unlike standard resize, this preserves the visual importance of image "
+                "content — faces, text, and key objects remain undistorted. Ideal for "
+                "adapting images to different aspect ratios (e.g. landscape to portrait) "
+                "without cropping important content.\n\n"
+                "**Note**: requires ImageMagick built with liblqr support.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickLiquidRescaleRequestDataType::Fields{"width", "height"}, {
@@ -1451,7 +1688,10 @@ module ImageMagickDataProvider {
             "display_name": "Adaptive Resize",
             "short_desc": "Resize using mesh interpolation",
             "desc": "Resize an image using adaptive mesh interpolation, which produces "
-                "higher quality results for enlargement than standard resize",
+                "higher quality results than standard resize when enlarging images.\n\n"
+                "Best suited for upscaling images where preserving detail quality "
+                "is important, such as enlarging thumbnails or preparing small images "
+                "for print.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickAdaptiveResizeRequestDataType::Fields{"width", "height"}, {
@@ -1474,8 +1714,11 @@ module ImageMagickDataProvider {
             "action": "sample",
             "display_name": "Sample Resize",
             "short_desc": "Fastest resize using pixel sampling",
-            "desc": "Resize an image using pixel sampling (nearest-neighbor). The fastest "
-                "resize method but produces lower quality results.",
+            "desc": "Resize an image using pixel sampling (nearest-neighbor interpolation). "
+                "The fastest resize method but produces lower quality results.\n\n"
+                "Best suited for pixel art, icons, or any image where hard pixel edges "
+                "should be preserved. Also useful when maximum processing speed is "
+                "required.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSampleRequestDataType::Fields{"width", "height"}, {
@@ -1498,7 +1741,10 @@ module ImageMagickDataProvider {
             "display_name": "Transpose",
             "short_desc": "Diagonal mirror (top-left to bottom-right)",
             "desc": "Mirror the image along the top-left to bottom-right diagonal, "
-                "swapping width and height",
+                "swapping width and height.\n\n"
+                "Equivalent to rotating 90 degrees and then flipping horizontally. "
+                "Useful for correcting orientation in specific image processing "
+                "pipelines.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickTransposeRequestDataType::Fields{"location",}, {
@@ -1516,7 +1762,10 @@ module ImageMagickDataProvider {
             "display_name": "Transverse",
             "short_desc": "Diagonal mirror (top-right to bottom-left)",
             "desc": "Mirror the image along the top-right to bottom-left diagonal, "
-                "swapping width and height",
+                "swapping width and height.\n\n"
+                "Equivalent to rotating 270 degrees and then flipping horizontally. "
+                "Useful for correcting orientation in specific image processing "
+                "pipelines.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickTransverseRequestDataType::Fields{"location",}, {
@@ -1534,7 +1783,10 @@ module ImageMagickDataProvider {
             "display_name": "Chop Region",
             "short_desc": "Remove a rectangular region from image",
             "desc": "Remove a rectangular region from an image, collapsing the remaining "
-                "pixels to fill the gap. Image dimensions decrease.",
+                "pixels to fill the gap. Image dimensions decrease.\n\n"
+                "Unlike crop, which extracts a region, chop removes a region and "
+                "closes the gap. Useful for removing unwanted bars, banners, or "
+                "strips from images.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickChopRequestDataType::Fields{"width", "height", "x", "y"}, {
@@ -1557,8 +1809,11 @@ module ImageMagickDataProvider {
             "action": "shave",
             "display_name": "Shave Edges",
             "short_desc": "Shave pixels from all image edges",
-            "desc": "Shave pixels from the edges of an image. Removes the specified number "
-                "of pixels from the left/right (columns) and top/bottom (rows).",
+            "desc": "Shave pixels from all edges of an image symmetrically. Removes the "
+                "specified number of pixels from left/right (`columns`) and top/bottom "
+                "(`rows`).\n\n"
+                "Useful for removing uniform borders, trimming scanner artifacts from "
+                "edges, or reducing image dimensions by a fixed margin on all sides.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickShaveRequestDataType::Fields{"columns", "rows"}, {
@@ -1581,8 +1836,11 @@ module ImageMagickDataProvider {
             "action": "splice",
             "display_name": "Splice Region",
             "short_desc": "Insert blank region into image",
-            "desc": "Insert a blank region into an image at the specified position. Image "
-                "dimensions increase by the region size.",
+            "desc": "Insert a blank region into an image at the specified position, "
+                "pushing existing content apart. Image dimensions increase.\n\n"
+                "The inverse of chop — useful for adding space between image sections, "
+                "creating room for text or graphics, or inserting divider lines into "
+                "composite images.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSpliceRequestDataType::Fields{"width", "height", "x", "y"}, {
@@ -1608,8 +1866,11 @@ module ImageMagickDataProvider {
             "action": "set-resolution",
             "display_name": "Set Resolution",
             "short_desc": "Set image DPI resolution",
-            "desc": "Set the image resolution (DPI) without resampling pixels. This changes "
-                "the metadata only, not the pixel dimensions.",
+            "desc": "Set the image resolution (DPI) without resampling pixels. This "
+                "changes the metadata only, not the pixel dimensions.\n\n"
+                "Useful for setting the correct DPI for print production without "
+                "altering the image content, or correcting incorrect resolution "
+                "metadata in scanned documents.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSetResolutionRequestDataType::Fields{"x", "y"}, {
@@ -1631,8 +1892,13 @@ module ImageMagickDataProvider {
             "action": "set-depth",
             "display_name": "Set Bit Depth",
             "short_desc": "Set image bit depth per channel",
-            "desc": "Set the image bit depth (bits per channel). Common values: `8` (standard), "
-                "`16` (high dynamic range), `32` (floating point).",
+            "desc": "Set the image bit depth (bits per channel).\n\n"
+                "Common values:\n"
+                "- `8` — standard (256 levels per channel)\n"
+                "- `16` — high dynamic range (65,536 levels per channel)\n"
+                "- `32` — floating point precision\n\n"
+                "Useful for preparing images for professional editing workflows or "
+                "converting between standard and high-dynamic-range formats.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSetDepthRequestDataType::Fields{"depth",}, {
@@ -1654,8 +1920,10 @@ module ImageMagickDataProvider {
             "action": "set-property",
             "display_name": "Set Property",
             "short_desc": "Set an image metadata property",
-            "desc": "Set an image property (metadata). Properties include EXIF tags, comments, "
-                "and custom application data.",
+            "desc": "Set an image property (metadata) such as EXIF tags, comments, or "
+                "custom application data.\n\n"
+                "Useful for adding copyright information, descriptions, keywords, "
+                "or custom metadata to images for cataloging and asset management.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSetPropertyRequestDataType::Fields{"name", "value"}, {
@@ -1677,8 +1945,12 @@ module ImageMagickDataProvider {
             "action": "set-profile",
             "display_name": "Set Profile",
             "short_desc": "Set an image profile (ICC, IPTC, etc.)",
-            "desc": "Set a binary image profile such as ICC color management, IPTC metadata, "
-                "or XMP data",
+            "desc": "Set a binary image profile such as ICC color management, IPTC "
+                "metadata, or XMP data.\n\n"
+                "Essential for color management workflows — embed ICC profiles to "
+                "ensure consistent color reproduction across different displays and "
+                "printers. Also useful for embedding press metadata (IPTC) for "
+                "news and stock photography.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickSetProfileRequestDataType::Fields{"name", "profile_data"}, {
@@ -1701,8 +1973,10 @@ module ImageMagickDataProvider {
             "action": "get-properties",
             "display_name": "Get Properties",
             "short_desc": "Get image properties matching a pattern",
-            "desc": "Retrieve image properties (metadata) matching a glob pattern. Use `exif:*` "
-                "for EXIF data, `iptc:*` for IPTC, or `*` for all properties.",
+            "desc": "Retrieve image properties (metadata) matching a glob pattern.\n\n"
+                "Use `exif:*` for EXIF data, `iptc:*` for IPTC, or `*` for all "
+                "properties. Useful for auditing image metadata, extracting specific "
+                "tags for cataloging, or verifying metadata before publishing.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickGetPropertiesRequestDataType::Fields{"location", "pattern"}, {
@@ -1719,8 +1993,11 @@ module ImageMagickDataProvider {
             "action": "get-exif",
             "display_name": "Get EXIF Data",
             "short_desc": "Get EXIF metadata from an image",
-            "desc": "Retrieve EXIF metadata from an image. Returns property names with the "
-                "`exif:` prefix stripped for cleaner output.",
+            "desc": "Retrieve EXIF metadata from an image. Returns property names with "
+                "the `exif:` prefix stripped for cleaner output.\n\n"
+                "Useful for extracting camera settings (aperture, shutter speed, ISO), "
+                "GPS coordinates, timestamps, and other camera-recorded data from "
+                "photographs.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickGetExifRequestDataType::Fields{"location",}, {
@@ -1737,8 +2014,14 @@ module ImageMagickDataProvider {
             "action": "get-profile",
             "display_name": "Get Profile",
             "short_desc": "Get image profile data (ICC, EXIF, etc.)",
-            "desc": "Retrieve binary profile data from an image. Common profiles include "
-                "`icc` (color management), `exif` (camera metadata), and `iptc` (press data).",
+            "desc": "Retrieve binary profile data from an image.\n\n"
+                "Common profiles:\n"
+                "- `icc` — ICC color management profile\n"
+                "- `exif` — camera and capture metadata\n"
+                "- `iptc` — press and editorial metadata\n"
+                "- `xmp` — extensible metadata (Adobe)\n\n"
+                "Useful for extracting profiles from one image to apply to another, "
+                "auditing color management data, or archiving metadata.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickGetProfileRequestDataType::Fields{"name",}, {
@@ -1763,9 +2046,13 @@ module ImageMagickDataProvider {
             "action": "draw",
             "display_name": "Draw on Image",
             "short_desc": "Draw vector graphics on an image",
-            "desc": "Draw shapes, lines, and text on an image using vector graphics. "
-                "Supports lines, rectangles, circles, ellipses, arcs, polygons, polylines, "
-                "and text with configurable colors, stroke, and font settings.",
+            "desc": "Draw shapes, lines, and text on an image using vector graphics.\n\n"
+                "**Supported operations**:\n"
+                "- `line`, `rectangle`, `round-rectangle`, `circle`, `ellipse`, `arc`\n"
+                "- `point`, `polygon`, `polyline`, `text`\n\n"
+                "Each operation supports configurable fill color, stroke color, stroke "
+                "width, opacity, and font settings. Useful for adding annotations, "
+                "diagrams, measurement markers, or decorative elements to images.",
             "action_code": DPAT_API,
             "options": DataProviderActionCatalog::getActionOptionFromFields(
                 ImageMagickDrawRequestDataType::Fields{"operations",}, {
