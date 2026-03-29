@@ -21,21 +21,21 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-#! @file ImageMagickGetInfoDataProvider.qc Get image info action
+#! @file ImageMagickGetExifDataProvider.qc Get EXIF data action
 
 public namespace ImageMagickDataProvider {
 
-public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase {
+public class ImageMagickGetExifDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
-            "name": "get",
-            "desc": "Get image metadata and dimensions",
-            "type": "ImageMagickGetInfoDataProvider",
+            "name": "get-exif",
+            "desc": "Get EXIF metadata from an image",
+            "type": "ImageMagickGetExifDataProvider",
             "supports_request": True,
         };
 
-        static ImageMagickGetInfoRequestDataType RequestType();
-        static ImageMagickGetInfoResponseDataType ResponseType();
+        static ImageMagickGetExifRequestDataType RequestType();
+        static ImageMagickGetExifResponseDataType ResponseType();
     }
 
     private {
@@ -64,18 +64,16 @@ public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase 
 
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
+        *hash<auto> props = img.getProperties("exif:*");
+        # Strip "exif:" prefix from keys for cleaner output
+        hash<auto> result = {};
+        if (props) {
+            foreach string key in (keys props) {
+                result{key.substr(5)} = props{key};
+            }
+        }
         return {
-            "width": img.width(),
-            "height": img.height(),
-            "format": img.format(),
-            "depth": img.depth(),
-            "colorspace": img.colorspace(),
-            "image_type": img.imageType(),
-            "resolution": img.resolution(),
-            "compression_quality": img.compressionQuality(),
-            "number_images": img.numberImages(),
-            "colors": img.colors(),
-            "signature": img.signature(),
+            "properties": result,
         };
     }
 }

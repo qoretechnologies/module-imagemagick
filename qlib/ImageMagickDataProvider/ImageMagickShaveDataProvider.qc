@@ -21,21 +21,21 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-#! @file ImageMagickGetInfoDataProvider.qc Get image info action
+#! @file ImageMagickShaveDataProvider.qc Shave pixels from edges action
 
 public namespace ImageMagickDataProvider {
 
-public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase {
+public class ImageMagickShaveDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
-            "name": "get",
-            "desc": "Get image metadata and dimensions",
-            "type": "ImageMagickGetInfoDataProvider",
+            "name": "shave",
+            "desc": "Shave pixels from image edges",
+            "type": "ImageMagickShaveDataProvider",
             "supports_request": True,
         };
 
-        static ImageMagickGetInfoRequestDataType RequestType();
-        static ImageMagickGetInfoResponseDataType ResponseType();
+        static ImageMagickShaveRequestDataType RequestType();
+        static ImageMagickImageResponseDataType ResponseType();
     }
 
     private {
@@ -64,19 +64,8 @@ public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase 
 
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
-        return {
-            "width": img.width(),
-            "height": img.height(),
-            "format": img.format(),
-            "depth": img.depth(),
-            "colorspace": img.colorspace(),
-            "image_type": img.imageType(),
-            "resolution": img.resolution(),
-            "compression_quality": img.compressionQuality(),
-            "number_images": img.numberImages(),
-            "colors": img.colors(),
-            "signature": img.signature(),
-        };
+        img.shave(req.columns, req.rows);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }
 }

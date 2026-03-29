@@ -1428,3 +1428,95 @@ string MagickImage::getPixelColor(int x, int y) {
 nothing MagickImage::setPixelColor(int x, int y, string color) {
     img->setPixelColor(x, y, color->c_str(), xsink);
 }
+
+// --- Static query methods ---
+
+//! Returns a list of available font names matching a pattern
+/** @param pattern a glob pattern to match font names (default: "*" for all fonts)
+
+    @return a list of available font name strings
+
+    @par Example:
+    @code{.py}
+list<string> all_fonts = MagickImage::queryFonts();
+list<string> arial_fonts = MagickImage::queryFonts("Arial*");
+    @endcode
+
+    @note This method queries ImageMagick's cached font configuration; it does not
+    perform filesystem I/O per call.
+*/
+static list<string> MagickImage::queryFonts(string pattern = "*") [flags=RET_VALUE_ONLY] {
+    size_t count = 0;
+    char** fonts = MagickQueryFonts(pattern->c_str(), &count);
+    if (!fonts) {
+        return new QoreListNode(stringTypeInfo);
+    }
+    ReferenceHolder<QoreListNode> l(new QoreListNode(stringTypeInfo), xsink);
+    for (size_t i = 0; i < count; ++i) {
+        if (!(i % 100) && qore_check_cancel(xsink, "querying fonts")) {
+            // Free remaining strings before returning
+            for (size_t j = i; j < count; ++j) {
+                MagickRelinquishMemory(fonts[j]);
+            }
+            MagickRelinquishMemory(fonts);
+            return l.release();
+        }
+        l->push(new QoreStringNode(fonts[i]), xsink);
+        MagickRelinquishMemory(fonts[i]);
+        if (*xsink) {
+            // Free remaining strings on error
+            for (size_t j = i + 1; j < count; ++j) {
+                MagickRelinquishMemory(fonts[j]);
+            }
+            MagickRelinquishMemory(fonts);
+            return l.release();
+        }
+    }
+    MagickRelinquishMemory(fonts);
+    return l.release();
+}
+
+//! Returns a list of supported image format strings matching a pattern
+/** @param pattern a glob pattern to match format names (default: "*" for all formats)
+
+    @return a list of supported format name strings (e.g. "PNG", "JPEG", "GIF")
+
+    @par Example:
+    @code{.py}
+list<string> all_formats = MagickImage::queryFormats();
+list<string> jp_formats = MagickImage::queryFormats("JP*");
+    @endcode
+
+    @note This method queries ImageMagick's compiled-in format list; it does not
+    perform filesystem I/O per call.
+*/
+static list<string> MagickImage::queryFormats(string pattern = "*") [flags=RET_VALUE_ONLY] {
+    size_t count = 0;
+    char** formats = MagickQueryFormats(pattern->c_str(), &count);
+    if (!formats) {
+        return new QoreListNode(stringTypeInfo);
+    }
+    ReferenceHolder<QoreListNode> l(new QoreListNode(stringTypeInfo), xsink);
+    for (size_t i = 0; i < count; ++i) {
+        if (!(i % 100) && qore_check_cancel(xsink, "querying formats")) {
+            // Free remaining strings before returning
+            for (size_t j = i; j < count; ++j) {
+                MagickRelinquishMemory(formats[j]);
+            }
+            MagickRelinquishMemory(formats);
+            return l.release();
+        }
+        l->push(new QoreStringNode(formats[i]), xsink);
+        MagickRelinquishMemory(formats[i]);
+        if (*xsink) {
+            // Free remaining strings on error
+            for (size_t j = i + 1; j < count; ++j) {
+                MagickRelinquishMemory(formats[j]);
+            }
+            MagickRelinquishMemory(formats);
+            return l.release();
+        }
+    }
+    MagickRelinquishMemory(formats);
+    return l.release();
+}

@@ -60,6 +60,7 @@ public class ImageMagickTest inherits QUnit::Test {
         addTestCase("Error handling tests", \errorHandlingTest());
         addTestCase("Corner case tests", \cornerCaseTest());
         addTestCase("Sandbox filesystem tests", \sandboxFilesystemTest());
+        addTestCase("Static query method tests", \staticQueryTest());
 
         set_return_value(main());
     }
@@ -1604,5 +1605,36 @@ public class ImageMagickTest inherits QUnit::Test {
             int result = p.callFunction("test_memory");
             assertEq(100, result);
         }
+    }
+
+    staticQueryTest() {
+        # queryFonts returns a list
+        list<string> allFonts = MagickImage::queryFonts();
+        assertEq(True, allFonts.size() > 0, "queryFonts returns non-empty list");
+        assertEq(True, allFonts[0] instanceof string, "queryFonts returns strings");
+
+        # queryFonts with pattern
+        list<string> dejaFonts = MagickImage::queryFonts("DejaVu*");
+        assertEq(True, dejaFonts.size() >= 0, "queryFonts with pattern returns list");
+        foreach string font in (dejaFonts) {
+            assertRegex("^DejaVu", font, "queryFonts pattern filters correctly");
+        }
+
+        # queryFonts with no-match pattern returns empty list
+        list<string> noMatch = MagickImage::queryFonts("ZZZZZ_NOMATCH_*");
+        assertEq(0, noMatch.size(), "queryFonts no-match returns empty list");
+
+        # queryFormats returns a list
+        list<string> allFormats = MagickImage::queryFormats();
+        assertEq(True, allFormats.size() > 0, "queryFormats returns non-empty list");
+        assertEq(True, allFormats[0] instanceof string, "queryFormats returns strings");
+
+        # queryFormats should include common formats
+        list<string> pngFormats = MagickImage::queryFormats("PNG*");
+        assertEq(True, pngFormats.size() > 0, "queryFormats finds PNG");
+
+        # queryFormats with pattern
+        list<string> jpFormats = MagickImage::queryFormats("JP*");
+        assertEq(True, jpFormats.size() > 0, "queryFormats finds JP* formats");
     }
 }

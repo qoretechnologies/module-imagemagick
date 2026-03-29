@@ -21,21 +21,21 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-#! @file ImageMagickGetInfoDataProvider.qc Get image info action
+#! @file ImageMagickGetProfileDataProvider.qc Get image profile action
 
 public namespace ImageMagickDataProvider {
 
-public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase {
+public class ImageMagickGetProfileDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
-            "name": "get",
-            "desc": "Get image metadata and dimensions",
-            "type": "ImageMagickGetInfoDataProvider",
+            "name": "get-profile",
+            "desc": "Get image profile data (ICC, EXIF, IPTC, etc.)",
+            "type": "ImageMagickGetProfileDataProvider",
             "supports_request": True,
         };
 
-        static ImageMagickGetInfoRequestDataType RequestType();
-        static ImageMagickGetInfoResponseDataType ResponseType();
+        static ImageMagickGetProfileRequestDataType RequestType();
+        static ImageMagickGetProfileResponseDataType ResponseType();
     }
 
     private {
@@ -65,17 +65,8 @@ public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase 
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         return {
-            "width": img.width(),
-            "height": img.height(),
-            "format": img.format(),
-            "depth": img.depth(),
-            "colorspace": img.colorspace(),
-            "image_type": img.imageType(),
-            "resolution": img.resolution(),
-            "compression_quality": img.compressionQuality(),
-            "number_images": img.numberImages(),
-            "colors": img.colors(),
-            "signature": img.signature(),
+            "name": req.name,
+            "data": img.getProfile(req.name),
         };
     }
 }

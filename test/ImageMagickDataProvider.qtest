@@ -124,6 +124,34 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         addTestCase("Shear action tests", \shearActionTest());
         addTestCase("Deskew action tests", \deskewActionTest());
 
+        # Phase 1: High-value image operations
+        addTestCase("Scale action tests", \scaleActionTest());
+        addTestCase("Resample action tests", \resampleActionTest());
+        addTestCase("Extent action tests", \extentActionTest());
+        addTestCase("Selective-blur action tests", \selectiveBlurActionTest());
+        addTestCase("Liquid-rescale action tests", \liquidRescaleActionTest());
+
+        # Phase 2: Geometry operations
+        addTestCase("Adaptive-resize action tests", \adaptiveResizeActionTest());
+        addTestCase("Sample action tests", \sampleActionTest());
+        addTestCase("Transpose action tests", \transposeActionTest());
+        addTestCase("Transverse action tests", \transverseActionTest());
+        addTestCase("Chop action tests", \chopActionTest());
+        addTestCase("Shave action tests", \shaveActionTest());
+        addTestCase("Splice action tests", \spliceActionTest());
+
+        # Phase 3: Metadata actions
+        addTestCase("Set-resolution action tests", \setResolutionActionTest());
+        addTestCase("Set-depth action tests", \setDepthActionTest());
+        addTestCase("Set-property action tests", \setPropertyActionTest());
+        addTestCase("Set-profile action tests", \setProfileActionTest());
+        addTestCase("Get-properties action tests", \getPropertiesActionTest());
+        addTestCase("Get-exif action tests", \getExifActionTest());
+        addTestCase("Get-profile action tests", \getProfileActionTest());
+
+        # Phase 4: Drawing action
+        addTestCase("Draw action tests", \drawActionTest());
+
         # Catalog and negative tests
         addTestCase("Action catalog validation tests", \actionCatalogValidationTest());
         addTestCase("Negative tests for new actions", \newActionNegativeTests());
@@ -217,7 +245,7 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         # Check image children
         AbstractDataProvider image = root.getChildProvider("image");
         *list<string> imageChildren = image.getChildProviderNames();
-        assertEq(28, imageChildren.size(), "image has 28 children");
+        assertEq(45, imageChildren.size(), "image has 45 children");
         # Original children
         assertEq(True, imageChildren.contains("resize"), "image has resize");
         assertEq(True, imageChildren.contains("crop"), "image has crop");
@@ -299,7 +327,7 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         # Check info children
         AbstractDataProvider info = root.getChildProvider("info");
         *list<string> infoChildren = info.getChildProviderNames();
-        assertEq(1, infoChildren.size(), "info has 1 child");
+        assertEq(4, infoChildren.size(), "info has 4 children");
         assertEq(True, infoChildren.contains("get"), "info has get");
     }
 
@@ -666,6 +694,9 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         assertEq(True, result.colors >= 1, "get-info colors >= 1");
         assertEq(True, result.signature instanceof string, "get-info signature is string");
         assertGt(0, result.signature.length(), "get-info signature is non-empty");
+        assertEq(True, result.resolution instanceof hash, "get-info resolution is hash");
+        assertEq(True, result.resolution.x instanceof float, "get-info resolution.x is float");
+        assertEq(True, result.resolution.y instanceof float, "get-info resolution.y is float");
 
         # Test with binary data input
         binary imgdata = createTestImageData(200, 150, "blue");
@@ -1745,14 +1776,436 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
         assertEq(True, result.data instanceof binary, "deskew returns binary data");
     }
 
+    # ==================== Phase 1: High-Value Image Operations ====================
+
+    scaleActionTest() {
+        AbstractDataProvider dp = getProvider("image/scale");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+        });
+        assertEq(50, result.width, "scale width");
+        assertEq(40, result.height, "scale height");
+        assertEq(True, result.data instanceof binary, "scale returns binary data");
+    }
+
+    resampleActionTest() {
+        AbstractDataProvider dp = getProvider("image/resample");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "x_resolution": 150.0,
+            "y_resolution": 150.0,
+        });
+        assertEq(True, result.width > 0, "resample returns positive width");
+        assertEq(True, result.height > 0, "resample returns positive height");
+        assertEq(True, result.data instanceof binary, "resample returns binary data");
+
+        # Test with explicit filter
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "x_resolution": 300.0,
+            "y_resolution": 300.0,
+            "filter": "Mitchell",
+        });
+        assertEq(True, result.width > 0, "resample with filter returns positive width");
+    }
+
+    extentActionTest() {
+        AbstractDataProvider dp = getProvider("image/extent");
+
+        # Extend canvas larger
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "width": 200,
+            "height": 160,
+        });
+        assertEq(200, result.width, "extent width");
+        assertEq(160, result.height, "extent height");
+        assertEq(True, result.data instanceof binary, "extent returns binary data");
+
+        # With offset
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "width": 200,
+            "height": 160,
+            "x": 50,
+            "y": 40,
+        });
+        assertEq(200, result.width, "extent with offset width");
+        assertEq(160, result.height, "extent with offset height");
+    }
+
+    selectiveBlurActionTest() {
+        AbstractDataProvider dp = getProvider("image/selective-blur");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "sigma": 2.0,
+            "threshold": 0.1,
+        });
+        assertEq(100, result.width, "selective-blur width preserved");
+        assertEq(80, result.height, "selective-blur height preserved");
+        assertEq(True, result.data instanceof binary, "selective-blur returns binary data");
+
+        # With explicit radius
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "radius": 5.0,
+            "sigma": 2.0,
+            "threshold": 0.2,
+        });
+        assertEq(100, result.width, "selective-blur with radius width preserved");
+    }
+
+    liquidRescaleActionTest() {
+        AbstractDataProvider dp = getProvider("image/liquid-rescale");
+
+        try {
+            hash<auto> result = dp.doRequest({
+                "input_path": testImagePath,
+                "width": 80,
+                "height": 60,
+            });
+            assertEq(80, result.width, "liquid-rescale width");
+            assertEq(60, result.height, "liquid-rescale height");
+            assertEq(True, result.data instanceof binary, "liquid-rescale returns binary data");
+        } catch (hash<ExceptionInfo> ex) {
+            # Skip if liblqr is not available
+            if (ex.err == "IMAGEMAGICK-ERROR" && ex.desc =~ /lqr|LQR|liquid|seam/i) {
+                testSkip("liquidRescale not available (liblqr not compiled in)");
+            }
+            rethrow;
+        }
+    }
+
+    # ==================== Phase 2: Geometry Operations ====================
+
+    adaptiveResizeActionTest() {
+        AbstractDataProvider dp = getProvider("image/adaptive-resize");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "width": 200,
+            "height": 160,
+        });
+        assertEq(200, result.width, "adaptive-resize width");
+        assertEq(160, result.height, "adaptive-resize height");
+        assertEq(True, result.data instanceof binary, "adaptive-resize returns binary data");
+    }
+
+    sampleActionTest() {
+        AbstractDataProvider dp = getProvider("image/sample");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "width": 50,
+            "height": 40,
+        });
+        assertEq(50, result.width, "sample width");
+        assertEq(40, result.height, "sample height");
+        assertEq(True, result.data instanceof binary, "sample returns binary data");
+    }
+
+    transposeActionTest() {
+        AbstractDataProvider dp = getProvider("image/transpose");
+
+        # 100x80 image should become 80x100 after transpose
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(80, result.width, "transpose swaps width");
+        assertEq(100, result.height, "transpose swaps height");
+        assertEq(True, result.data instanceof binary, "transpose returns binary data");
+    }
+
+    transverseActionTest() {
+        AbstractDataProvider dp = getProvider("image/transverse");
+
+        # 100x80 image should become 80x100 after transverse
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(80, result.width, "transverse swaps width");
+        assertEq(100, result.height, "transverse swaps height");
+        assertEq(True, result.data instanceof binary, "transverse returns binary data");
+    }
+
+    chopActionTest() {
+        AbstractDataProvider dp = getProvider("image/chop");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "width": 20,
+            "height": 10,
+            "x": 0,
+            "y": 0,
+        });
+        assertEq(80, result.width, "chop reduces width");
+        assertEq(70, result.height, "chop reduces height");
+        assertEq(True, result.data instanceof binary, "chop returns binary data");
+    }
+
+    shaveActionTest() {
+        AbstractDataProvider dp = getProvider("image/shave");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "columns": 10,
+            "rows": 5,
+        });
+        assertEq(80, result.width, "shave reduces width by 2*columns");
+        assertEq(70, result.height, "shave reduces height by 2*rows");
+        assertEq(True, result.data instanceof binary, "shave returns binary data");
+    }
+
+    spliceActionTest() {
+        AbstractDataProvider dp = getProvider("image/splice");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "width": 20,
+            "height": 10,
+            "x": 50,
+            "y": 40,
+        });
+        assertEq(120, result.width, "splice increases width");
+        assertEq(90, result.height, "splice increases height");
+        assertEq(True, result.data instanceof binary, "splice returns binary data");
+    }
+
+    # ==================== Phase 3: Metadata Actions ====================
+
+    setResolutionActionTest() {
+        AbstractDataProvider dp = getProvider("image/set-resolution");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "x": 300.0,
+            "y": 300.0,
+        });
+        assertEq(100, result.width, "set-resolution preserves width");
+        assertEq(80, result.height, "set-resolution preserves height");
+        assertEq(True, result.data instanceof binary, "set-resolution returns binary data");
+    }
+
+    setDepthActionTest() {
+        AbstractDataProvider dp = getProvider("image/set-depth");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "depth": 16,
+        });
+        assertEq(100, result.width, "set-depth preserves width");
+        assertEq(80, result.height, "set-depth preserves height");
+        assertEq(True, result.data instanceof binary, "set-depth returns binary data");
+    }
+
+    setPropertyActionTest() {
+        AbstractDataProvider dp = getProvider("image/set-property");
+
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "name": "comment",
+            "value": "Test comment value",
+        });
+        assertEq(100, result.width, "set-property preserves width");
+        assertEq(True, result.data instanceof binary, "set-property returns binary data");
+
+        # Verify the property was set by reading it back
+        AbstractDataProvider getPropsDp = getProvider("info/get-properties");
+        hash<auto> propsResult = getPropsDp.doRequest({
+            "data": result.data,
+            "pattern": "comment",
+        });
+        assertEq("Test comment value", propsResult.properties.comment,
+            "set-property value persists");
+    }
+
+    setProfileActionTest() {
+        AbstractDataProvider dp = getProvider("image/set-profile");
+
+        # Use iptc profile which is more tolerant of arbitrary data
+        binary profileData = binary("test-profile-data");
+        try {
+            hash<auto> result = dp.doRequest({
+                "input_path": testImagePath,
+                "name": "iptc",
+                "profile_data": profileData,
+            });
+            assertEq(100, result.width, "set-profile preserves width");
+            assertEq(True, result.data instanceof binary, "set-profile returns binary data");
+
+            # Verify the profile was set
+            AbstractDataProvider getProfileDp = getProvider("info/get-profile");
+            hash<auto> profileResult = getProfileDp.doRequest({
+                "data": result.data,
+                "name": "iptc",
+            });
+            assertEq("iptc", profileResult.name, "get-profile returns correct name");
+        } catch (hash<ExceptionInfo> ex) {
+            if (ex.err == "IMAGEMAGICK-ERROR") {
+                # Some IM builds reject arbitrary profile data; test that the action
+                # is at least callable
+                testSkip("set-profile rejected test data: " + ex.desc);
+            }
+            rethrow;
+        }
+    }
+
+    getPropertiesActionTest() {
+        AbstractDataProvider dp = getProvider("info/get-properties");
+
+        # Test with default pattern (all properties)
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(True, result.properties instanceof hash, "get-properties returns hash");
+
+        # Test with specific pattern
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "pattern": "date:*",
+        });
+        assertEq(True, result.properties instanceof hash, "get-properties with pattern returns hash");
+    }
+
+    getExifActionTest() {
+        AbstractDataProvider dp = getProvider("info/get-exif");
+
+        # Synthetic PNG has no EXIF; test that it returns gracefully
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+        });
+        assertEq(True, result.properties instanceof hash, "get-exif returns hash");
+    }
+
+    getProfileActionTest() {
+        AbstractDataProvider dp = getProvider("info/get-profile");
+
+        # Synthetic PNG has no ICC profile; should return NOTHING for data
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "name": "icc",
+        });
+        assertEq("icc", result.name, "get-profile returns profile name");
+        # data may be NOTHING for images without the profile
+    }
+
+    # ==================== Phase 4: Drawing Action ====================
+
+    drawActionTest() {
+        AbstractDataProvider dp = getProvider("image/draw");
+
+        # Test basic shapes: rectangle and line
+        hash<auto> result = dp.doRequest({
+            "input_path": testImagePath,
+            "fill_color": "blue",
+            "stroke_color": "black",
+            "stroke_width": 2.0,
+            "operations": (
+                {"type": "rectangle", "x1": 10.0, "y1": 10.0, "x2": 50.0, "y2": 40.0},
+                {"type": "line", "sx": 10.0, "sy": 10.0, "ex": 50.0, "ey": 40.0},
+            ),
+        });
+        assertEq(100, result.width, "draw preserves width");
+        assertEq(80, result.height, "draw preserves height");
+        assertEq(True, result.data instanceof binary, "draw returns binary data");
+
+        # Test circle and ellipse
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "fill_color": "green",
+            "operations": (
+                {"type": "circle", "ox": 50.0, "oy": 40.0, "px": 70.0, "py": 40.0},
+                {"type": "ellipse", "ox": 50.0, "oy": 40.0, "rx": 30.0, "ry": 20.0,
+                    "start": 0.0, "end": 360.0},
+            ),
+        });
+        assertEq(True, result.data instanceof binary, "draw circle/ellipse works");
+
+        # Test text drawing
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "fill_color": "white",
+            "font_size": 12.0,
+            "operations": (
+                {"type": "text", "x": 10.0, "y": 50.0, "text": "Hello"},
+            ),
+        });
+        assertEq(True, result.data instanceof binary, "draw text works");
+
+        # Test point and polygon
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "fill_color": "red",
+            "operations": (
+                {"type": "point", "x": 50.0, "y": 40.0},
+                {"type": "polygon", "points": (
+                    {"x": 10.0, "y": 10.0},
+                    {"x": 90.0, "y": 10.0},
+                    {"x": 50.0, "y": 70.0},
+                )},
+            ),
+        });
+        assertEq(True, result.data instanceof binary, "draw point/polygon works");
+
+        # Test polyline
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "stroke_color": "yellow",
+            "stroke_width": 3.0,
+            "operations": (
+                {"type": "polyline", "points": (
+                    {"x": 10.0, "y": 10.0},
+                    {"x": 50.0, "y": 70.0},
+                    {"x": 90.0, "y": 10.0},
+                )},
+            ),
+        });
+        assertEq(True, result.data instanceof binary, "draw polyline works");
+
+        # Test rounded rectangle
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "fill_color": "purple",
+            "operations": (
+                {"type": "round-rectangle", "x1": 10.0, "y1": 10.0, "x2": 90.0, "y2": 70.0,
+                    "rx": 10.0, "ry": 10.0},
+            ),
+        });
+        assertEq(True, result.data instanceof binary, "draw round-rectangle works");
+
+        # Test arc
+        result = dp.doRequest({
+            "input_path": testImagePath,
+            "stroke_color": "cyan",
+            "operations": (
+                {"type": "arc", "sx": 10.0, "sy": 10.0, "ex": 90.0, "ey": 70.0,
+                    "sd": 0.0, "ed": 180.0},
+            ),
+        });
+        assertEq(True, result.data instanceof binary, "draw arc works");
+
+        # Test invalid operation type
+        assertThrows("IMAGEMAGICK-DRAW-ERROR", \dp.doRequest(), ({
+            "input_path": testImagePath,
+            "operations": (
+                {"type": "invalid-shape"},
+            ),
+        },));
+    }
+
     # ==================== Action Catalog Validation Tests ====================
 
     actionCatalogValidationTest() {
         # Get all actions for the ImageMagick app
         list<hash<DataProviderActionInfo>> actions =
             DataProviderActionCatalog::getActions("ImageMagick");
-        # Expected action count: 19 original + 40 new = 59
-        assertEq(59, actions.size(), "ImageMagick has 59 registered actions");
+        # Expected action count: 59 original + 5 phase 1 + 7 phase 2 + 7 phase 3 + 1 phase 4 = 79
+        assertEq(79, actions.size(), "ImageMagick has 79 registered actions");
 
         # Verify each action has required fields
         foreach hash<DataProviderActionInfo> action in (actions) {
@@ -1827,6 +2280,38 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
             assertEq(True, actionNames{name} ?? False,
                 sprintf("transform action '%s' is registered", name));
         }
+
+        # Phase 1: High-value operations
+        list<string> expectedPhase1 = (
+            "scale", "resample", "extent", "selective-blur", "liquid-rescale",
+        );
+        foreach string name in (expectedPhase1) {
+            assertEq(True, actionNames{name} ?? False,
+                sprintf("phase 1 action '%s' is registered", name));
+        }
+
+        # Phase 2: Geometry operations
+        list<string> expectedPhase2 = (
+            "adaptive-resize", "sample", "transpose", "transverse",
+            "chop", "shave", "splice",
+        );
+        foreach string name in (expectedPhase2) {
+            assertEq(True, actionNames{name} ?? False,
+                sprintf("phase 2 action '%s' is registered", name));
+        }
+
+        # Phase 3: Metadata actions
+        list<string> expectedPhase3 = (
+            "set-resolution", "set-depth", "set-property", "set-profile",
+            "get-properties", "get-exif", "get-profile",
+        );
+        foreach string name in (expectedPhase3) {
+            assertEq(True, actionNames{name} ?? False,
+                sprintf("phase 3 action '%s' is registered", name));
+        }
+
+        # Phase 4: Drawing action
+        assertEq(True, actionNames{"draw"} ?? False, "draw action is registered");
     }
 
     # ==================== Negative Tests for New Actions ====================

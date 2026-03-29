@@ -29,6 +29,12 @@ public namespace ImageMagickDataProvider {
 /** Provides common functionality for loading images and returning results.
 */
 public class ImageMagickImageActionBase inherits AbstractDataProvider {
+    #! Returns font reference data as AllowedValueInfo list
+    static *list<hash<AllowedValueInfo>> getFontReferenceData() {
+        list<string> fonts = MagickImage::queryFonts();
+        return map <AllowedValueInfo>{"value": $1, "display_name": $1}, fonts;
+    }
+
     #! Loads an image from a request hash (input_path, data, or location)
     static MagickImage loadImage(hash<auto> req) {
         if (req.input_path) {

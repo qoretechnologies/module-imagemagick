@@ -663,6 +663,7 @@ public class ImageMagickAnnotateRequestDataType inherits HashDataType {
                 "short_desc": "Font name",
                 "desc": "Font name or path to font file",
                 "default_value": "DejaVu-Sans",
+                "ref_data": "fonts",
             },
             "font_size": {
                 "type": FloatOrNothingType,
@@ -707,6 +708,28 @@ public class ImageMagickGetInfoRequestDataType inherits HashDataType {
     constructor() {
         addQoreFields(Fields);
         setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Resolution info response type
+public class ImageMagickResolutionInfoDataType inherits HashDataType {
+    constructor() {
+        addQoreFields({
+            "x": {
+                "type": FloatType,
+                "display_name": "Horizontal Resolution",
+                "short_desc": "Horizontal resolution in DPI",
+                "desc": "Horizontal resolution in dots per inch",
+                "example_value": 72.0,
+            },
+            "y": {
+                "type": FloatType,
+                "display_name": "Vertical Resolution",
+                "short_desc": "Vertical resolution in DPI",
+                "desc": "Vertical resolution in dots per inch",
+                "example_value": 72.0,
+            },
+        });
     }
 }
 
@@ -755,6 +778,12 @@ public class ImageMagickGetInfoResponseDataType inherits HashDataType {
                 "short_desc": "Image type classification",
                 "desc": "Image type (e.g. TrueColor, Palette, Grayscale)",
                 "example_value": "TrueColor",
+            },
+            "resolution": {
+                "type": new ImageMagickResolutionInfoDataType(),
+                "display_name": "Resolution",
+                "short_desc": "Image resolution in DPI",
+                "desc": "Image resolution in dots per inch (horizontal and vertical)",
             },
             "compression_quality": {
                 "type": IntType,
@@ -1818,6 +1847,712 @@ public class ImageMagickDeskewRequestDataType inherits HashDataType {
                 "desc": "Deskew threshold for detecting skew. Typical values are 0.4 (40%%) for "
                     "scanned documents.",
                 "example_value": 0.4,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+# ==================== Phase 1: High-Value Image Operations ====================
+
+#! Scale request type
+public class ImageMagickScaleRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Target width in pixels",
+                "desc": "Target width in pixels",
+                "example_value": 800,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Target height in pixels",
+                "desc": "Target height in pixels",
+                "example_value": 600,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Resample request type
+public class ImageMagickResampleRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "x_resolution": {
+                "type": FloatType,
+                "display_name": "Horizontal Resolution",
+                "short_desc": "Target horizontal resolution in DPI",
+                "desc": "Target horizontal resolution in dots per inch",
+                "example_value": 300.0,
+            },
+            "y_resolution": {
+                "type": FloatType,
+                "display_name": "Vertical Resolution",
+                "short_desc": "Target vertical resolution in DPI",
+                "desc": "Target vertical resolution in dots per inch",
+                "example_value": 300.0,
+            },
+            "filter": {
+                "type": StringOrNothingType,
+                "display_name": "Filter",
+                "short_desc": "Resampling filter algorithm",
+                "desc": "The filter algorithm to use for resampling (default: `Lanczos`)",
+                "default_value": "Lanczos",
+                "allowed_values": FilterTypeAllowedValues,
+                "example_value": "Lanczos",
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Extent request type
+public class ImageMagickExtentRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "New canvas width in pixels",
+                "desc": "New canvas width in pixels",
+                "example_value": 1024,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "New canvas height in pixels",
+                "desc": "New canvas height in pixels",
+                "example_value": 768,
+            },
+            "x": {
+                "type": IntOrNothingType,
+                "display_name": "X Offset",
+                "short_desc": "Horizontal offset of image on canvas",
+                "desc": "Horizontal offset of the image on the new canvas (default: `0`)",
+                "default_value": 0,
+                "example_value": 0,
+            },
+            "y": {
+                "type": IntOrNothingType,
+                "display_name": "Y Offset",
+                "short_desc": "Vertical offset of image on canvas",
+                "desc": "Vertical offset of the image on the new canvas (default: `0`)",
+                "default_value": 0,
+                "example_value": 0,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Selective blur request type
+public class ImageMagickSelectiveBlurRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "radius": {
+                "type": FloatOrNothingType,
+                "display_name": "Radius",
+                "short_desc": "Blur radius",
+                "desc": "The radius of the blur in pixels. Use `0.0` for automatic selection "
+                    "(default: `0.0`)",
+                "default_value": 0.0,
+                "example_value": 0.0,
+            },
+            "sigma": {
+                "type": FloatType,
+                "display_name": "Sigma",
+                "short_desc": "Blur sigma (strength)",
+                "desc": "The standard deviation (sigma) of the blur. Controls blur strength.",
+                "example_value": 2.0,
+            },
+            "threshold": {
+                "type": FloatType,
+                "display_name": "Threshold",
+                "short_desc": "Contrast threshold",
+                "desc": "Only pixels within this contrast threshold of the center pixel are blurred. "
+                    "Pixels with higher contrast differences (edges) are preserved.",
+                "example_value": 0.1,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Liquid rescale request type
+public class ImageMagickLiquidRescaleRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Target width in pixels",
+                "desc": "Target width in pixels",
+                "example_value": 800,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Target height in pixels",
+                "desc": "Target height in pixels",
+                "example_value": 600,
+            },
+            "delta_x": {
+                "type": FloatOrNothingType,
+                "display_name": "Delta X",
+                "short_desc": "Maximum seam transversal step",
+                "desc": "Maximum seam transversal step; `0.0` means classic seams (default: `0.0`)",
+                "default_value": 0.0,
+                "example_value": 0.0,
+            },
+            "rigidity": {
+                "type": FloatOrNothingType,
+                "display_name": "Rigidity",
+                "short_desc": "Seam rigidity bias",
+                "desc": "Bias for non-straight seams; higher values produce straighter seams "
+                    "(default: `0.0`)",
+                "default_value": 0.0,
+                "example_value": 0.0,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+# ==================== Phase 2: Geometry Operations ====================
+
+#! Adaptive resize request type
+public class ImageMagickAdaptiveResizeRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Target width in pixels",
+                "desc": "Target width in pixels",
+                "example_value": 800,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Target height in pixels",
+                "desc": "Target height in pixels",
+                "example_value": 600,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Sample request type
+public class ImageMagickSampleRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Target width in pixels",
+                "desc": "Target width in pixels",
+                "example_value": 800,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Target height in pixels",
+                "desc": "Target height in pixels",
+                "example_value": 600,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Transpose request type
+public class ImageMagickTransposeRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields;
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Transverse request type
+public class ImageMagickTransverseRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields;
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Chop request type
+public class ImageMagickChopRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Width of region to remove",
+                "desc": "Width of the rectangular region to remove in pixels",
+                "example_value": 50,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Height of region to remove",
+                "desc": "Height of the rectangular region to remove in pixels",
+                "example_value": 50,
+            },
+            "x": {
+                "type": IntType,
+                "display_name": "X Position",
+                "short_desc": "Horizontal position of region",
+                "desc": "Horizontal position of the region to remove",
+                "example_value": 0,
+            },
+            "y": {
+                "type": IntType,
+                "display_name": "Y Position",
+                "short_desc": "Vertical position of region",
+                "desc": "Vertical position of the region to remove",
+                "example_value": 0,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Shave request type
+public class ImageMagickShaveRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "columns": {
+                "type": IntType,
+                "display_name": "Columns",
+                "short_desc": "Pixels to shave from each side",
+                "desc": "Number of pixels to shave from the left and right edges",
+                "example_value": 10,
+            },
+            "rows": {
+                "type": IntType,
+                "display_name": "Rows",
+                "short_desc": "Pixels to shave from top and bottom",
+                "desc": "Number of pixels to shave from the top and bottom edges",
+                "example_value": 10,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Splice request type
+public class ImageMagickSpliceRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "width": {
+                "type": IntType,
+                "display_name": "Width",
+                "short_desc": "Width of blank region to insert",
+                "desc": "Width of the blank region to splice into the image",
+                "example_value": 50,
+            },
+            "height": {
+                "type": IntType,
+                "display_name": "Height",
+                "short_desc": "Height of blank region to insert",
+                "desc": "Height of the blank region to splice into the image",
+                "example_value": 50,
+            },
+            "x": {
+                "type": IntType,
+                "display_name": "X Position",
+                "short_desc": "Horizontal insertion position",
+                "desc": "Horizontal position where the blank region is inserted",
+                "example_value": 0,
+            },
+            "y": {
+                "type": IntType,
+                "display_name": "Y Position",
+                "short_desc": "Vertical insertion position",
+                "desc": "Vertical position where the blank region is inserted",
+                "example_value": 0,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+# ==================== Phase 3: Metadata Actions ====================
+
+#! Set resolution request type
+public class ImageMagickSetResolutionRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "x": {
+                "type": FloatType,
+                "display_name": "Horizontal Resolution",
+                "short_desc": "Horizontal resolution in DPI",
+                "desc": "Horizontal resolution in dots per inch",
+                "example_value": 300.0,
+            },
+            "y": {
+                "type": FloatType,
+                "display_name": "Vertical Resolution",
+                "short_desc": "Vertical resolution in DPI",
+                "desc": "Vertical resolution in dots per inch",
+                "example_value": 300.0,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Set depth request type
+public class ImageMagickSetDepthRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "depth": {
+                "type": IntType,
+                "display_name": "Bit Depth",
+                "short_desc": "Bits per channel",
+                "desc": "Image depth in bits per channel",
+                "example_value": 16,
+                "allowed_values": DepthAllowedValues,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Set property request type
+public class ImageMagickSetPropertyRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "name": {
+                "type": StringType,
+                "display_name": "Property Name",
+                "short_desc": "Name of the property to set",
+                "desc": "The property name (e.g. `exif:DateTimeOriginal`, `comment`, "
+                    "`myapp:custom`)",
+                "example_value": "comment",
+            },
+            "value": {
+                "type": StringType,
+                "display_name": "Property Value",
+                "short_desc": "Value to assign to the property",
+                "desc": "The string value to assign to the property",
+                "example_value": "My image description",
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Set profile request type
+public class ImageMagickSetProfileRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "name": {
+                "type": StringType,
+                "display_name": "Profile Name",
+                "short_desc": "Name of the profile to set",
+                "desc": "The profile name (e.g. `icc`, `exif`, `iptc`, `xmp`)",
+                "example_value": "icc",
+                "allowed_values": ProfileNameAllowedValues,
+            },
+            "profile_data": {
+                "type": BinaryType,
+                "display_name": "Profile Data",
+                "short_desc": "Binary profile data",
+                "desc": "The binary profile data to set",
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Get properties request type
+public class ImageMagickGetPropertiesRequestDataType inherits HashDataType {
+    public {
+        const Fields = {
+            "input_path": ImageInputFields."input_path",
+            "data": ImageInputFields."data",
+            "location": ImageInputFields."location",
+            "pattern": {
+                "type": StringOrNothingType,
+                "display_name": "Pattern",
+                "short_desc": "Property name pattern to match",
+                "desc": "Glob pattern to match property names (default: `*` for all). "
+                    "Use `exif:*` for EXIF properties, `iptc:*` for IPTC, etc.",
+                "default_value": "*",
+                "example_value": "exif:*",
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Get properties response type
+public class ImageMagickGetPropertiesResponseDataType inherits HashDataType {
+    constructor() {
+        addQoreFields({
+            "properties": {
+                "type": AutoHashOrNothingType,
+                "display_name": "Properties",
+                "short_desc": "Image properties",
+                "desc": "Hash of property name to value pairs matching the pattern",
+            },
+        });
+    }
+}
+
+#! Get EXIF request type
+public class ImageMagickGetExifRequestDataType inherits HashDataType {
+    public {
+        const Fields = {
+            "input_path": ImageInputFields."input_path",
+            "data": ImageInputFields."data",
+            "location": ImageInputFields."location",
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Get EXIF response type
+public class ImageMagickGetExifResponseDataType inherits HashDataType {
+    constructor() {
+        addQoreFields({
+            "properties": {
+                "type": AutoHashOrNothingType,
+                "display_name": "EXIF Properties",
+                "short_desc": "EXIF metadata properties",
+                "desc": "Hash of EXIF property name to value pairs (with `exif:` prefix "
+                    "stripped from keys)",
+            },
+        });
+    }
+}
+
+#! Get profile request type
+public class ImageMagickGetProfileRequestDataType inherits HashDataType {
+    public {
+        const Fields = {
+            "input_path": ImageInputFields."input_path",
+            "data": ImageInputFields."data",
+            "location": ImageInputFields."location",
+            "name": {
+                "type": StringType,
+                "display_name": "Profile Name",
+                "short_desc": "Name of the profile to retrieve",
+                "desc": "The profile name (e.g. `icc`, `exif`, `iptc`, `xmp`)",
+                "example_value": "icc",
+                "allowed_values": ProfileNameAllowedValues,
+            },
+        };
+    }
+
+    constructor() {
+        addQoreFields(Fields);
+        setRequiredGroups((("input_path", "data", "location"),));
+    }
+}
+
+#! Get profile response type
+public class ImageMagickGetProfileResponseDataType inherits HashDataType {
+    constructor() {
+        addQoreFields({
+            "name": {
+                "type": StringType,
+                "display_name": "Profile Name",
+                "short_desc": "Name of the profile",
+                "desc": "The profile name that was requested",
+            },
+            "data": {
+                "type": BinaryOrNothingType,
+                "display_name": "Profile Data",
+                "short_desc": "Binary profile data",
+                "desc": "The binary profile data, or `NOTHING` if the profile does not exist",
+            },
+        });
+    }
+}
+
+# ==================== Phase 4: Drawing Action ====================
+
+#! Draw request type
+public class ImageMagickDrawRequestDataType inherits HashDataType {
+    public {
+        const Fields = ImageInputFields + {
+            "fill_color": {
+                "type": StringOrNothingType,
+                "display_name": "Fill Color",
+                "short_desc": "Fill color for shapes and text",
+                "desc": "Fill color for shapes and text (e.g. `red`, `#FF0000`, "
+                    "`rgb(255,0,0)`)",
+                "example_value": "blue",
+            },
+            "stroke_color": {
+                "type": StringOrNothingType,
+                "display_name": "Stroke Color",
+                "short_desc": "Stroke (outline) color",
+                "desc": "Stroke (outline) color for shapes (e.g. `black`, `#000000`)",
+                "example_value": "black",
+            },
+            "stroke_width": {
+                "type": FloatOrNothingType,
+                "display_name": "Stroke Width",
+                "short_desc": "Stroke width in pixels",
+                "desc": "Width of the stroke (outline) in pixels",
+                "example_value": 2.0,
+            },
+            "fill_opacity": {
+                "type": FloatOrNothingType,
+                "display_name": "Fill Opacity",
+                "short_desc": "Fill opacity (0.0 to 1.0)",
+                "desc": "Fill opacity where `0.0` is fully transparent and `1.0` is fully "
+                    "opaque",
+                "example_value": 1.0,
+            },
+            "stroke_opacity": {
+                "type": FloatOrNothingType,
+                "display_name": "Stroke Opacity",
+                "short_desc": "Stroke opacity (0.0 to 1.0)",
+                "desc": "Stroke opacity where `0.0` is fully transparent and `1.0` is fully "
+                    "opaque",
+                "example_value": 1.0,
+            },
+            "font": {
+                "type": StringOrNothingType,
+                "display_name": "Font",
+                "short_desc": "Font name or path",
+                "desc": "Font name or path to a font file for text operations",
+                "example_value": "Helvetica",
+                "ref_data": "fonts",
+            },
+            "font_size": {
+                "type": FloatOrNothingType,
+                "display_name": "Font Size",
+                "short_desc": "Font size in points",
+                "desc": "Font size in points for text operations",
+                "example_value": 24.0,
+            },
+            "font_family": {
+                "type": StringOrNothingType,
+                "display_name": "Font Family",
+                "short_desc": "Font family name",
+                "desc": "Font family name (e.g. `Helvetica`, `Times`, `Courier`)",
+            },
+            "font_weight": {
+                "type": IntOrNothingType,
+                "display_name": "Font Weight",
+                "short_desc": "Font weight (e.g. 400, 700)",
+                "desc": "Font weight where `400` is normal and `700` is bold",
+                "example_value": 400,
+            },
+            "font_style": {
+                "type": StringOrNothingType,
+                "display_name": "Font Style",
+                "short_desc": "Font style (normal, italic, oblique)",
+                "desc": "Font style for text operations",
+                "allowed_values": FontStyleAllowedValues,
+            },
+            "operations": {
+                "type": new SoftListDataType(AutoHashType, True),
+                "display_name": "Drawing Operations",
+                "short_desc": "List of drawing operations to perform",
+                "desc": "A list of drawing operations. Each operation is a hash with a `type` "
+                    "field and type-specific parameters:\n\n"
+                    "- **line**: `sx`, `sy`, `ex`, `ey` (float)\n"
+                    "- **rectangle**: `x1`, `y1`, `x2`, `y2` (float)\n"
+                    "- **round-rectangle**: `x1`, `y1`, `x2`, `y2`, `rx`, `ry` (float)\n"
+                    "- **circle**: `ox`, `oy`, `px`, `py` (float)\n"
+                    "- **ellipse**: `ox`, `oy`, `rx`, `ry`, `start`, `end` (float)\n"
+                    "- **arc**: `sx`, `sy`, `ex`, `ey`, `sd`, `ed` (float)\n"
+                    "- **point**: `x`, `y` (float)\n"
+                    "- **polygon**: `points` (list of `{\"x\": float, \"y\": float}`, min 3)\n"
+                    "- **polyline**: `points` (list of `{\"x\": float, \"y\": float}`, min 2)\n"
+                    "- **text**: `x`, `y` (float), `text` (string)",
+                "example_value": (
+                    {"type": "rectangle", "x1": 10.0, "y1": 10.0, "x2": 90.0, "y2": 70.0},
+                    {"type": "line", "sx": 10.0, "sy": 10.0, "ex": 90.0, "ey": 70.0},
+                ),
             },
         };
     }

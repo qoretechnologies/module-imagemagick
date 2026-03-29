@@ -21,21 +21,21 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-#! @file ImageMagickGetInfoDataProvider.qc Get image info action
+#! @file ImageMagickLiquidRescaleDataProvider.qc Content-aware resize action
 
 public namespace ImageMagickDataProvider {
 
-public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase {
+public class ImageMagickLiquidRescaleDataProvider inherits ImageMagickImageActionBase {
     public {
         const ProviderInfo = <DataProviderInfo>{
-            "name": "get",
-            "desc": "Get image metadata and dimensions",
-            "type": "ImageMagickGetInfoDataProvider",
+            "name": "liquid-rescale",
+            "desc": "Content-aware resize using seam carving",
+            "type": "ImageMagickLiquidRescaleDataProvider",
             "supports_request": True,
         };
 
-        static ImageMagickGetInfoRequestDataType RequestType();
-        static ImageMagickGetInfoResponseDataType ResponseType();
+        static ImageMagickLiquidRescaleRequestDataType RequestType();
+        static ImageMagickImageResponseDataType ResponseType();
     }
 
     private {
@@ -64,19 +64,8 @@ public class ImageMagickGetInfoDataProvider inherits ImageMagickImageActionBase 
 
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
-        return {
-            "width": img.width(),
-            "height": img.height(),
-            "format": img.format(),
-            "depth": img.depth(),
-            "colorspace": img.colorspace(),
-            "image_type": img.imageType(),
-            "resolution": img.resolution(),
-            "compression_quality": img.compressionQuality(),
-            "number_images": img.numberImages(),
-            "colors": img.colors(),
-            "signature": img.signature(),
-        };
+        img.liquidRescale(req.width, req.height, req.delta_x ?? 0.0, req.rigidity ?? 0.0);
+        return ImageMagickImageActionBase::makeResponse(img, req);
     }
 }
 }

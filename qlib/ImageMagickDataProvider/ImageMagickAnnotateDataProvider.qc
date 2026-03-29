@@ -62,6 +62,16 @@ public class ImageMagickAnnotateDataProvider inherits ImageMagickImageActionBase
         return ResponseType;
     }
 
+    *hash<string, bool> getSupportedReferenceData() {
+        return {"fonts": True};
+    }
+
+    private *list<hash<AllowedValueInfo>> getReferenceDataImpl(string type, *hash<auto> search_options) {
+        if (type == "fonts") {
+            return ImageMagickImageActionBase::getFontReferenceData();
+        }
+    }
+
     private auto doRequestImpl(auto req, *hash<auto> request_options) {
         MagickImage img = ImageMagickImageActionBase::loadImage(req);
         img.annotate(

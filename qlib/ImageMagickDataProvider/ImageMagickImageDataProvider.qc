@@ -70,6 +70,23 @@ public class ImageMagickImageDataProvider inherits AbstractDataProvider {
             "frame": Class::forName("ImageMagickDataProvider::ImageMagickFrameDataProvider"),
             "shear": Class::forName("ImageMagickDataProvider::ImageMagickShearDataProvider"),
             "deskew": Class::forName("ImageMagickDataProvider::ImageMagickDeskewDataProvider"),
+            "scale": Class::forName("ImageMagickDataProvider::ImageMagickScaleDataProvider"),
+            "resample": Class::forName("ImageMagickDataProvider::ImageMagickResampleDataProvider"),
+            "extent": Class::forName("ImageMagickDataProvider::ImageMagickExtentDataProvider"),
+            "selective-blur": Class::forName("ImageMagickDataProvider::ImageMagickSelectiveBlurDataProvider"),
+            "liquid-rescale": Class::forName("ImageMagickDataProvider::ImageMagickLiquidRescaleDataProvider"),
+            "adaptive-resize": Class::forName("ImageMagickDataProvider::ImageMagickAdaptiveResizeDataProvider"),
+            "sample": Class::forName("ImageMagickDataProvider::ImageMagickSampleDataProvider"),
+            "transpose": Class::forName("ImageMagickDataProvider::ImageMagickTransposeDataProvider"),
+            "transverse": Class::forName("ImageMagickDataProvider::ImageMagickTransverseDataProvider"),
+            "chop": Class::forName("ImageMagickDataProvider::ImageMagickChopDataProvider"),
+            "shave": Class::forName("ImageMagickDataProvider::ImageMagickShaveDataProvider"),
+            "splice": Class::forName("ImageMagickDataProvider::ImageMagickSpliceDataProvider"),
+            "set-resolution": Class::forName("ImageMagickDataProvider::ImageMagickSetResolutionDataProvider"),
+            "set-depth": Class::forName("ImageMagickDataProvider::ImageMagickSetDepthDataProvider"),
+            "set-property": Class::forName("ImageMagickDataProvider::ImageMagickSetPropertyDataProvider"),
+            "set-profile": Class::forName("ImageMagickDataProvider::ImageMagickSetProfileDataProvider"),
+            "draw": Class::forName("ImageMagickDataProvider::ImageMagickDrawDataProvider"),
         };
     }
 

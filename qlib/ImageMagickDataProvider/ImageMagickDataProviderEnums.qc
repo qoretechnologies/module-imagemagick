@@ -271,4 +271,120 @@ public namespace ImageMagickDataProvider {
             "desc": "Dissolve blend",
         },
     );
+
+    #! Allowed values for image bit depth
+    public const DepthAllowedValues = (
+        <AllowedValueInfo>{
+            "value": 8,
+            "display_name": "8-bit",
+            "desc": "8 bits per channel (standard)",
+        },
+        <AllowedValueInfo>{
+            "value": 16,
+            "display_name": "16-bit",
+            "desc": "16 bits per channel (high dynamic range)",
+        },
+        <AllowedValueInfo>{
+            "value": 32,
+            "display_name": "32-bit",
+            "desc": "32 bits per channel (floating point)",
+        },
+    );
+
+    #! Allowed values for drawing operation types
+    public const DrawingOperationTypeAllowedValues = (
+        <AllowedValueInfo>{
+            "value": "line",
+            "display_name": "Line",
+            "desc": "Draw a line from (sx, sy) to (ex, ey)",
+        },
+        <AllowedValueInfo>{
+            "value": "rectangle",
+            "display_name": "Rectangle",
+            "desc": "Draw a rectangle from (x1, y1) to (x2, y2)",
+        },
+        <AllowedValueInfo>{
+            "value": "round-rectangle",
+            "display_name": "Rounded Rectangle",
+            "desc": "Draw a rounded rectangle from (x1, y1) to (x2, y2) with corner radii (rx, ry)",
+        },
+        <AllowedValueInfo>{
+            "value": "circle",
+            "display_name": "Circle",
+            "desc": "Draw a circle with center (ox, oy) and a point on circumference (px, py)",
+        },
+        <AllowedValueInfo>{
+            "value": "ellipse",
+            "display_name": "Ellipse",
+            "desc": "Draw an ellipse with center (ox, oy), radii (rx, ry), and arc range (start, end)",
+        },
+        <AllowedValueInfo>{
+            "value": "arc",
+            "display_name": "Arc",
+            "desc": "Draw an arc from (sx, sy) to (ex, ey) with angle range (sd, ed)",
+        },
+        <AllowedValueInfo>{
+            "value": "point",
+            "display_name": "Point",
+            "desc": "Draw a single point at (x, y)",
+        },
+        <AllowedValueInfo>{
+            "value": "polygon",
+            "display_name": "Polygon",
+            "desc": "Draw a closed polygon from a list of points (minimum 3)",
+        },
+        <AllowedValueInfo>{
+            "value": "polyline",
+            "display_name": "Polyline",
+            "desc": "Draw connected line segments from a list of points (minimum 2)",
+        },
+        <AllowedValueInfo>{
+            "value": "text",
+            "display_name": "Text",
+            "desc": "Draw text at position (x, y)",
+        },
+    );
+
+    #! Allowed values for font style
+    public const FontStyleAllowedValues = (
+        <AllowedValueInfo>{
+            "value": "normal",
+            "display_name": "Normal",
+            "desc": "Normal (upright) font style",
+        },
+        <AllowedValueInfo>{
+            "value": "italic",
+            "display_name": "Italic",
+            "desc": "Italic font style",
+        },
+        <AllowedValueInfo>{
+            "value": "oblique",
+            "display_name": "Oblique",
+            "desc": "Oblique (slanted) font style",
+        },
+    );
+
+    #! Allowed values for profile names
+    public const ProfileNameAllowedValues = (
+        <AllowedValueInfo>{
+            "value": "icc",
+            "display_name": "ICC",
+            "desc": "ICC color management profile",
+        },
+        <AllowedValueInfo>{
+            "value": "exif",
+            "display_name": "EXIF",
+            "desc": "Exchangeable Image File Format metadata",
+        },
+        <AllowedValueInfo>{
+            "value": "iptc",
+            "display_name": "IPTC",
+            "desc": "International Press Telecommunications Council metadata",
+        },
+        <AllowedValueInfo>{
+            "value": "xmp",
+            "display_name": "XMP",
+            "desc": "Extensible Metadata Platform (Adobe) metadata",
+        },
+    );
 }
