@@ -119,6 +119,7 @@ public class ImageMagickTest inherits QUnit::Test {
         drawing.circle(center_x: 50.0, center_y: 40.0, perimeter_x: 60.0, perimeter_y: 40.0);
         drawing.ellipse(center_x: 70.0, center_y: 40.0, x_radius: 12.0, y_radius: 8.0,
             start_degrees: 0.0, end_degrees: 360.0);
+        drawing.rotate(degrees: 0.0);
         img.draw(drawing: drawing);
 
         img.resize(width: 50, height: 40, filter: "Lanczos");

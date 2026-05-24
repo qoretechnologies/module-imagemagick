@@ -262,7 +262,7 @@ nothing MagickDrawing::annotation(float x, float y, string text) [flags=NAMED_AR
 //! Applies a rotation to subsequent drawing operations
 /** @param degrees the rotation angle in degrees
 */
-nothing MagickDrawing::rotate(float degrees) {
+nothing MagickDrawing::rotate(float degrees) [flags=NAMED_ARGS] {
     dw->rotate(degrees, xsink);
 }
 
