@@ -270,7 +270,7 @@ qclass MagickImage [arg=QoreMagickImage* img; ns=Qore::ImageMagick];
 
     @throw IMAGEMAGICK-ERROR error reading the image file
 */
-MagickImage::constructor(string path) [dom=FILESYSTEM] {
+MagickImage::constructor(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(path->c_str(), xsink), xsink);
     if (*xsink) {
         return;
@@ -283,7 +283,7 @@ MagickImage::constructor(string path) [dom=FILESYSTEM] {
 
     @throw IMAGEMAGICK-ERROR error reading the image data
 */
-MagickImage::constructor(binary data) {
+MagickImage::constructor(binary data) [flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(data, xsink), xsink);
     if (*xsink) {
         return;
@@ -297,7 +297,7 @@ MagickImage::constructor(binary data) {
 
     @throw IMAGEMAGICK-ERROR error reading the image data
 */
-MagickImage::constructor(binary data, string format) {
+MagickImage::constructor(binary data, string format) [flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(data, format->c_str(), xsink), xsink);
     if (*xsink) {
         return;
@@ -312,7 +312,7 @@ MagickImage::constructor(binary data, string format) {
 
     @throw IMAGEMAGICK-ERROR error creating the image
 */
-MagickImage::constructor(int width, int height, string background_color = "white") {
+MagickImage::constructor(int width, int height, string background_color = "white") [flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(
         new QoreMagickImage(static_cast<size_t>(width), static_cast<size_t>(height),
                             background_color->c_str(), xsink), xsink);
@@ -349,7 +349,7 @@ MagickImage::destructor() {
 
     @throw IMAGEMAGICK-ERROR error reading the image file
 */
-nothing MagickImage::readFile(string path) [dom=FILESYSTEM] {
+nothing MagickImage::readFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->readFile(path->c_str(), xsink);
 }
 
@@ -358,7 +358,7 @@ nothing MagickImage::readFile(string path) [dom=FILESYSTEM] {
 
     @throw IMAGEMAGICK-ERROR error reading the image data
 */
-nothing MagickImage::readData(binary data) {
+nothing MagickImage::readData(binary data) [flags=NAMED_ARGS] {
     img->readData(data, xsink);
 }
 
@@ -369,7 +369,7 @@ nothing MagickImage::readData(binary data) {
 
     @throw IMAGEMAGICK-ERROR error pinging the image file
 */
-hash<ImageInfo> MagickImage::pingFile(string path) [dom=FILESYSTEM] {
+hash<ImageInfo> MagickImage::pingFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     return img->pingFile(path->c_str(), xsink);
 }
 
@@ -380,7 +380,7 @@ hash<ImageInfo> MagickImage::pingFile(string path) [dom=FILESYSTEM] {
 
     @throw IMAGEMAGICK-ERROR error pinging the image data
 */
-hash<ImageInfo> MagickImage::pingData(binary data) {
+hash<ImageInfo> MagickImage::pingData(binary data) [flags=NAMED_ARGS] {
     return img->pingData(data, xsink);
 }
 
@@ -389,7 +389,7 @@ hash<ImageInfo> MagickImage::pingData(binary data) {
 
     @throw IMAGEMAGICK-ERROR error writing the image file
 */
-nothing MagickImage::writeFile(string path) [dom=FILESYSTEM] {
+nothing MagickImage::writeFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->writeFile(path->c_str(), xsink);
 }
 
@@ -399,7 +399,7 @@ nothing MagickImage::writeFile(string path) [dom=FILESYSTEM] {
 
     @throw IMAGEMAGICK-ERROR error writing the image files
 */
-nothing MagickImage::writeFiles(string path, bool adjoin = True) [dom=FILESYSTEM] {
+nothing MagickImage::writeFiles(string path, bool adjoin = True) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->writeFiles(path->c_str(), adjoin, xsink);
 }
 
@@ -419,7 +419,7 @@ binary MagickImage::toData() {
 
     @throw IMAGEMAGICK-ERROR error getting the image data
 */
-binary MagickImage::toData(string format) {
+binary MagickImage::toData(string format) [flags=NAMED_ARGS] {
     return img->toDataWithFormat(format->c_str(), xsink);
 }
 
@@ -451,7 +451,7 @@ string MagickImage::format() {
 
     @throw IMAGEMAGICK-ERROR error setting the format
 */
-nothing MagickImage::setFormat(string format) {
+nothing MagickImage::setFormat(string format) [flags=NAMED_ARGS] {
     img->setFormat(format->c_str(), xsink);
 }
 
@@ -467,7 +467,7 @@ int MagickImage::depth() {
 
     @throw IMAGEMAGICK-ERROR error setting the depth
 */
-nothing MagickImage::setDepth(int depth) {
+nothing MagickImage::setDepth(int depth) [flags=NAMED_ARGS] {
     img->setDepth(depth, xsink);
 }
 
@@ -483,7 +483,7 @@ string MagickImage::colorspace() {
 
     @throw IMAGEMAGICK-ERROR error setting the colorspace
 */
-nothing MagickImage::setColorspace(string colorspace) {
+nothing MagickImage::setColorspace(string colorspace) [flags=NAMED_ARGS] {
     img->setColorspace(colorspace->c_str(), xsink);
 }
 
@@ -502,13 +502,13 @@ hash<ImageResolutionInfo> MagickImage::resolution() {
 }
 
 //! Sets the image resolution
-/** @param x horizontal resolution (DPI)
-    @param y vertical resolution (DPI)
+/** @param x_resolution horizontal resolution (DPI)
+    @param y_resolution vertical resolution (DPI)
 
     @throw IMAGEMAGICK-ERROR error setting the resolution
 */
-nothing MagickImage::setResolution(float x, float y) {
-    img->setResolution(x, y, xsink);
+nothing MagickImage::setResolution(float x_resolution, float y_resolution) [flags=NAMED_ARGS] {
+    img->setResolution(x_resolution, y_resolution, xsink);
 }
 
 //! Returns the compression quality
@@ -523,7 +523,7 @@ int MagickImage::compressionQuality() {
 
     @throw IMAGEMAGICK-ERROR error setting the quality
 */
-nothing MagickImage::setCompressionQuality(int quality) {
+nothing MagickImage::setCompressionQuality(int quality) [flags=NAMED_ARGS] {
     img->setCompressionQuality(quality, xsink);
 }
 
@@ -569,7 +569,7 @@ hash<ImageInfo> MagickImage::getInfo() {
 
     @return the property value, or NOTHING if not found
 */
-*string MagickImage::getProperty(string name) {
+*string MagickImage::getProperty(string name) [flags=NAMED_ARGS] {
     return img->getProperty(name->c_str(), xsink);
 }
 
@@ -578,7 +578,7 @@ hash<ImageInfo> MagickImage::getInfo() {
 
     @return a hash of property name/value pairs
 */
-hash<auto> MagickImage::getProperties(string pattern = "*") {
+hash<auto> MagickImage::getProperties(string pattern = "*") [flags=NAMED_ARGS] {
     return img->getProperties(pattern->c_str(), xsink);
 }
 
@@ -588,7 +588,7 @@ hash<auto> MagickImage::getProperties(string pattern = "*") {
 
     @throw IMAGEMAGICK-ERROR error setting the property
 */
-nothing MagickImage::setProperty(string name, string value) {
+nothing MagickImage::setProperty(string name, string value) [flags=NAMED_ARGS] {
     img->setProperty(name->c_str(), value->c_str(), xsink);
 }
 
@@ -597,7 +597,7 @@ nothing MagickImage::setProperty(string name, string value) {
 
     @throw IMAGEMAGICK-ERROR error deleting the property
 */
-nothing MagickImage::deleteProperty(string name) {
+nothing MagickImage::deleteProperty(string name) [flags=NAMED_ARGS] {
     img->deleteProperty(name->c_str(), xsink);
 }
 
@@ -606,7 +606,7 @@ nothing MagickImage::deleteProperty(string name) {
 
     @return the profile data as binary, or NOTHING if not found
 */
-*binary MagickImage::getProfile(string name) {
+*binary MagickImage::getProfile(string name) [flags=NAMED_ARGS] {
     return img->getProfile(name->c_str(), xsink);
 }
 
@@ -616,7 +616,7 @@ nothing MagickImage::deleteProperty(string name) {
 
     @throw IMAGEMAGICK-ERROR error setting the profile
 */
-nothing MagickImage::setProfile(string name, binary data) {
+nothing MagickImage::setProfile(string name, binary data) [flags=NAMED_ARGS] {
     img->setProfile(name->c_str(), data, xsink);
 }
 
@@ -643,7 +643,7 @@ nothing MagickImage::strip() {
 
     @throw IMAGEMAGICK-ERROR error resizing the image
 */
-nothing MagickImage::resize(int width, int height, string filter = "Lanczos") {
+nothing MagickImage::resize(int width, int height, string filter = "Lanczos") [flags=NAMED_ARGS] {
     img->resize(width, height, filter->c_str(), xsink);
 }
 
@@ -653,7 +653,7 @@ nothing MagickImage::resize(int width, int height, string filter = "Lanczos") {
 
     @throw IMAGEMAGICK-ERROR error scaling the image
 */
-nothing MagickImage::scale(int width, int height) {
+nothing MagickImage::scale(int width, int height) [flags=NAMED_ARGS] {
     img->scale(width, height, xsink);
 }
 
@@ -663,7 +663,7 @@ nothing MagickImage::scale(int width, int height) {
 
     @throw IMAGEMAGICK-ERROR error creating the thumbnail
 */
-nothing MagickImage::thumbnail(int width, int height) {
+nothing MagickImage::thumbnail(int width, int height) [flags=NAMED_ARGS] {
     img->thumbnail(width, height, xsink);
 }
 
@@ -673,7 +673,7 @@ nothing MagickImage::thumbnail(int width, int height) {
 
     @throw IMAGEMAGICK-ERROR error resizing the image
 */
-nothing MagickImage::adaptiveResize(int width, int height) {
+nothing MagickImage::adaptiveResize(int width, int height) [flags=NAMED_ARGS] {
     img->adaptiveResize(width, height, xsink);
 }
 
@@ -683,7 +683,7 @@ nothing MagickImage::adaptiveResize(int width, int height) {
 
     @throw IMAGEMAGICK-ERROR error sampling the image
 */
-nothing MagickImage::sample(int width, int height) {
+nothing MagickImage::sample(int width, int height) [flags=NAMED_ARGS] {
     img->sample(width, height, xsink);
 }
 
@@ -694,7 +694,7 @@ nothing MagickImage::sample(int width, int height) {
 
     @throw IMAGEMAGICK-ERROR error resampling the image
 */
-nothing MagickImage::resample(float x_resolution, float y_resolution, string filter = "Lanczos") {
+nothing MagickImage::resample(float x_resolution, float y_resolution, string filter = "Lanczos") [flags=NAMED_ARGS] {
     img->resample(x_resolution, y_resolution, filter->c_str(), xsink);
 }
 
@@ -706,7 +706,7 @@ nothing MagickImage::resample(float x_resolution, float y_resolution, string fil
 
     @throw IMAGEMAGICK-ERROR error rescaling the image
 */
-nothing MagickImage::liquidRescale(int width, int height, float delta_x = 0.0, float rigidity = 0.0) {
+nothing MagickImage::liquidRescale(int width, int height, float delta_x = 0.0, float rigidity = 0.0) [flags=NAMED_ARGS] {
     img->liquidRescale(width, height, delta_x, rigidity, xsink);
 }
 
@@ -720,7 +720,7 @@ nothing MagickImage::liquidRescale(int width, int height, float delta_x = 0.0, f
 
     @throw IMAGEMAGICK-ERROR error cropping the image
 */
-nothing MagickImage::crop(int width, int height, int x, int y) {
+nothing MagickImage::crop(int width, int height, int x, int y) [flags=NAMED_ARGS] {
     img->crop(width, height, x, y, xsink);
 }
 
@@ -729,7 +729,7 @@ nothing MagickImage::crop(int width, int height, int x, int y) {
 
     @throw IMAGEMAGICK-ERROR error trimming the image
 */
-nothing MagickImage::trim(float fuzz = 0.0) {
+nothing MagickImage::trim(float fuzz = 0.0) [flags=NAMED_ARGS] {
     img->trim(fuzz, xsink);
 }
 
@@ -741,7 +741,7 @@ nothing MagickImage::trim(float fuzz = 0.0) {
 
     @throw IMAGEMAGICK-ERROR error setting the extent
 */
-nothing MagickImage::extent(int width, int height, int x = 0, int y = 0) {
+nothing MagickImage::extent(int width, int height, int x = 0, int y = 0) [flags=NAMED_ARGS] {
     img->extent(width, height, x, y, xsink);
 }
 
@@ -753,7 +753,7 @@ nothing MagickImage::extent(int width, int height, int x = 0, int y = 0) {
 
     @throw IMAGEMAGICK-ERROR error chopping the image
 */
-nothing MagickImage::chop(int width, int height, int x, int y) {
+nothing MagickImage::chop(int width, int height, int x, int y) [flags=NAMED_ARGS] {
     img->chop(width, height, x, y, xsink);
 }
 
@@ -763,7 +763,7 @@ nothing MagickImage::chop(int width, int height, int x, int y) {
 
     @throw IMAGEMAGICK-ERROR error shaving the image
 */
-nothing MagickImage::shave(int columns, int rows) {
+nothing MagickImage::shave(int columns, int rows) [flags=NAMED_ARGS] {
     img->shave(columns, rows, xsink);
 }
 
@@ -775,7 +775,7 @@ nothing MagickImage::shave(int columns, int rows) {
 
     @throw IMAGEMAGICK-ERROR error splicing the image
 */
-nothing MagickImage::splice(int width, int height, int x, int y) {
+nothing MagickImage::splice(int width, int height, int x, int y) [flags=NAMED_ARGS] {
     img->splice(width, height, x, y, xsink);
 }
 
@@ -783,12 +783,12 @@ nothing MagickImage::splice(int width, int height, int x, int y) {
 
 //! Rotates the image by the given angle
 /** @param degrees the rotation angle in degrees (clockwise)
-    @param background the background color for areas exposed by rotation
+    @param background_color the background color for areas exposed by rotation
 
     @throw IMAGEMAGICK-ERROR error rotating the image
 */
-nothing MagickImage::rotate(float degrees, string background = "white") {
-    img->rotate(degrees, background->c_str(), xsink);
+nothing MagickImage::rotate(float degrees, string background_color = "white") [flags=NAMED_ARGS] {
+    img->rotate(degrees, background_color->c_str(), xsink);
 }
 
 //! Flips the image vertically (top to bottom mirror)
@@ -820,14 +820,14 @@ nothing MagickImage::transverse() {
 }
 
 //! Shears the image
-/** @param x the horizontal shear angle in degrees
-    @param y the vertical shear angle in degrees
-    @param background the background color for exposed areas
+/** @param x_shear the horizontal shear angle in degrees
+    @param y_shear the vertical shear angle in degrees
+    @param background_color the background color for exposed areas
 
     @throw IMAGEMAGICK-ERROR error shearing the image
 */
-nothing MagickImage::shear(float x, float y, string background = "white") {
-    img->shear(x, y, background->c_str(), xsink);
+nothing MagickImage::shear(float x_shear, float y_shear, string background_color = "white") [flags=NAMED_ARGS] {
+    img->shear(x_shear, y_shear, background_color->c_str(), xsink);
 }
 
 //! Straightens the image by removing skew
@@ -835,7 +835,7 @@ nothing MagickImage::shear(float x, float y, string background = "white") {
 
     @throw IMAGEMAGICK-ERROR error deskewing the image
 */
-nothing MagickImage::deskew(float threshold) {
+nothing MagickImage::deskew(float threshold) [flags=NAMED_ARGS] {
     img->deskew(threshold, xsink);
 }
 
@@ -854,7 +854,7 @@ nothing MagickImage::autoOrient() {
 
     @throw IMAGEMAGICK-ERROR error blurring the image
 */
-nothing MagickImage::blur(float radius, float sigma) {
+nothing MagickImage::blur(float radius, float sigma) [flags=NAMED_ARGS] {
     img->blur(radius, sigma, xsink);
 }
 
@@ -864,7 +864,7 @@ nothing MagickImage::blur(float radius, float sigma) {
 
     @throw IMAGEMAGICK-ERROR error blurring the image
 */
-nothing MagickImage::gaussianBlur(float radius, float sigma) {
+nothing MagickImage::gaussianBlur(float radius, float sigma) [flags=NAMED_ARGS] {
     img->gaussianBlur(radius, sigma, xsink);
 }
 
@@ -874,7 +874,7 @@ nothing MagickImage::gaussianBlur(float radius, float sigma) {
 
     @throw IMAGEMAGICK-ERROR error blurring the image
 */
-nothing MagickImage::adaptiveBlur(float radius, float sigma) {
+nothing MagickImage::adaptiveBlur(float radius, float sigma) [flags=NAMED_ARGS] {
     img->adaptiveBlur(radius, sigma, xsink);
 }
 
@@ -884,7 +884,7 @@ nothing MagickImage::adaptiveBlur(float radius, float sigma) {
 
     @throw IMAGEMAGICK-ERROR error sharpening the image
 */
-nothing MagickImage::sharpen(float radius, float sigma) {
+nothing MagickImage::sharpen(float radius, float sigma) [flags=NAMED_ARGS] {
     img->sharpen(radius, sigma, xsink);
 }
 
@@ -894,7 +894,7 @@ nothing MagickImage::sharpen(float radius, float sigma) {
 
     @throw IMAGEMAGICK-ERROR error sharpening the image
 */
-nothing MagickImage::adaptiveSharpen(float radius, float sigma) {
+nothing MagickImage::adaptiveSharpen(float radius, float sigma) [flags=NAMED_ARGS] {
     img->adaptiveSharpen(radius, sigma, xsink);
 }
 
@@ -906,7 +906,7 @@ nothing MagickImage::adaptiveSharpen(float radius, float sigma) {
 
     @throw IMAGEMAGICK-ERROR error applying unsharp mask
 */
-nothing MagickImage::unsharpMask(float radius, float sigma, float gain, float threshold) {
+nothing MagickImage::unsharpMask(float radius, float sigma, float gain, float threshold) [flags=NAMED_ARGS] {
     img->unsharpMask(radius, sigma, gain, threshold, xsink);
 }
 
@@ -917,7 +917,7 @@ nothing MagickImage::unsharpMask(float radius, float sigma, float gain, float th
 
     @throw IMAGEMAGICK-ERROR error applying motion blur
 */
-nothing MagickImage::motionBlur(float radius, float sigma, float angle) {
+nothing MagickImage::motionBlur(float radius, float sigma, float angle) [flags=NAMED_ARGS] {
     img->motionBlur(radius, sigma, angle, xsink);
 }
 
@@ -928,7 +928,7 @@ nothing MagickImage::motionBlur(float radius, float sigma, float angle) {
 
     @throw IMAGEMAGICK-ERROR error applying selective blur
 */
-nothing MagickImage::selectiveBlur(float radius, float sigma, float threshold) {
+nothing MagickImage::selectiveBlur(float radius, float sigma, float threshold) [flags=NAMED_ARGS] {
     img->selectiveBlur(radius, sigma, threshold, xsink);
 }
 
@@ -937,7 +937,7 @@ nothing MagickImage::selectiveBlur(float radius, float sigma, float threshold) {
 
     @throw IMAGEMAGICK-ERROR error applying rotational blur
 */
-nothing MagickImage::rotationalBlur(float angle) {
+nothing MagickImage::rotationalBlur(float angle) [flags=NAMED_ARGS] {
     img->rotationalBlur(angle, xsink);
 }
 
@@ -949,7 +949,7 @@ nothing MagickImage::rotationalBlur(float angle) {
 
     @throw IMAGEMAGICK-ERROR error adjusting brightness/contrast
 */
-nothing MagickImage::brightnessContrast(float brightness, float contrast) {
+nothing MagickImage::brightnessContrast(float brightness, float contrast) [flags=NAMED_ARGS] {
     img->brightnessContrast(brightness, contrast, xsink);
 }
 
@@ -958,7 +958,7 @@ nothing MagickImage::brightnessContrast(float brightness, float contrast) {
 
     @throw IMAGEMAGICK-ERROR error applying gamma correction
 */
-nothing MagickImage::gamma(float gamma_value) {
+nothing MagickImage::gamma(float gamma_value) [flags=NAMED_ARGS] {
     img->gamma(gamma_value, xsink);
 }
 
@@ -969,7 +969,7 @@ nothing MagickImage::gamma(float gamma_value) {
 
     @throw IMAGEMAGICK-ERROR error adjusting levels
 */
-nothing MagickImage::level(float black_point, float gamma_value, float white_point) {
+nothing MagickImage::level(float black_point, float gamma_value, float white_point) [flags=NAMED_ARGS] {
     img->level(black_point, gamma_value, white_point, xsink);
 }
 
@@ -980,7 +980,7 @@ nothing MagickImage::level(float black_point, float gamma_value, float white_poi
 
     @throw IMAGEMAGICK-ERROR error modulating the image
 */
-nothing MagickImage::modulate(float brightness, float saturation, float hue) {
+nothing MagickImage::modulate(float brightness, float saturation, float hue) [flags=NAMED_ARGS] {
     img->modulate(brightness, saturation, hue, xsink);
 }
 
@@ -989,7 +989,7 @@ nothing MagickImage::modulate(float brightness, float saturation, float hue) {
 
     @throw IMAGEMAGICK-ERROR error negating the image
 */
-nothing MagickImage::negate(bool gray_only = False) {
+nothing MagickImage::negate(bool gray_only = False) [flags=NAMED_ARGS] {
     img->negate(gray_only, xsink);
 }
 
@@ -1028,7 +1028,7 @@ nothing MagickImage::autoLevel() {
 
     @throw IMAGEMAGICK-ERROR error adjusting sigmoidal contrast
 */
-nothing MagickImage::sigmoidalContrast(bool sharpen, float strength, float midpoint) {
+nothing MagickImage::sigmoidalContrast(bool sharpen, float strength, float midpoint) [flags=NAMED_ARGS] {
     img->sigmoidalContrast(sharpen, strength, midpoint, xsink);
 }
 
@@ -1038,7 +1038,7 @@ nothing MagickImage::sigmoidalContrast(bool sharpen, float strength, float midpo
 
     @throw IMAGEMAGICK-ERROR error stretching contrast
 */
-nothing MagickImage::contrastStretch(float black_point, float white_point) {
+nothing MagickImage::contrastStretch(float black_point, float white_point) [flags=NAMED_ARGS] {
     img->contrastStretch(black_point, white_point, xsink);
 }
 
@@ -1048,7 +1048,7 @@ nothing MagickImage::contrastStretch(float black_point, float white_point) {
 
     @throw IMAGEMAGICK-ERROR error stretching linearly
 */
-nothing MagickImage::linearStretch(float black_point, float white_point) {
+nothing MagickImage::linearStretch(float black_point, float white_point) [flags=NAMED_ARGS] {
     img->linearStretch(black_point, white_point, xsink);
 }
 
@@ -1071,7 +1071,7 @@ nothing MagickImage::whiteBalance() {
 
     @throw IMAGEMAGICK-ERROR error transforming colorspace
 */
-nothing MagickImage::transformColorspace(string colorspace) {
+nothing MagickImage::transformColorspace(string colorspace) [flags=NAMED_ARGS] {
     img->transformColorspace(colorspace->c_str(), xsink);
 }
 
@@ -1083,7 +1083,7 @@ nothing MagickImage::transformColorspace(string colorspace) {
 
     @throw IMAGEMAGICK-ERROR error applying charcoal effect
 */
-nothing MagickImage::charcoal(float radius, float sigma) {
+nothing MagickImage::charcoal(float radius, float sigma) [flags=NAMED_ARGS] {
     img->charcoal(radius, sigma, xsink);
 }
 
@@ -1092,7 +1092,7 @@ nothing MagickImage::charcoal(float radius, float sigma) {
 
     @throw IMAGEMAGICK-ERROR error applying edge detection
 */
-nothing MagickImage::edge(float radius) {
+nothing MagickImage::edge(float radius) [flags=NAMED_ARGS] {
     img->edge(radius, xsink);
 }
 
@@ -1102,7 +1102,7 @@ nothing MagickImage::edge(float radius) {
 
     @throw IMAGEMAGICK-ERROR error applying emboss effect
 */
-nothing MagickImage::emboss(float radius, float sigma) {
+nothing MagickImage::emboss(float radius, float sigma) [flags=NAMED_ARGS] {
     img->emboss(radius, sigma, xsink);
 }
 
@@ -1112,7 +1112,7 @@ nothing MagickImage::emboss(float radius, float sigma) {
 
     @throw IMAGEMAGICK-ERROR error applying oil paint effect
 */
-nothing MagickImage::oilPaint(float radius, float sigma = 1.0) {
+nothing MagickImage::oilPaint(float radius, float sigma = 1.0) [flags=NAMED_ARGS] {
     img->oilPaint(radius, sigma, xsink);
 }
 
@@ -1123,7 +1123,7 @@ nothing MagickImage::oilPaint(float radius, float sigma = 1.0) {
 
     @throw IMAGEMAGICK-ERROR error applying sketch effect
 */
-nothing MagickImage::sketch(float radius, float sigma, float angle) {
+nothing MagickImage::sketch(float radius, float sigma, float angle) [flags=NAMED_ARGS] {
     img->sketch(radius, sigma, angle, xsink);
 }
 
@@ -1132,7 +1132,7 @@ nothing MagickImage::sketch(float radius, float sigma, float angle) {
 
     @throw IMAGEMAGICK-ERROR error solarizing the image
 */
-nothing MagickImage::solarize(float threshold) {
+nothing MagickImage::solarize(float threshold) [flags=NAMED_ARGS] {
     img->solarize(threshold, xsink);
 }
 
@@ -1141,7 +1141,7 @@ nothing MagickImage::solarize(float threshold) {
 
     @throw IMAGEMAGICK-ERROR error applying sepia tone
 */
-nothing MagickImage::sepiaTone(float threshold) {
+nothing MagickImage::sepiaTone(float threshold) [flags=NAMED_ARGS] {
     img->sepiaTone(threshold, xsink);
 }
 
@@ -1153,7 +1153,7 @@ nothing MagickImage::sepiaTone(float threshold) {
 
     @throw IMAGEMAGICK-ERROR error applying vignette
 */
-nothing MagickImage::vignette(float radius, float sigma, int x = 0, int y = 0) {
+nothing MagickImage::vignette(float radius, float sigma, int x = 0, int y = 0) [flags=NAMED_ARGS] {
     img->vignette(radius, sigma, x, y, xsink);
 }
 
@@ -1165,19 +1165,19 @@ nothing MagickImage::vignette(float radius, float sigma, int x = 0, int y = 0) {
 
     @throw IMAGEMAGICK-ERROR error applying shadow
 */
-nothing MagickImage::shadow(float alpha, float sigma, int x, int y) {
+nothing MagickImage::shadow(float alpha, float sigma, int x, int y) [flags=NAMED_ARGS] {
     img->shadow(alpha, sigma, x, y, xsink);
 }
 
 //! Applies a shade (3D lighting) effect
-/** @param gray if True, shade in grayscale
+/** @param gray_only if True, shade in grayscale
     @param azimuth the light direction angle in degrees
     @param elevation the light elevation angle in degrees
 
     @throw IMAGEMAGICK-ERROR error applying shade
 */
-nothing MagickImage::shade(bool gray, float azimuth, float elevation) {
-    img->shade(gray, azimuth, elevation, xsink);
+nothing MagickImage::shade(bool gray_only, float azimuth, float elevation) [flags=NAMED_ARGS] {
+    img->shade(gray_only, azimuth, elevation, xsink);
 }
 
 //! Applies a wave distortion
@@ -1186,7 +1186,7 @@ nothing MagickImage::shade(bool gray, float azimuth, float elevation) {
 
     @throw IMAGEMAGICK-ERROR error applying wave
 */
-nothing MagickImage::wave(float amplitude, float wavelength) {
+nothing MagickImage::wave(float amplitude, float wavelength) [flags=NAMED_ARGS] {
     img->wave(amplitude, wavelength, xsink);
 }
 
@@ -1195,7 +1195,7 @@ nothing MagickImage::wave(float amplitude, float wavelength) {
 
     @throw IMAGEMAGICK-ERROR error applying swirl
 */
-nothing MagickImage::swirl(float degrees) {
+nothing MagickImage::swirl(float degrees) [flags=NAMED_ARGS] {
     img->swirl(degrees, xsink);
 }
 
@@ -1204,7 +1204,7 @@ nothing MagickImage::swirl(float degrees) {
 
     @throw IMAGEMAGICK-ERROR error applying implosion
 */
-nothing MagickImage::implode(float amount) {
+nothing MagickImage::implode(float amount) [flags=NAMED_ARGS] {
     img->implode(amount, xsink);
 }
 
@@ -1221,7 +1221,7 @@ nothing MagickImage::despeckle() {
 
     @throw IMAGEMAGICK-ERROR error posterizing the image
 */
-nothing MagickImage::posterize(int levels, bool dither = False) {
+nothing MagickImage::posterize(int levels, bool dither = False) [flags=NAMED_ARGS] {
     img->posterize(levels, dither, xsink);
 }
 
@@ -1230,7 +1230,7 @@ nothing MagickImage::posterize(int levels, bool dither = False) {
 
     @throw IMAGEMAGICK-ERROR error thresholding the image
 */
-nothing MagickImage::threshold(float threshold_value) {
+nothing MagickImage::threshold(float threshold_value) [flags=NAMED_ARGS] {
     img->threshold(threshold_value, xsink);
 }
 
@@ -1240,7 +1240,7 @@ nothing MagickImage::threshold(float threshold_value) {
 
     @throw IMAGEMAGICK-ERROR error adding noise
 */
-nothing MagickImage::addNoise(string noise_type, float attenuate = 1.0) {
+nothing MagickImage::addNoise(string noise_type, float attenuate = 1.0) [flags=NAMED_ARGS] {
     img->addNoise(noise_type->c_str(), attenuate, xsink);
 }
 
@@ -1249,7 +1249,7 @@ nothing MagickImage::addNoise(string noise_type, float attenuate = 1.0) {
 
     @throw IMAGEMAGICK-ERROR error applying blue shift
 */
-nothing MagickImage::blueShift(float factor = 1.5) {
+nothing MagickImage::blueShift(float factor = 1.5) [flags=NAMED_ARGS] {
     img->blueShift(factor, xsink);
 }
 
@@ -1258,7 +1258,7 @@ nothing MagickImage::blueShift(float factor = 1.5) {
 
     @throw IMAGEMAGICK-ERROR error reducing noise
 */
-nothing MagickImage::reduceNoise(float radius) {
+nothing MagickImage::reduceNoise(float radius) [flags=NAMED_ARGS] {
     img->reduceNoise(radius, xsink);
 }
 
@@ -1268,7 +1268,7 @@ nothing MagickImage::reduceNoise(float radius) {
 
     @throw IMAGEMAGICK-ERROR error denoising the image
 */
-nothing MagickImage::waveletDenoise(float threshold, float softness = 0.0) {
+nothing MagickImage::waveletDenoise(float threshold, float softness = 0.0) [flags=NAMED_ARGS] {
     img->waveletDenoise(threshold, softness, xsink);
 }
 
@@ -1276,25 +1276,27 @@ nothing MagickImage::waveletDenoise(float threshold, float softness = 0.0) {
 
 //! Composites another image onto this image at the specified position
 /** @param source the source image to composite
-    @param op the composite operator (e.g. "Over", "Multiply", "Screen")
+    @param composite_operator the composite operator (e.g. "Over", "Multiply", "Screen")
     @param x the horizontal offset
     @param y the vertical offset
 
     @throw IMAGEMAGICK-ERROR error compositing the image
 */
-nothing MagickImage::composite(MagickImage[QoreMagickImage] source, string op, int x, int y) {
-    img->composite(*source, op->c_str(), x, y, xsink);
+nothing MagickImage::composite(MagickImage[QoreMagickImage] source, string composite_operator, int x, int y)
+        [flags=NAMED_ARGS] {
+    img->composite(*source, composite_operator->c_str(), x, y, xsink);
 }
 
 //! Composites another image using gravity-based positioning
 /** @param source the source image to composite
-    @param op the composite operator
+    @param composite_operator the composite operator
     @param gravity the gravity type (e.g. "Center", "NorthWest")
 
     @throw IMAGEMAGICK-ERROR error compositing the image
 */
-nothing MagickImage::compositeGravity(MagickImage[QoreMagickImage] source, string op, string gravity) {
-    img->compositeGravity(*source, op->c_str(), gravity->c_str(), xsink);
+nothing MagickImage::compositeGravity(MagickImage[QoreMagickImage] source, string composite_operator,
+        string gravity) [flags=NAMED_ARGS] {
+    img->compositeGravity(*source, composite_operator->c_str(), gravity->c_str(), xsink);
 }
 
 // --- Drawing Methods ---
@@ -1313,7 +1315,7 @@ nothing MagickImage::compositeGravity(MagickImage[QoreMagickImage] source, strin
 */
 nothing MagickImage::annotate(string text, float x, float y, float angle = 0.0,
                               string font = "", float font_size = 0.0,
-                              string fill_color = "black", string stroke_color = "") {
+                              string fill_color = "black", string stroke_color = "") [flags=NAMED_ARGS] {
     img->annotate(text->c_str(), x, y, angle, font->c_str(), font_size,
                   fill_color->c_str(), stroke_color->c_str(), xsink);
 }
@@ -1323,7 +1325,7 @@ nothing MagickImage::annotate(string text, float x, float y, float angle = 0.0,
 
     @throw IMAGEMAGICK-ERROR error drawing on the image
 */
-nothing MagickImage::draw(MagickDrawing[QoreMagickDrawing] drawing) {
+nothing MagickImage::draw(MagickDrawing[QoreMagickDrawing] drawing) [flags=NAMED_ARGS] {
     img->draw(drawing->getWand(), xsink);
 }
 
@@ -1334,7 +1336,7 @@ nothing MagickImage::draw(MagickDrawing[QoreMagickDrawing] drawing) {
 
     @throw IMAGEMAGICK-ERROR error adding the border
 */
-nothing MagickImage::border(string color, int width, int height) {
+nothing MagickImage::border(string color, int width, int height) [flags=NAMED_ARGS] {
     img->border(color->c_str(), width, height, xsink);
 }
 
@@ -1347,7 +1349,7 @@ nothing MagickImage::border(string color, int width, int height) {
 
     @throw IMAGEMAGICK-ERROR error adding the frame
 */
-nothing MagickImage::frame(string color, int width, int height, int inner_bevel, int outer_bevel) {
+nothing MagickImage::frame(string color, int width, int height, int inner_bevel, int outer_bevel) [flags=NAMED_ARGS] {
     img->frame(color->c_str(), width, height, inner_bevel, outer_bevel, xsink);
 }
 
@@ -1386,7 +1388,7 @@ bool MagickImage::previousImage() {
 
     @throw IMAGEMAGICK-ERROR error setting the iterator
 */
-nothing MagickImage::setIteratorIndex(int index) {
+nothing MagickImage::setIteratorIndex(int index) [flags=NAMED_ARGS] {
     img->setIteratorIndex(index, xsink);
 }
 
@@ -1414,7 +1416,7 @@ nothing MagickImage::resetIterator() {
 
     @throw IMAGEMAGICK-ERROR error getting the pixel color
 */
-string MagickImage::getPixelColor(int x, int y) {
+string MagickImage::getPixelColor(int x, int y) [flags=NAMED_ARGS] {
     return img->getPixelColor(x, y, xsink);
 }
 
@@ -1425,7 +1427,7 @@ string MagickImage::getPixelColor(int x, int y) {
 
     @throw IMAGEMAGICK-ERROR error setting the pixel color
 */
-nothing MagickImage::setPixelColor(int x, int y, string color) {
+nothing MagickImage::setPixelColor(int x, int y, string color) [flags=NAMED_ARGS] {
     img->setPixelColor(x, y, color->c_str(), xsink);
 }
 
@@ -1445,7 +1447,7 @@ list<string> arial_fonts = MagickImage::queryFonts("Arial*");
     @note This method queries ImageMagick's cached font configuration; it does not
     perform filesystem I/O per call.
 */
-static list<string> MagickImage::queryFonts(string pattern = "*") [flags=RET_VALUE_ONLY] {
+static list<string> MagickImage::queryFonts(string pattern = "*") [flags=RET_VALUE_ONLY,NAMED_ARGS] {
     size_t count = 0;
     char** fonts = MagickQueryFonts(pattern->c_str(), &count);
     if (!fonts) {
@@ -1490,7 +1492,7 @@ list<string> jp_formats = MagickImage::queryFormats("JP*");
     @note This method queries ImageMagick's compiled-in format list; it does not
     perform filesystem I/O per call.
 */
-static list<string> MagickImage::queryFormats(string pattern = "*") [flags=RET_VALUE_ONLY] {
+static list<string> MagickImage::queryFormats(string pattern = "*") [flags=RET_VALUE_ONLY,NAMED_ARGS] {
     size_t count = 0;
     char** formats = MagickQueryFormats(pattern->c_str(), &count);
     if (!formats) {
