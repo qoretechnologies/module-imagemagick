@@ -79,28 +79,28 @@ MagickDrawing::destructor() {
 //! Sets the font for text operations
 /** @param font the font name or path to a font file
 */
-nothing MagickDrawing::setFont(string font) {
+nothing MagickDrawing::setFont(string font) [flags=NAMED_ARGS] {
     dw->setFont(font->c_str(), xsink);
 }
 
 //! Sets the font size for text operations
 /** @param size the font size in points
 */
-nothing MagickDrawing::setFontSize(float size) {
+nothing MagickDrawing::setFontSize(float size) [flags=NAMED_ARGS] {
     dw->setFontSize(size, xsink);
 }
 
 //! Sets the font family for text operations
 /** @param family the font family name (e.g. "Helvetica", "Times", "Courier")
 */
-nothing MagickDrawing::setFontFamily(string family) {
+nothing MagickDrawing::setFontFamily(string family) [flags=NAMED_ARGS] {
     dw->setFontFamily(family->c_str(), xsink);
 }
 
 //! Sets the font weight
 /** @param weight the font weight (e.g. 400 for normal, 700 for bold)
 */
-nothing MagickDrawing::setFontWeight(int weight) {
+nothing MagickDrawing::setFontWeight(int weight) [flags=NAMED_ARGS] {
     dw->setFontWeight(weight, xsink);
 }
 
@@ -109,7 +109,7 @@ nothing MagickDrawing::setFontWeight(int weight) {
 
     @throw IMAGEMAGICK-ERROR error if style is invalid
 */
-nothing MagickDrawing::setFontStyle(string style) {
+nothing MagickDrawing::setFontStyle(string style) [flags=NAMED_ARGS] {
     dw->setFontStyle(style->c_str(), xsink);
 }
 
@@ -118,48 +118,48 @@ nothing MagickDrawing::setFontStyle(string style) {
 //! Sets the fill color for shapes and text
 /** @param color the color name or value (e.g. "red", "#FF0000", "rgb(255,0,0)")
 */
-nothing MagickDrawing::setFillColor(string color) {
+nothing MagickDrawing::setFillColor(string color) [flags=NAMED_ARGS] {
     dw->setFillColor(color->c_str(), xsink);
 }
 
 //! Sets the stroke (outline) color
 /** @param color the color name or value
 */
-nothing MagickDrawing::setStrokeColor(string color) {
+nothing MagickDrawing::setStrokeColor(string color) [flags=NAMED_ARGS] {
     dw->setStrokeColor(color->c_str(), xsink);
 }
 
 //! Sets the stroke width
 /** @param width the stroke width in pixels
 */
-nothing MagickDrawing::setStrokeWidth(float width) {
+nothing MagickDrawing::setStrokeWidth(float width) [flags=NAMED_ARGS] {
     dw->setStrokeWidth(width, xsink);
 }
 
 //! Sets the fill opacity
 /** @param opacity the opacity value (0.0 = transparent, 1.0 = opaque)
 */
-nothing MagickDrawing::setFillOpacity(float opacity) {
+nothing MagickDrawing::setFillOpacity(float opacity) [flags=NAMED_ARGS] {
     dw->setFillOpacity(opacity, xsink);
 }
 
 //! Sets the stroke opacity
 /** @param opacity the opacity value (0.0 = transparent, 1.0 = opaque)
 */
-nothing MagickDrawing::setStrokeOpacity(float opacity) {
+nothing MagickDrawing::setStrokeOpacity(float opacity) [flags=NAMED_ARGS] {
     dw->setStrokeOpacity(opacity, xsink);
 }
 
 // --- Shape methods ---
 
 //! Draws a line
-/** @param sx start x coordinate
-    @param sy start y coordinate
-    @param ex end x coordinate
-    @param ey end y coordinate
+/** @param start_x start x coordinate
+    @param start_y start y coordinate
+    @param end_x end x coordinate
+    @param end_y end y coordinate
 */
-nothing MagickDrawing::line(float sx, float sy, float ex, float ey) {
-    dw->line(sx, sy, ex, ey, xsink);
+nothing MagickDrawing::line(float start_x, float start_y, float end_x, float end_y) [flags=NAMED_ARGS] {
+    dw->line(start_x, start_y, end_x, end_y, xsink);
 }
 
 //! Draws a rectangle
@@ -168,7 +168,7 @@ nothing MagickDrawing::line(float sx, float sy, float ex, float ey) {
     @param x2 bottom-right x coordinate
     @param y2 bottom-right y coordinate
 */
-nothing MagickDrawing::rectangle(float x1, float y1, float x2, float y2) {
+nothing MagickDrawing::rectangle(float x1, float y1, float x2, float y2) [flags=NAMED_ARGS] {
     dw->rectangle(x1, y1, x2, y2, xsink);
 }
 
@@ -177,52 +177,54 @@ nothing MagickDrawing::rectangle(float x1, float y1, float x2, float y2) {
     @param y1 top-left y coordinate
     @param x2 bottom-right x coordinate
     @param y2 bottom-right y coordinate
-    @param rx horizontal corner radius
-    @param ry vertical corner radius
+    @param x_radius horizontal corner radius
+    @param y_radius vertical corner radius
 */
-nothing MagickDrawing::roundRectangle(float x1, float y1, float x2, float y2, float rx, float ry) {
-    dw->roundRectangle(x1, y1, x2, y2, rx, ry, xsink);
+nothing MagickDrawing::roundRectangle(float x1, float y1, float x2, float y2, float x_radius, float y_radius) [flags=NAMED_ARGS] {
+    dw->roundRectangle(x1, y1, x2, y2, x_radius, y_radius, xsink);
 }
 
 //! Draws a circle
-/** @param ox center x coordinate
-    @param oy center y coordinate
-    @param px a point on the circle circumference x coordinate
-    @param py a point on the circle circumference y coordinate
+/** @param center_x center x coordinate
+    @param center_y center y coordinate
+    @param perimeter_x a point on the circle circumference x coordinate
+    @param perimeter_y a point on the circle circumference y coordinate
 */
-nothing MagickDrawing::circle(float ox, float oy, float px, float py) {
-    dw->circle(ox, oy, px, py, xsink);
+nothing MagickDrawing::circle(float center_x, float center_y, float perimeter_x, float perimeter_y) [flags=NAMED_ARGS] {
+    dw->circle(center_x, center_y, perimeter_x, perimeter_y, xsink);
 }
 
 //! Draws an ellipse
-/** @param ox center x coordinate
-    @param oy center y coordinate
-    @param rx horizontal radius
-    @param ry vertical radius
-    @param start the start angle in degrees
-    @param end the end angle in degrees
+/** @param center_x center x coordinate
+    @param center_y center y coordinate
+    @param x_radius horizontal radius
+    @param y_radius vertical radius
+    @param start_degrees the start angle in degrees
+    @param end_degrees the end angle in degrees
 */
-nothing MagickDrawing::ellipse(float ox, float oy, float rx, float ry, float start, float end) {
-    dw->ellipse(ox, oy, rx, ry, start, end, xsink);
+nothing MagickDrawing::ellipse(float center_x, float center_y, float x_radius, float y_radius,
+        float start_degrees, float end_degrees) [flags=NAMED_ARGS] {
+    dw->ellipse(center_x, center_y, x_radius, y_radius, start_degrees, end_degrees, xsink);
 }
 
 //! Draws an arc
-/** @param sx start x coordinate
-    @param sy start y coordinate
-    @param ex end x coordinate
-    @param ey end y coordinate
-    @param sd start degree
-    @param ed end degree
+/** @param start_x start x coordinate
+    @param start_y start y coordinate
+    @param end_x end x coordinate
+    @param end_y end y coordinate
+    @param start_degrees start degree
+    @param end_degrees end degree
 */
-nothing MagickDrawing::arc(float sx, float sy, float ex, float ey, float sd, float ed) {
-    dw->arc(sx, sy, ex, ey, sd, ed, xsink);
+nothing MagickDrawing::arc(float start_x, float start_y, float end_x, float end_y, float start_degrees,
+        float end_degrees) [flags=NAMED_ARGS] {
+    dw->arc(start_x, start_y, end_x, end_y, start_degrees, end_degrees, xsink);
 }
 
 //! Draws a single point
 /** @param x the x coordinate
     @param y the y coordinate
 */
-nothing MagickDrawing::point(float x, float y) {
+nothing MagickDrawing::point(float x, float y) [flags=NAMED_ARGS] {
     dw->point(x, y, xsink);
 }
 
@@ -231,7 +233,7 @@ nothing MagickDrawing::point(float x, float y) {
 
     @throw IMAGEMAGICK-ERROR if fewer than 3 points are provided
 */
-nothing MagickDrawing::polygon(list<hash<PointInfo>> points) {
+nothing MagickDrawing::polygon(list<hash<PointInfo>> points) [flags=NAMED_ARGS] {
     dw->polygon(points, xsink);
 }
 
@@ -240,7 +242,7 @@ nothing MagickDrawing::polygon(list<hash<PointInfo>> points) {
 
     @throw IMAGEMAGICK-ERROR if fewer than 2 points are provided
 */
-nothing MagickDrawing::polyline(list<hash<PointInfo>> points) {
+nothing MagickDrawing::polyline(list<hash<PointInfo>> points) [flags=NAMED_ARGS] {
     dw->polyline(points, xsink);
 }
 
@@ -251,7 +253,7 @@ nothing MagickDrawing::polyline(list<hash<PointInfo>> points) {
     @param y the y coordinate
     @param text the text to draw
 */
-nothing MagickDrawing::annotation(float x, float y, string text) {
+nothing MagickDrawing::annotation(float x, float y, string text) [flags=NAMED_ARGS] {
     dw->annotation(x, y, text->c_str(), xsink);
 }
 
@@ -260,7 +262,7 @@ nothing MagickDrawing::annotation(float x, float y, string text) {
 //! Applies a rotation to subsequent drawing operations
 /** @param degrees the rotation angle in degrees
 */
-nothing MagickDrawing::rotate(float degrees) {
+nothing MagickDrawing::rotate(float degrees) [flags=NAMED_ARGS] {
     dw->rotate(degrees, xsink);
 }
 
@@ -268,7 +270,7 @@ nothing MagickDrawing::rotate(float degrees) {
 /** @param x the horizontal offset
     @param y the vertical offset
 */
-nothing MagickDrawing::translate(float x, float y) {
+nothing MagickDrawing::translate(float x, float y) [flags=NAMED_ARGS] {
     dw->translate(x, y, xsink);
 }
 
@@ -276,21 +278,21 @@ nothing MagickDrawing::translate(float x, float y) {
 /** @param x the horizontal scale factor
     @param y the vertical scale factor
 */
-nothing MagickDrawing::drawScale(float x, float y) {
+nothing MagickDrawing::drawScale(float x, float y) [flags=NAMED_ARGS] {
     dw->drawScale(x, y, xsink);
 }
 
 //! Applies a horizontal skew to subsequent drawing operations
 /** @param degrees the skew angle in degrees
 */
-nothing MagickDrawing::skewX(float degrees) {
+nothing MagickDrawing::skewX(float degrees) [flags=NAMED_ARGS] {
     dw->skewX(degrees, xsink);
 }
 
 //! Applies a vertical skew to subsequent drawing operations
 /** @param degrees the skew angle in degrees
 */
-nothing MagickDrawing::skewY(float degrees) {
+nothing MagickDrawing::skewY(float degrees) [flags=NAMED_ARGS] {
     dw->skewY(degrees, xsink);
 }
 
