@@ -1,0 +1,24 @@
+#!/bin/sh
+# Copyright (C) 2026 David Nichols
+# SPDX-License-Identifier: MIT
+set -eu
+qimage_binary=${QORE_QIMAGE_BINARY:-/usr/bin/qimage}
+work_dir=$(mktemp -d)
+trap 'rm -rf "$work_dir"' EXIT HUP INT TERM
+mkdir "$work_dir/cache"
+export XDG_CACHE_HOME="$work_dir/cache"
+cd "$work_dir"
+"$qimage_binary" --help > help.txt
+"$qimage_binary" fonts > fonts.txt
+"$qimage_binary" formats > formats.txt
+/usr/bin/qore -l imagemagick -e 'MagickImage img(width: 64, height: 32, background_color: "red"); img.setFormat("PNG"); img.writeFile("input test.png");'
+cp 'input test.png' original.png
+"$qimage_binary" info 'input test.png' > info.txt
+"$qimage_binary" resize 'input test.png' --width 32 --height 16 -o resized.png
+"$qimage_binary" convert resized.png -F JPEG -o converted.jpg
+"$qimage_binary" annotate 'input test.png' --text Test --font DejaVu-Sans --font-size 12 --x-pos 2 --y-pos 20 -o text.png
+/usr/bin/qore -l imagemagick -e 'MagickImage img("converted.jpg"); if (img.width() != 32 || img.height() != 16) throw "PACKAGE-TEST-ERROR", "Incorrect CLI JPEG dimensions";'
+test -s text.png
+cmp original.png 'input test.png'
+"$qimage_binary" resize resized.png --width 16 --height 8 --in-place
+/usr/bin/qore -l imagemagick -e 'MagickImage img("resized.png"); if (img.width() != 16 || img.height() != 8) throw "PACKAGE-TEST-ERROR", "In-place CLI resize failed";'

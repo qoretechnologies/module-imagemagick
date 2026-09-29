@@ -6,3 +6,16 @@ build*
 *.pyc
 __pycache__
 .DS_Store
+
+# Debian package build products
+/obj-*/
+/debian/.debhelper/
+/debian/debhelper-build-stamp
+/debian/files
+/debian/*.substvars
+/debian/*.debhelper
+/debian/qore-imagemagick-module/
+/debian/qore-imagemagick-module-doc/
+/debian/qore-imagemagick-module-common/
+/debian/tmp/
+**/__pycache__/

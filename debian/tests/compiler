@@ -1,0 +1,23 @@
+#!/bin/sh
+# Copyright (C) 2026 David Nichols
+# SPDX-License-Identifier: MIT
+set -eu
+unset QORE_MODULE_DIR QORE_MODULE_DIR_ONLY QORE_INCLUDE_DIR LD_LIBRARY_PATH LD_PRELOAD
+cd "$AUTOPKGTEST_TMP"
+cat > imagemagick-smoke.q <<'EOF'
+%modern
+%requires imagemagick
+%requires DataProvider
+%requires ImageMagickDataProvider
+MagickImage img(width: 64, height: 32, background_color: "red");
+img.resize(width: 32, height: 16, filter: "Lanczos");
+MagickImage decoded(img.toData("PNG"));
+if (decoded.width() != 32 || decoded.height() != 16) {
+    throw "PACKAGE-TEST-ERROR", "Installed image resize or PNG round trip failed";
+}
+if (DataProvider::getFactory("imagemagick").getInfo().name != "imagemagick") {
+    throw "PACKAGE-TEST-ERROR", "Installed provider factory is unavailable";
+}
+EOF
+/usr/bin/qcc -o imagemagick-smoke imagemagick-smoke.q
+./imagemagick-smoke

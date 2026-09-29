@@ -1,0 +1,10 @@
+qore-imagemagick-module (1.0.0~git20260928.1-0qore1~ubuntu26.04) resolute; urgency=medium
+
+  * Split shared provider sources and translations into a common package.
+  * Package native ImageMagick, source/AOT providers, metadata and translations.
+  * Include qimage with a manual, API references, examples and debug symbols.
+  * Use distribution ImageMagick 7 and fonts with offline installed tests.
+  * Correct coordinate options in qimage help examples.
+  * Add reproducible native build profiles and preserve AOT metadata.
+
+ -- David Nichols <david@qore.org>  Tue, 29 Sep 2026 00:22:34 +0000

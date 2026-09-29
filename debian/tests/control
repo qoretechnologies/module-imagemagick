@@ -1,0 +1,7 @@
+Tests: runtime
+Depends: qore-imagemagick-module
+# QUnit reports progress to stderr even on success.
+Restrictions: allow-stderr
+
+Tests: compiler
+Depends: qore-imagemagick-module, libqore-dev

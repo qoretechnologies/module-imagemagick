@@ -1,0 +1,4 @@
+usr/bin/qimage
+usr/lib/*/qore-modules/*.qmod
+usr/lib/*/qore-modules/ImageMagickDataProvider/
+usr/share/qore/metadata/imagemagick/*.meta.json

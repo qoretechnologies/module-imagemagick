@@ -1,0 +1,9 @@
+Document: qore-imagemagick-module
+Title: Qore ImageMagick Module Reference
+Author: Qore Technologies, s.r.o.
+Abstract: Image processing and ImageMagick data-provider API references.
+Section: Programming
+
+Format: HTML
+Index: /usr/share/doc/qore-imagemagick-module-doc/docs/imagemagick/html/index.html
+Files: /usr/share/doc/qore-imagemagick-module-doc/docs/*/html/*.html

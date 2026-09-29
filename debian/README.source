@@ -1,0 +1,69 @@
+Debian/Ubuntu packaging for the ImageMagick module
+=================================================
+
+qore-imagemagick-module ships native ImageMagick 7 bindings, the
+ImageMagickDataProvider source/AOT module, qimage and its manual, compiler
+metadata and its matching architecture-independent common package contains
+provider sources, resources and locale catalogs. The doc package contains
+both API references and examples. Debhelper generates native/AOT debug symbols.
+
+Use an isolated native environment with packaged Qore and libqore-dev, then
+install debian/control's Build-Depends. Qualification targets Ubuntu 26.04
+amd64 with Qore 3.0. Other targets need matching SDKs and native tests. Cross
+builds fail explicitly because Qore tools run during compilation. ImageMagick
+7 is required: releases shipping version 6 need a separately maintained v7
+package. Use distribution libraries and their delegate/security configuration;
+no private library, bundled source or build-time download is used. DejaVu and
+URW fonts provide text rendering without a desktop. Supported image formats
+and operations remain subject to ImageMagick's installed delegates and policy.
+
+The minimum Qore runtime and libqore SONAME versions come from the installed
+SDK; dh_shlibdeps supplies other library versions. The runtime package is not
+Multi-Arch: same. AOT is enabled, source-tree qmod symlinks are disabled, and
+noopt selects optimization level zero. QCC_JOBS=1 fixes partitioning across
+CPU counts/jobserver loads while independent targets compile in parallel.
+Qore tools use this build and the packaged standard library only. Prefix maps
+cover native/AOT output; timezone and locale are fixed.
+
+The stripping wrapper copied from Qore preserves appended AOT metadata; its
+real-ELF tests run during builds. dwz excludes unsupported LLVM DWARF. All
+provider catalogs and the ownership manifest are packaged; complete standard
+locales are checked against the built provider with qore-misc-tools.
+
+Source preparation and qualification
+------------------------------------
+
+Use a fresh version for each changed upload. This snapshot precedes 1.0.0.
+From a clean committed checkout:
+
+    version=1.0.0~git20260928.1
+    mkdir -p ../imagemagick-package-work
+    git archive --format=tar --prefix="qore-imagemagick-module-$version/" \
+        HEAD -- . ':!debian' | xz > \
+        "../imagemagick-package-work/qore-imagemagick-module_$version.orig.tar.xz"
+    tar -xf "../imagemagick-package-work/qore-imagemagick-module_$version.orig.tar.xz" \
+        -C ../imagemagick-package-work
+    cp -a debian "../imagemagick-package-work/qore-imagemagick-module-$version/"
+    cd "../imagemagick-package-work/qore-imagemagick-module-$version"
+    dpkg-buildpackage -S -us -uc
+
+Extract the .dsc into a fresh directory and run dpkg-buildpackage -b -us -uc
+unprivileged offline. -B builds runtime/debug only; -A builds shared data and
+documentation. The runtime depends on the common package at its exact source
+version, allowing architecture-only binary rebuilds without rebuilding shared data.
+nodoc in DEB_BUILD_OPTIONS suppresses HTML, and the nodoc profile also omits
+the doc package. Full qualification runs tests; repeated/profile builds may
+use nocheck. Retain and review any upstream test skips for missing delegates
+or deliberately invalid fixture data instead of disabling distribution policy.
+
+Run both upstream suites, complete catalogs, AOT helper tests and CLI checks.
+Installed tests copy only test scripts into a temporary directory and preload
+the installed AOT provider. CLI tests cover resize, PNG/JPEG conversion, text,
+spaced paths and explicit in-place editing. A fresh qcc executable checks named
+arguments, a PNG round trip and provider discovery. No external service is needed.
+
+Check Lintian, hardening/debug symbols, AOT trailers, source/resource/catalog
+parity, runtime-only installation without SDK, docs/debug coinstallation,
+dpkg -V, purge/reinstall and byte reproducibility across paths/job counts.
+Retain hashes, dependency inventories and logs. Testing-PPA publication is
+separate from approval for a final general release.

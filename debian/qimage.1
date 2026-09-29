@@ -1,0 +1,77 @@
+." Copyright (C) 2026 David Nichols
+." SPDX-License-Identifier: MIT
+.TH QIMAGE 1 "September 2026" "Qore ImageMagick module" "User Commands"
+.SH NAME
+qimage \- inspect, convert and transform images
+.SH SYNOPSIS
+.B qimage
+.I command
+.RI [ input ]
+.RI [ options ]
+.SH DESCRIPTION
+.B qimage
+uses ImageMagick 7 through Qore to inspect image information, resize and
+convert images, apply effects, draw text and shapes, and manage profiles.
+Transform commands require an output path or an explicit in-place option.
+Existing output paths can be replaced. Formats and delegates are subject
+to the distribution ImageMagick security policy.
+.SH COMMANDS
+.TP
+.B fonts, formats
+List fonts or supported image formats.
+.TP
+.B info, identify, props, profile, pixel
+Inspect images, properties, profiles and pixels. See command-specific help
+for property, profile and pixel modification options.
+.TP
+.B convert, resize, crop, rotate
+Change image format, dimensions or geometry.
+.TP
+.B adjust, blur, sharpen, effect, noise
+Adjust colors and apply filters or effects; --method selects an operation.
+.TP
+.B composite, annotate, draw, border, strip
+Combine images, draw text/shapes, add borders or remove metadata.
+.SH COMMON OPTIONS
+.TP
+.BR -h ", " --help
+Show general or command-specific help.
+.TP
+.BR -V ", " --version
+Display version.
+.TP
+.BR -o ", " --output " " path
+Write output to path.
+.TP
+.BR -i ", " --in-place
+Modify the input file directly.
+.TP
+.BR -F ", " --format " " format
+Select the output format; otherwise it is inferred from the output suffix.
+.TP
+.BR -q ", " --quality " " number
+Set output compression quality.
+.TP
+.BR -m ", " --method " " name
+Select the transformation method.
+.TP
+.B --width, --height
+Set target dimensions for relevant commands.
+.TP
+.BR -C ", " --no-color
+Disable terminal colors.
+.TP
+.BR -v ", " --verbose
+Increase verbosity.
+.SH EXAMPLES
+.nf
+qimage info photo.png
+qimage resize photo.png --width 400 --height 300 -o thumbnail.png
+qimage convert photo.png -F JPEG -q 90 -o photo.jpg
+qimage annotate photo.png --text 'Hello' --font DejaVu-Sans --font-size 18 -o label.png
+qimage resize thumbnail.png --width 200 --height 150 --in-place
+.fi
+.SH SEE ALSO
+.BR qore (1)
+.br
+Use qimage COMMAND --help for command-specific arguments and methods.

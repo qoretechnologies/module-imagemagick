@@ -419,7 +419,7 @@ class QImageMain {
                 printf("  %s       Rows to shave %s\n", color.key("--rows <n>"),
                     color.dim("(shave method)"));
                 printf("\n%s\n", color.bold("Examples:"));
-                printf("  qimage crop photo.jpg -o cropped.jpg --width 400 --height 300 --x 100 --y 50\n");
+                printf("  qimage crop photo.jpg -o cropped.jpg --width 400 --height 300 --x-pos 100 --y-pos 50\n");
                 printf("  qimage crop photo.jpg -o trimmed.jpg -m trim --fuzz 10\n");
                 printf("  qimage crop photo.jpg -o canvas.jpg -m extent --width 1000 --height 800\n");
                 printf("  qimage crop photo.jpg -o shaved.jpg -m shave --columns 20 --rows 20\n");
@@ -644,7 +644,7 @@ class QImageMain {
                 printf("  %s  Gravity alignment %s\n", color.key("--gravity <name>"),
                     color.dim("(center, north, south, east, west, northwest, ...)"));
                 printf("\n%s\n", color.bold("Examples:"));
-                printf("  qimage composite base.jpg -o out.jpg --overlay logo.png --op over --x 10 --y 10\n");
+                printf("  qimage composite base.jpg -o out.jpg --overlay logo.png --op over --x-pos 10 --y-pos 10\n");
                 printf("  qimage composite base.jpg -o out.jpg --overlay logo.png -m gravity --op over --gravity southeast\n");
                 break;
 
@@ -664,8 +664,8 @@ class QImageMain {
                 printf("  %s  Stroke color %s\n", color.key("--stroke <color>"),
                     color.dim("(default: none)"));
                 printf("\n%s\n", color.bold("Examples:"));
-                printf("  qimage annotate photo.jpg -o labeled.jpg --text \"Hello\" --x 10 --y 30\n");
-                printf("  qimage annotate photo.jpg -o labeled.jpg --text \"Title\" --x 50 --y 50 --font Helvetica --font-size 24 --fill white\n");
+                printf("  qimage annotate photo.jpg -o labeled.jpg --text \"Hello\" --x-pos 10 --y-pos 30\n");
+                printf("  qimage annotate photo.jpg -o labeled.jpg --text \"Title\" --x-pos 50 --y-pos 50 --font Helvetica --font-size 24 --fill white\n");
                 break;
 
             case "draw":
