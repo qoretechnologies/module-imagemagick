@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.5...3.31)
 
 project(qore-imagemagick-module)
 
@@ -115,12 +115,7 @@ set(CPP_SRC
     src/ImageMagickHelper.cpp
 )
 
-qore_wrap_qpp_value(QPP_SOURCES METALIST QPP_META_SRC ${QPP_SRC})
-
-foreach (it ${QPP_SOURCES})
-    GET_FILENAME_COMPONENT(_outfile ${it} NAME_WE)
-    set(QPP_DOX ${QPP_DOX} ${CMAKE_CURRENT_BINARY_DIR}/${_outfile}.dox.h)
-endforeach()
+qore_wrap_qpp_value(QPP_SOURCES METALIST QPP_META_SRC DOXLIST QPP_DOX ${QPP_SRC})
 
 set(module_name "imagemagick")
 
@@ -166,7 +161,6 @@ file(WRITE
     "${CMAKE_BINARY_DIR}/doxygen/qlib/ImageMagickDataProvider/imagemagick-logo.svg.dox.h"
     "/** @file imagemagick-logo.svg.dox.h\n    @brief ImageMagick DataProvider logo file.\n*/\n"
 )
-set(MODULE_DOX_INPUT ${CMAKE_BINARY_DIR})
 qore_external_binary_module(${module_name} ${PROJECT_VERSION})
 
 qore_dist(${PROJECT_VERSION})
