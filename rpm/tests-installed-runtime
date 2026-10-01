@@ -1,0 +1,22 @@
+#!/bin/sh
+# Copyright (C) 2026 Qore Technologies, s.r.o.
+# SPDX-License-Identifier: MIT
+set -eu
+export LC_ALL=C.UTF-8
+unset QORE_MODULE_DIR QORE_MODULE_DIR_ONLY QORE_INCLUDE_DIR LD_LIBRARY_PATH LD_PRELOAD
+# Test only installed modules without source module paths.
+export QORE_MODULE_DIR=$(/usr/bin/qore --module-path)
+export QORE_MODULE_DIR_ONLY=1
+mkdir -p "${QORE_RPM_TEST_TMP:?set QORE_RPM_TEST_TMP}"
+cp debian/tests/cli "$QORE_RPM_TEST_TMP/cli"
+cp test/*.qtest "$QORE_RPM_TEST_TMP/"
+cd "$QORE_RPM_TEST_TMP"
+module_dir=$(printf '%s\n' "$QORE_MODULE_DIR" | tr : '\n' | while IFS= read -r path; do
+    if [ -f "$path/ImageMagickDataProvider/ImageMagickDataProvider.qmod" ]; then printf '%s\n' "$path"; break; fi
+done)
+test -n "$module_dir"
+for test in ./*.qtest; do
+    timeout 180 /usr/bin/qore -b --enable-debug -l "$module_dir/ImageMagickDataProvider/ImageMagickDataProvider.qmod" "$test" -v
+done
+
+./cli
