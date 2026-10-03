@@ -2079,6 +2079,8 @@ module ImageMagickDataProvider {
 
     @section imagemagickdataproviderintro ImageMagickDataProvider Module Introduction
 
+    <img src="imagemagick-logo.svg" width="96" alt="ImageMagickDataProvider module logo"/>
+
     Qore ImageMagick data provider module.
 */
 
