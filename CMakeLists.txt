@@ -125,6 +125,17 @@ set(QMOD
 
 set(QORE_DOX_TMPL_SRC
   docs/mainpage.dox.tmpl
+    docs/guide-imagemagickcolorspaces.dox.tmpl
+    docs/guide-imagemagickcomposite.dox.tmpl
+    docs/guide-imagemagickdataprovider.dox.tmpl
+    docs/guide-imagemagickerrors.dox.tmpl
+    docs/guide-imagemagickfilters.dox.tmpl
+    docs/guide-imagemagickformats.dox.tmpl
+    docs/guide-imagemagickgravity.dox.tmpl
+    docs/guide-imagemagicknoise.dox.tmpl
+    docs/guide-imagemagickquickstart.dox.tmpl
+    docs/guide-imagemagickreleasenotes.dox.tmpl
+    docs/guide-imagemagickreq.dox.tmpl
 )
 
 add_library(${module_name} MODULE ${CPP_SRC} ${QPP_SOURCES})
@@ -160,6 +171,22 @@ file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/doxygen/qlib/ImageMagickDataProvider")
 file(WRITE
     "${CMAKE_BINARY_DIR}/doxygen/qlib/ImageMagickDataProvider/imagemagick-logo.svg.dox.h"
     "/** @file imagemagick-logo.svg.dox.h\n    @brief ImageMagick DataProvider logo file.\n*/\n"
+)
+list(APPEND MODULE_DOX_INPUT
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickcolorspaces.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickcomposite.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickdataprovider.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickerrors.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickfilters.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickformats.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickgravity.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagicknoise.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickquickstart.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickreleasenotes.dox
+    ${CMAKE_CURRENT_BINARY_DIR}/guide-imagemagickreq.dox
+)
+set(QORE_DOXYGEN_IMAGES
+    "${CMAKE_SOURCE_DIR}/qlib/ImageMagickDataProvider/imagemagick-logo.svg"
 )
 qore_external_binary_module(${module_name} ${PROJECT_VERSION})
 
@@ -199,4 +226,9 @@ if (DOXYGEN_FOUND)
     qore_wrap_dox(QORE_DOX_SRC ${QORE_DOX_TMPL_SRC})
     add_custom_target(QORE_MOD_DOX_FILES DEPENDS ${QORE_DOX_SRC})
     add_dependencies(docs-module QORE_MOD_DOX_FILES)
+endif()
+
+# Resolve links between the native API and all companion user modules.
+if (DOXYGEN_FOUND)
+    qore_binary_module_two_phase_docs(${module_name} "ImageMagickDataProvider")
 endif()

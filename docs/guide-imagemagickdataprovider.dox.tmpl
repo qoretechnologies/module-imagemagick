@@ -1,0 +1,65 @@
+/* Copyright (C) 2026 Qore Technologies, s.r.o. */
+
+/** @page imagemagickdataproviderguide Data Provider API
+
+    @tableofcontents
+
+    The \c ImageMagickDataProvider module provides integration with the %Qore data provider
+    framework for use with Qorus. It registers the \c "imagemagick" factory with the following
+    provider tree:
+
+    @code{.py}
+    imagemagick{}/
+      image/                        # Container: image operations
+        resize                      # Resize with filter selection
+        crop                        # Crop to region
+        rotate                      # Rotate by angle
+        flip                        # Flip/mirror
+        blur                        # Gaussian blur
+        sharpen                     # Sharpen
+        brightness-contrast         # Adjust brightness and contrast
+        composite                   # Overlay images
+        annotate                    # Add text
+        thumbnail                   # Fast thumbnail creation
+        auto-orient                 # Fix EXIF orientation
+        strip                       # Remove metadata
+        effects/                    # Container: artistic effects
+          charcoal                  # Charcoal drawing
+          sepia                     # Sepia tone
+          oil-paint                 # Oil painting
+          edge                      # Edge detection
+          emboss                    # 3D emboss
+      convert/                      # Container: format operations
+        format                      # Convert image format
+      info/                         # Container: information
+        get                         # Get image metadata
+    @endcode
+
+    All image operations accept either \c input_path (file path) or \c data (binary) as input,
+    with an optional \c output_format to control the output format. All return binary \c data
+    plus \c width, \c height, \c format, and \c size metadata.
+
+    @par Using Data Provider to Resize:
+    @code{.py}
+%modern
+%requires ImageMagickDataProvider
+
+AbstractDataProvider dp = DataProvider::getFactoryObjectFromStringEx("imagemagick{}/image/resize");
+hash<auto> result = dp.doRequest({
+    "data": input_binary,
+    "width": 800,
+    "height": 600,
+    "filter": "Lanczos",
+    "output_format": "JPEG",
+});
+binary resized = result.data;
+printf("Output: %dx%d %s (%d bytes)\n", result.width, result.height, result.format, result.size);
+    @endcode
+
+    @par Using Data Provider to Get Image Info:
+    @code{.py}
+AbstractDataProvider dp = DataProvider::getFactoryObjectFromStringEx("imagemagick{}/info/get");
+hash<auto> info = dp.doRequest({"data": image_binary});
+printf("Format: %s, Size: %dx%d, Colors: %d\n", info.format, info.width, info.height, info.colors);
+    @endcode
+*/

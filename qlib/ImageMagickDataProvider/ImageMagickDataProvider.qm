@@ -2075,6 +2075,13 @@ module ImageMagickDataProvider {
     };
 }
 
+/** @mainpage ImageMagickDataProvider Module
+
+    @section imagemagickdataproviderintro ImageMagickDataProvider Module Introduction
+
+    Qore ImageMagick data provider module.
+*/
+
 public namespace ImageMagickDataProvider {
     #! Application name
     public const AppName = "ImageMagick";

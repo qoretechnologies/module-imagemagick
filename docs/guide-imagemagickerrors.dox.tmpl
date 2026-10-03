@@ -1,0 +1,28 @@
+/* Copyright (C) 2026 Qore Technologies, s.r.o. */
+
+/** @page imagemagickerrorsguide Error Handling
+
+    @tableofcontents
+
+    All errors are raised as \c IMAGEMAGICK-ERROR exceptions with descriptive messages
+    from the ImageMagick library.
+
+    @par Error handling example:
+    @code{.py}
+try {
+    MagickImage img("/nonexistent/path.jpg");
+} catch (hash<ExceptionInfo> ex) {
+    if (ex.err == "IMAGEMAGICK-ERROR") {
+        printf("ImageMagick error: %s\n", ex.desc);
+    }
+}
+    @endcode
+
+    Common error scenarios:
+    - Reading a nonexistent or unreadable file
+    - Reading corrupt or unsupported image data
+    - Writing to an unwritable path
+    - Invalid color strings
+    - Invalid filter, colorspace, or composite operator names
+    - Out-of-bounds pixel coordinates
+*/

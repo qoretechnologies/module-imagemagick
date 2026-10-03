@@ -1,0 +1,22 @@
+/* Copyright (C) 2026 Qore Technologies, s.r.o. */
+
+/** @page imagemagickreleasenotesguide Release Notes
+
+    @tableofcontents
+
+    - public API documentation uses generated QPP declarations without including
+      private implementation headers
+    - added the missing manifest-based CMake uninstall target with staged path support
+
+    @section imagemagick_v1_0 imagemagick Module Version 1.0
+    - Correct qimage coordinate options in crop, composite and annotation help examples
+    - initial public release
+    - @ref Qore::ImageMagick::MagickImage "MagickImage" class with comprehensive image processing
+    - @ref Qore::ImageMagick::MagickDrawing "MagickDrawing" class for vector drawing
+    - @ref Qore::ImageMagick::ImageInfo "ImageInfo", @ref Qore::ImageMagick::ImageResolutionInfo "ImageResolutionInfo",
+      @ref Qore::ImageMagick::PointInfo "PointInfo" hashdecls
+    - ImageMagickDataProvider module for Qorus integration
+    - filter type, colorspace, composite operator, gravity, and noise type constants
+    - support for 200+ image formats
+    - thread-safe design with per-object MagickWand ownership
+*/

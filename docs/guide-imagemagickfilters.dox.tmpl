@@ -1,0 +1,20 @@
+/* Copyright (C) 2026 Qore Technologies, s.r.o. */
+
+/** @page imagemagickfiltersguide Filter Types
+
+    @tableofcontents
+
+    The following filter types are available for resize operations via
+    @ref Qore::ImageMagick::MagickImage::resize() "MagickImage::resize()" and
+    @ref Qore::ImageMagick::MagickImage::resample() "MagickImage::resample()":
+
+    |!Constant|!Filter|!Description|!Best For
+    |\c IM_FILTER_LANCZOS|Lanczos|High quality sinc-windowed filter|General purpose (default)
+    |\c IM_FILTER_MITCHELL|Mitchell|Balanced sharpness and ringing|Photo downscaling
+    |\c IM_FILTER_CATROM|Catrom|Catmull-Rom spline interpolation|Image reduction
+    |\c IM_FILTER_GAUSSIAN|Gaussian|Gaussian curve smoothing|Smooth scaling
+    |\c IM_FILTER_BOX|Box|Nearest neighbor averaging|Pixel art upscaling
+    |\c IM_FILTER_TRIANGLE|Triangle|Bilinear interpolation|Fast moderate quality
+    |\c IM_FILTER_POINT|Point|Nearest neighbor (no interpolation)|Fastest, pixel-perfect
+    |\c IM_FILTER_CUBIC|Cubic|Cubic interpolation|General purpose
+*/
