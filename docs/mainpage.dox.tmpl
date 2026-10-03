@@ -552,19 +552,18 @@ printf("Pixel color: %s\n", color);  # e.g., "srgb(255,0,0)"
 
     ImageMagick supports over 200 image formats. The most commonly used formats include:
 
-    | Format | Read | Write | Description |
-    |--------|------|-------|-------------|
-    | PNG | Yes | Yes | Portable Network Graphics (lossless, supports transparency) |
-    | JPEG | Yes | Yes | Joint Photographic Experts Group (lossy, good for photos) |
-    | GIF | Yes | Yes | Graphics Interchange Format (256 colors, supports animation) |
-    | BMP | Yes | Yes | Windows Bitmap (uncompressed) |
-    | TIFF | Yes | Yes | Tagged Image File Format (high quality, supports layers) |
-    | WebP | Yes | Yes | Google WebP (good lossy and lossless compression) |
-    | SVG | Yes | Yes | Scalable Vector Graphics |
-    | PDF | Yes | Yes | Portable Document Format |
-    | ICO | Yes | Yes | Windows Icon format |
-    | PSD | Yes | No | Adobe Photoshop Document |
-    | EXR | Yes | Yes | OpenEXR (HDR imaging) |
+    |!Format|!Read|!Write|!Description
+    |PNG|Yes|Yes|Portable Network Graphics (lossless, supports transparency)
+    |JPEG|Yes|Yes|Joint Photographic Experts Group (lossy, good for photos)
+    |GIF|Yes|Yes|Graphics Interchange Format (256 colors, supports animation)
+    |BMP|Yes|Yes|Windows Bitmap (uncompressed)
+    |TIFF|Yes|Yes|Tagged Image File Format (high quality, supports layers)
+    |WebP|Yes|Yes|Google WebP (good lossy and lossless compression)
+    |SVG|Yes|Yes|Scalable Vector Graphics
+    |PDF|Yes|Yes|Portable Document Format
+    |ICO|Yes|Yes|Windows Icon format
+    |PSD|Yes|No|Adobe Photoshop Document
+    |EXR|Yes|Yes|OpenEXR (HDR imaging)
 
     The available formats depend on your ImageMagick installation and its configured delegates.
 
@@ -574,34 +573,32 @@ printf("Pixel color: %s\n", color);  # e.g., "srgb(255,0,0)"
     @ref Qore::ImageMagick::MagickImage::resize() "MagickImage::resize()" and
     @ref Qore::ImageMagick::MagickImage::resample() "MagickImage::resample()":
 
-    | Constant | Filter | Description | Best For |
-    |----------|--------|-------------|----------|
-    | \c IM_FILTER_LANCZOS | Lanczos | High quality sinc-windowed filter | General purpose (default) |
-    | \c IM_FILTER_MITCHELL | Mitchell | Balanced sharpness and ringing | Photo downscaling |
-    | \c IM_FILTER_CATROM | Catrom | Catmull-Rom spline interpolation | Image reduction |
-    | \c IM_FILTER_GAUSSIAN | Gaussian | Gaussian curve smoothing | Smooth scaling |
-    | \c IM_FILTER_BOX | Box | Nearest neighbor averaging | Pixel art upscaling |
-    | \c IM_FILTER_TRIANGLE | Triangle | Bilinear interpolation | Fast moderate quality |
-    | \c IM_FILTER_POINT | Point | Nearest neighbor (no interpolation) | Fastest, pixel-perfect |
-    | \c IM_FILTER_CUBIC | Cubic | Cubic interpolation | General purpose |
+    |!Constant|!Filter|!Description|!Best For
+    |\c IM_FILTER_LANCZOS|Lanczos|High quality sinc-windowed filter|General purpose (default)
+    |\c IM_FILTER_MITCHELL|Mitchell|Balanced sharpness and ringing|Photo downscaling
+    |\c IM_FILTER_CATROM|Catrom|Catmull-Rom spline interpolation|Image reduction
+    |\c IM_FILTER_GAUSSIAN|Gaussian|Gaussian curve smoothing|Smooth scaling
+    |\c IM_FILTER_BOX|Box|Nearest neighbor averaging|Pixel art upscaling
+    |\c IM_FILTER_TRIANGLE|Triangle|Bilinear interpolation|Fast moderate quality
+    |\c IM_FILTER_POINT|Point|Nearest neighbor (no interpolation)|Fastest, pixel-perfect
+    |\c IM_FILTER_CUBIC|Cubic|Cubic interpolation|General purpose
 
     @section imagemagickcolorspaces Colorspaces
 
     Supported colorspaces for
     @ref Qore::ImageMagick::MagickImage::transformColorspace() "MagickImage::transformColorspace()":
 
-    | Colorspace | Description |
-    |------------|-------------|
-    | sRGB | Standard RGB (default for web) |
-    | RGB | Linear RGB |
-    | CMYK | Cyan, Magenta, Yellow, Key (print) |
-    | Gray | Grayscale |
-    | HSL | Hue, Saturation, Lightness |
-    | HSV | Hue, Saturation, Value |
-    | Lab | CIE L*a*b* (perceptual) |
-    | LCH | Lightness, Chroma, Hue |
-    | YCbCr | Luminance + Chrominance (video) |
-    | Transparent | Transparent colorspace |
+    |!Colorspace|!Description
+    |sRGB|Standard RGB (default for web)
+    |RGB|Linear RGB
+    |CMYK|Cyan, Magenta, Yellow, Key (print)
+    |Gray|Grayscale
+    |HSL|Hue, Saturation, Lightness
+    |HSV|Hue, Saturation, Value
+    |Lab|CIE L*a*b* (perceptual)
+    |LCH|Lightness, Chroma, Hue
+    |YCbCr|Luminance + Chrominance (video)
+    |Transparent|Transparent colorspace
 
     @section imagemagickcomposite Composite Operators
 
@@ -609,50 +606,47 @@ printf("Pixel color: %s\n", color);  # e.g., "srgb(255,0,0)"
     @ref Qore::ImageMagick::MagickImage::composite() "MagickImage::composite()" and
     @ref Qore::ImageMagick::MagickImage::compositeGravity() "MagickImage::compositeGravity()":
 
-    | Operator | Description |
-    |----------|-------------|
-    | Over | Standard overlay (respects alpha channel) |
-    | Multiply | Multiply blend (darkening, like darkroom double exposure) |
-    | Screen | Screen blend (lightening effect) |
-    | Overlay | Overlay blend (contrast enhancement) |
-    | Add | Additive blend |
-    | Difference | Absolute difference of colors |
-    | Dissolve | Dissolve blend |
-    | HardLight | Hard light blend |
-    | SoftLight | Soft light blend |
-    | ColorBurn | Color burn blend |
-    | ColorDodge | Color dodge blend |
-    | Exclusion | Exclusion blend |
+    |!Operator|!Description
+    |Over|Standard overlay (respects alpha channel)
+    |Multiply|Multiply blend (darkening, like darkroom double exposure)
+    |Screen|Screen blend (lightening effect)
+    |Overlay|Overlay blend (contrast enhancement)
+    |Add|Additive blend
+    |Difference|Absolute difference of colors
+    |Dissolve|Dissolve blend
+    |HardLight|Hard light blend
+    |SoftLight|Soft light blend
+    |ColorBurn|Color burn blend
+    |ColorDodge|Color dodge blend
+    |Exclusion|Exclusion blend
 
     @section imagemagickgravity Gravity Types
 
     Gravity types for positioning in
     @ref Qore::ImageMagick::MagickImage::compositeGravity() "MagickImage::compositeGravity()":
 
-    | Gravity | Position |
-    |---------|----------|
-    | NorthWest | Top-left corner |
-    | North | Top center |
-    | NorthEast | Top-right corner |
-    | West | Center left |
-    | Center | Center of image |
-    | East | Center right |
-    | SouthWest | Bottom-left corner |
-    | South | Bottom center |
-    | SouthEast | Bottom-right corner |
+    |!Gravity|!Position
+    |NorthWest|Top-left corner
+    |North|Top center
+    |NorthEast|Top-right corner
+    |West|Center left
+    |Center|Center of image
+    |East|Center right
+    |SouthWest|Bottom-left corner
+    |South|Bottom center
+    |SouthEast|Bottom-right corner
 
     @section imagemagicknoise Noise Types
 
     Noise types for @ref Qore::ImageMagick::MagickImage::addNoise() "MagickImage::addNoise()":
 
-    | Noise Type | Description |
-    |------------|-------------|
-    | Uniform | Uniform random noise |
-    | Gaussian | Gaussian (normal distribution) noise |
-    | Multiplicative | Multiplicative Gaussian noise |
-    | Impulse | Impulse (salt and pepper) noise |
-    | Laplacian | Laplacian noise |
-    | Poisson | Poisson noise |
+    |!Noise Type|!Description
+    |Uniform|Uniform random noise
+    |Gaussian|Gaussian (normal distribution) noise
+    |Multiplicative|Multiplicative Gaussian noise
+    |Impulse|Impulse (salt and pepper) noise
+    |Laplacian|Laplacian noise
+    |Poisson|Poisson noise
 
     @section imagemagickdataprovider Data Provider API
 
