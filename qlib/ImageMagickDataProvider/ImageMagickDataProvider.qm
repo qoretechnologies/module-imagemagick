@@ -76,6 +76,7 @@ module ImageMagickDataProvider {
         # register actions
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/resize",
             "action": "resize",
             "display_name": "Resize Image",
@@ -103,6 +104,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/crop",
             "action": "crop",
             "display_name": "Crop Image",
@@ -129,6 +131,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/rotate",
             "action": "rotate",
             "display_name": "Rotate Image",
@@ -154,6 +157,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/flip",
             "action": "flip",
             "display_name": "Flip Image",
@@ -174,6 +178,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/blur",
             "action": "blur",
             "display_name": "Blur Image",
@@ -200,6 +205,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/sharpen",
             "action": "sharpen",
             "display_name": "Sharpen Image",
@@ -226,6 +232,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/brightness-contrast",
             "action": "brightness-contrast",
             "display_name": "Adjust Brightness/Contrast",
@@ -250,6 +257,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/composite",
             "action": "composite",
             "display_name": "Composite Images",
@@ -274,6 +282,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/annotate",
             "action": "annotate",
             "display_name": "Annotate Image",
@@ -303,6 +312,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/thumbnail",
             "action": "thumbnail",
             "display_name": "Create Thumbnail",
@@ -329,6 +339,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/auto-orient",
             "action": "auto-orient",
             "display_name": "Auto Orient",
@@ -351,6 +362,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/strip",
             "action": "strip",
             "display_name": "Strip Metadata",
@@ -371,6 +383,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/charcoal",
             "action": "charcoal",
             "display_name": "Charcoal Effect",
@@ -394,6 +407,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/sepia",
             "action": "sepia",
             "display_name": "Sepia Tone",
@@ -414,6 +428,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/oil-paint",
             "action": "oil-paint",
             "display_name": "Oil Paint Effect",
@@ -434,6 +449,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/edge",
             "action": "edge",
             "display_name": "Edge Detection",
@@ -454,6 +470,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/emboss",
             "action": "emboss",
             "display_name": "Emboss Effect",
@@ -477,6 +494,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/convert/format",
             "action": "convert-format",
             "display_name": "Convert Format",
@@ -507,6 +525,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/info/get",
             "action": "get-info",
             "display_name": "Get Image Info",
@@ -531,6 +550,7 @@ module ImageMagickDataProvider {
 
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/negate",
             "action": "negate",
             "display_name": "Negate Colors",
@@ -551,6 +571,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/normalize",
             "action": "normalize",
             "display_name": "Normalize",
@@ -572,6 +593,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/equalize",
             "action": "equalize",
             "display_name": "Equalize",
@@ -593,6 +615,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/auto-gamma",
             "action": "auto-gamma",
             "display_name": "Auto Gamma",
@@ -613,6 +636,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/auto-level",
             "action": "auto-level",
             "display_name": "Auto Level",
@@ -633,6 +657,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/enhance",
             "action": "enhance",
             "display_name": "Enhance",
@@ -653,6 +678,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/white-balance",
             "action": "white-balance",
             "display_name": "White Balance",
@@ -674,6 +700,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/gamma",
             "action": "gamma",
             "display_name": "Gamma Correction",
@@ -700,6 +727,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/modulate",
             "action": "modulate",
             "display_name": "Modulate",
@@ -724,6 +752,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/level",
             "action": "level",
             "display_name": "Level Adjustment",
@@ -753,6 +782,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/contrast-stretch",
             "action": "contrast-stretch",
             "display_name": "Contrast Stretch",
@@ -781,6 +811,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/linear-stretch",
             "action": "linear-stretch",
             "display_name": "Linear Stretch",
@@ -809,6 +840,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/sigmoidal-contrast",
             "action": "sigmoidal-contrast",
             "display_name": "Sigmoidal Contrast",
@@ -839,6 +871,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/transform-colorspace",
             "action": "transform-colorspace",
             "display_name": "Transform Colorspace",
@@ -866,6 +899,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/color/threshold",
             "action": "threshold",
             "display_name": "Binary Threshold",
@@ -895,6 +929,7 @@ module ImageMagickDataProvider {
 
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/solarize",
             "action": "solarize",
             "display_name": "Solarize",
@@ -921,6 +956,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/posterize",
             "action": "posterize",
             "display_name": "Posterize",
@@ -947,6 +983,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/vignette",
             "action": "vignette",
             "display_name": "Vignette",
@@ -973,6 +1010,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/sketch",
             "action": "sketch",
             "display_name": "Pencil Sketch",
@@ -999,6 +1037,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/wave",
             "action": "wave",
             "display_name": "Wave Distortion",
@@ -1025,6 +1064,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/swirl",
             "action": "swirl",
             "display_name": "Swirl Distortion",
@@ -1050,6 +1090,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/implode",
             "action": "implode",
             "display_name": "Implode/Explode",
@@ -1075,6 +1116,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/shadow",
             "action": "shadow",
             "display_name": "Shadow",
@@ -1101,6 +1143,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/shade",
             "action": "shade",
             "display_name": "3D Shade",
@@ -1128,6 +1171,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/add-noise",
             "action": "add-noise",
             "display_name": "Add Noise",
@@ -1154,6 +1198,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/effects/blue-shift",
             "action": "blue-shift",
             "display_name": "Blue Shift",
@@ -1177,6 +1222,7 @@ module ImageMagickDataProvider {
 
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/gaussian-blur",
             "action": "gaussian-blur",
             "display_name": "Gaussian Blur",
@@ -1202,6 +1248,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/motion-blur",
             "action": "motion-blur",
             "display_name": "Motion Blur",
@@ -1231,6 +1278,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/adaptive-blur",
             "action": "adaptive-blur",
             "display_name": "Adaptive Blur",
@@ -1257,6 +1305,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/rotational-blur",
             "action": "rotational-blur",
             "display_name": "Rotational Blur",
@@ -1282,6 +1331,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/adaptive-sharpen",
             "action": "adaptive-sharpen",
             "display_name": "Adaptive Sharpen",
@@ -1308,6 +1358,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/unsharp-mask",
             "action": "unsharp-mask",
             "display_name": "Unsharp Mask",
@@ -1337,6 +1388,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/despeckle",
             "action": "despeckle",
             "display_name": "Despeckle",
@@ -1357,6 +1409,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/reduce-noise",
             "action": "reduce-noise",
             "display_name": "Reduce Noise",
@@ -1382,6 +1435,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/wavelet-denoise",
             "action": "wavelet-denoise",
             "display_name": "Wavelet Denoise",
@@ -1413,6 +1467,7 @@ module ImageMagickDataProvider {
 
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/trim",
             "action": "trim",
             "display_name": "Auto Trim",
@@ -1434,6 +1489,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/border",
             "action": "border",
             "display_name": "Add Border",
@@ -1460,6 +1516,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/frame",
             "action": "frame",
             "display_name": "Add Frame",
@@ -1489,6 +1546,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/shear",
             "action": "shear",
             "display_name": "Shear Transform",
@@ -1515,6 +1573,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/deskew",
             "action": "deskew",
             "display_name": "Deskew",
@@ -1544,6 +1603,7 @@ module ImageMagickDataProvider {
 
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/scale",
             "action": "scale",
             "display_name": "Scale Image",
@@ -1570,6 +1630,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/resample",
             "action": "resample",
             "display_name": "Resample Image",
@@ -1597,6 +1658,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/extent",
             "action": "extent",
             "display_name": "Set Canvas Extent",
@@ -1624,6 +1686,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/selective-blur",
             "action": "selective-blur",
             "display_name": "Selective Blur",
@@ -1651,6 +1714,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/liquid-rescale",
             "action": "liquid-rescale",
             "display_name": "Liquid Rescale",
@@ -1684,6 +1748,7 @@ module ImageMagickDataProvider {
 
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/adaptive-resize",
             "action": "adaptive-resize",
             "display_name": "Adaptive Resize",
@@ -1711,6 +1776,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/sample",
             "action": "sample",
             "display_name": "Sample Resize",
@@ -1737,6 +1803,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/transpose",
             "action": "transpose",
             "display_name": "Transpose",
@@ -1758,6 +1825,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/transverse",
             "action": "transverse",
             "display_name": "Transverse",
@@ -1779,6 +1847,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/chop",
             "action": "chop",
             "display_name": "Chop Region",
@@ -1806,6 +1875,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/shave",
             "action": "shave",
             "display_name": "Shave Edges",
@@ -1833,6 +1903,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/splice",
             "action": "splice",
             "display_name": "Splice Region",
@@ -1863,6 +1934,7 @@ module ImageMagickDataProvider {
 
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/set-resolution",
             "action": "set-resolution",
             "display_name": "Set Resolution",
@@ -1889,6 +1961,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/set-depth",
             "action": "set-depth",
             "display_name": "Set Bit Depth",
@@ -1917,6 +1990,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/set-property",
             "action": "set-property",
             "display_name": "Set Property",
@@ -1942,6 +2016,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/set-profile",
             "action": "set-profile",
             "display_name": "Set Profile",
@@ -1970,6 +2045,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/info/get-properties",
             "action": "get-properties",
             "display_name": "Get Properties",
@@ -1990,6 +2066,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/info/get-exif",
             "action": "get-exif",
             "display_name": "Get EXIF Data",
@@ -2011,6 +2088,7 @@ module ImageMagickDataProvider {
         });
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/info/get-profile",
             "action": "get-profile",
             "display_name": "Get Profile",
@@ -2043,6 +2121,7 @@ module ImageMagickDataProvider {
 
         DataProviderActionCatalog::registerAction(<DataProviderActionInfo>{
             "app": ImageMagickDataProvider::AppName,
+            "cls": "ImageMagickDataProvider::ImageMagickDataProvider",
             "path": "/image/draw",
             "action": "draw",
             "display_name": "Draw on Image",
