@@ -1,0 +1,76 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+# Copyright (C) 2026 Qore Technologies, s.r.o.
+
+# The file operations of the imagemagick module are checked against the filesystem policy of the code that calls them;
+# code run with the system policy (SandboxManager::createSystemPolicyCall()) is checked against the system policy.
+
+%modern
+%no-child-restrictions
+
+%requires QUnit
+%requires Util
+%requires FsUtil
+%requires imagemagick
+
+%exec-class ImageMagickSandboxTest
+
+class ImageMagickSandboxTest inherits QUnit::Test {
+    private {
+        #! the test directory
+        string dir;
+    }
+
+    constructor() : QUnit::Test("imagemagick sandbox", "1.0", \ARGV) {
+        addTestCase("file operations follow the sandbox of the caller and the system policy in a capability",
+            \testFiles());
+        set_return_value(main());
+    }
+
+    globalSetUp() {
+        dir = make_tmp_dir("qore-imagemagick-sandbox-");
+    }
+
+    globalTearDown() {
+        remove_tree(dir);
+    }
+
+    #! returns a Program whose sandbox denies the filesystem
+    private Program getSandboxed() {
+        SandboxManager sm();
+        sm.setFilesystemDefaultPolicy(False);
+        Program p(PO_NEW_STYLE);
+        p.setSandboxManager(sm);
+        p.parse("auto sub through(code c) { return c(); }", "imagemagick-sandbox");
+        return p;
+    }
+
+    #! runs an operation directly from the sandbox, where it is denied, then in a capability, where it runs
+    private auto check(Program p, string name, code op) {
+        assertThrows("FILESYSTEM-ACCESS-DENIED", \p.callFunction(), ("through", op),
+            name + " called directly from the sandbox is denied");
+        return p.callFunction("through", SandboxManager::createSystemPolicyCall(op));
+    }
+
+    testFiles() {
+        Program p = getSandboxed();
+        string png = dir + DirSep + "image.png";
+
+        check(p, "MagickImage::writeFile()", sub () {
+            MagickImage img(20, 10, "white");
+            img.writeFile(png);
+        });
+        assertTrue(is_file(png), "an image is written in a system-policy capability");
+
+        assertEq({"width": 20, "height": 10}, check(p, "MagickImage(path)", hash<auto> sub () {
+            MagickImage img(png);
+            return {"width": img.width(), "height": img.height()};
+        }), "an image is read in a system-policy capability");
+
+        assertEq(20, check(p, "MagickImage::readFile()", int sub () {
+            MagickImage img(1, 1, "white");
+            img.readFile(png);
+            return img.width();
+        }), "an image is read into an image in a system-policy capability");
+    }
+}

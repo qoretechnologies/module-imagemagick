@@ -216,8 +216,8 @@ public:
 private:
     MagickWand* wand;
     mutable QoreRWLock rwlock;
-    //! Sandbox manager helper for interrupt checking (acquired at construction)
-    QoreSandboxManagerHelper smh;
+    //! Sandbox manager for the filesystem policy checks of the image's file operations (acquired at construction)
+    QoreSandboxManagerHelper smh{QoreSandboxManagerHelper::Policy};
     //! Flag set by progress monitor when interrupt is detected
     std::atomic<bool> interrupted{false};
 
