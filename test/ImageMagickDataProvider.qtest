@@ -2367,14 +2367,16 @@ public class ImageMagickDataProviderTest inherits QUnit::Test {
 
         # Test add-noise with invalid noise type
         AbstractDataProvider addNoise = getProvider("image/effects/add-noise");
-        assertThrows("RUNTIME-TYPE-ERROR", \addNoise.doRequest(), ({
+        assertThrows("TYPE-VALUE-ERROR", "field \"noise_type\" does not accept value \"InvalidNoiseType\"",
+            \addNoise.doRequest(), ({
             "input_path": testImagePath,
             "noise_type": "InvalidNoiseType",
         },));
 
         # Test transform-colorspace with invalid colorspace
         AbstractDataProvider colorspace = getProvider("image/color/transform-colorspace");
-        assertThrows("RUNTIME-TYPE-ERROR", \colorspace.doRequest(), ({
+        assertThrows("TYPE-VALUE-ERROR", "field \"colorspace\" does not accept value \"InvalidColorspace\"",
+            \colorspace.doRequest(), ({
             "input_path": testImagePath,
             "colorspace": "InvalidColorspace",
         },));
