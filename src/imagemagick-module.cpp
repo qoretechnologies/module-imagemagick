@@ -32,6 +32,9 @@ static void imagemagick_module_init(QoreModuleInitContext& ctx, ExceptionSink& x
 static void imagemagick_module_ns_init(QoreNamespace* rns, QoreNamespace* qns, ExceptionSink& xsink);
 static void imagemagick_module_delete();
 
+// the module's namespace; purged when the module is deleted (see QoreModuleInfo::ns)
+QoreNamespace ImageMagickNs("Qore::ImageMagick");
+
 extern "C" DLLEXPORT void imagemagick_qore_module_desc(QoreModuleInfo& mod_info) {
     mod_info.name = "imagemagick";
     mod_info.version = "1.0.0";
@@ -43,6 +46,10 @@ extern "C" DLLEXPORT void imagemagick_qore_module_desc(QoreModuleInfo& mod_info)
     mod_info.init = imagemagick_module_init;
     mod_info.ns_init = imagemagick_module_ns_init;
     mod_info.del = imagemagick_module_delete;
+#ifdef QORE_HAS_MODULE_NS_PURGE
+    // the namespace is purged when the module is deleted, before the types are freed (see QoreModuleInfo::ns)
+    mod_info.ns = &ImageMagickNs;
+#endif
     mod_info.license = QL_MIT;
     mod_info.license_str = "MIT";
 }
@@ -51,8 +58,6 @@ extern "C" DLLEXPORT void imagemagick_qore_module_desc(QoreModuleInfo& mod_info)
 const TypedHashDecl* hashdeclImageInfo = nullptr;
 const TypedHashDecl* hashdeclImageResolutionInfo = nullptr;
 const TypedHashDecl* hashdeclPointInfo = nullptr;
-
-QoreNamespace ImageMagickNs("Qore::ImageMagick");
 
 static void imagemagick_module_init(QoreModuleInitContext& ctx, ExceptionSink& xsink) {
     // Initialize MagickWand library
