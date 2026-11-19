@@ -102,3 +102,11 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Copyright
 
 Copyright 2026 Qore Technologies, s.r.o.
+
+Develop CI
+----------
+
+After a squash merge into develop, CI checks the merged pull request head
+as well as the merge commit and its parents. It reuses an earlier result
+only when the Git trees match and the existing pipeline checks pass.
+A missing PR, changed tree, or unavailable evidence runs the full suite.
