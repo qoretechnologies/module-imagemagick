@@ -60,6 +60,8 @@ QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(
         return;
     }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return;
     }
@@ -95,6 +97,7 @@ QoreMagickImage::QoreMagickImage(const BinaryNode* data, const char* format,
         return;
     }
     // a format whose data names other files is refused for restricted or sandboxed calling code
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (checkReadFormat(format, static_cast<bool>(smh), xsink)) {
         return;
     }
@@ -138,6 +141,8 @@ void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
         return;
     }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return;
     }
@@ -174,6 +179,7 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
     }
     QoreAutoRWWriteLocker al(rwlock);
     // a format whose data names other files is refused for restricted or sandboxed calling code
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (checkReadFormat(format, static_cast<bool>(smh), xsink)) {
         return;
     }
@@ -191,6 +197,8 @@ QoreHashNode* QoreMagickImage::pingFile(const char* path, ExceptionSink* xsink) 
         return nullptr;
     }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return nullptr;
     }
@@ -277,6 +285,8 @@ void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
         return;
     }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
         return;
     }
@@ -298,6 +308,8 @@ void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* x
         return;
     }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
         return;
     }

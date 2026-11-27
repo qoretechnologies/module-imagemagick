@@ -22,4 +22,8 @@
       was given to, as the object's methods run with the file system lent (see @ref imagemagickcallerpaths and
       @ref Qore::ImageMagick::IM_LENT_PATH_CHECKS,
       <a href="https://github.com/qoretechnologies/module-imagemagick/issues/10">issue 10</a>)
+    - the file operations of @ref Qore::ImageMagick::MagickImage "MagickImage" check the file-system policy of the
+      sandbox that governs the code that calls them; they checked that of the code that created the image, so an
+      image that the host created read and wrote any file for sandboxed code
+      (<a href="https://github.com/qoretechnologies/module-imagemagick/issues/11">issue 11</a>)
 */
