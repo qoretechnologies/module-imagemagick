@@ -26,6 +26,8 @@
 
 #include "QoreMagickImage.h"
 
+#include <climits>
+
 void QoreMagickImage::setupProgressMonitor() {
     if (wand) {
         MagickSetImageProgressMonitor(wand, progressMonitor, this);
@@ -80,7 +82,11 @@ static MagickWand* decodeForRestricted(const void* data, size_t len, const char*
         return nullptr;
     }
     // the data is decoded in the format that was checked: BlobToImage() and PingBlob() read it with the format as a
-    // prefix, which ImageMagick does not override with the format that it detects
+    // prefix ("PNG:<name>"), which ImageMagick does not override with the format that it detects; it takes the prefix
+    // as one only if no file with the whole name exists (GetPathComponent()), so the name is longer than a file name
+    // can be: also when a file or directory named "PNG:" exists, and for the prefixes of the nested reads of coders
+    // (such as BMP's "JPEG:<name>")
+    MagickSetFilename(pw.get(), std::string(NAME_MAX + 32, 'x').c_str());
     if (MagickSetFormat(pw.get(), magick.c_str()) == MagickFalse) {
         if (!checkMagickError(pw.get(), "error setting the format of the image data", xsink)) {
             xsink->raiseException("IMAGEMAGICK-ERROR", "error setting the format '%s' of the image data",
@@ -96,13 +102,18 @@ static MagickWand* decodeForRestricted(const void* data, size_t len, const char*
         }
         return nullptr;
     }
-    if (path) {
-        MagickResetIterator(pw.get());
-        while (MagickNextImage(pw.get()) != MagickFalse) {
-            MagickSetImageFilename(pw.get(), path);
+    MagickSetFilename(pw.get(), "");
+    // the images get the file's name, and the montage directory of MIFF data is removed: it names images that
+    // ImageMagick reads with full file name syntax when the image is identified or written as JSON
+    MagickResetIterator(pw.get());
+    while (MagickNextImage(pw.get()) != MagickFalse) {
+        MagickSetImageFilename(pw.get(), path ? path : "");
+        Image* image = GetImageFromMagickWand(pw.get());
+        if (image && image->directory) {
+            image->directory = DestroyString(image->directory);
         }
-        MagickResetIterator(pw.get());
     }
+    MagickResetIterator(pw.get());
     return pw.release();
 }
 
@@ -185,38 +196,58 @@ int QoreMagickImage::addImages(MagickWand* pw, ExceptionSink* xsink) {
     return 0;
 }
 
-int QoreMagickImage::checkOutputFormat(const char* path, bool all, ExceptionSink* xsink) {
-    // the format that ImageMagick writes in: from the file name, else the wand's format (WriteImage(),
-    // ImageToBlob())
-    std::string magick;
-    {
-        ImageInfo* info = AcquireImageInfo();
-        ExceptionInfo* ex = AcquireExceptionInfo();
-        if (!info || !ex) {
-            if (info) {
-                DestroyImageInfo(info);
-            }
-            if (ex) {
-                DestroyExceptionInfo(ex);
-            }
-            xsink->outOfMemory();
+//! returns the format that SetImageInfo() decides for an output file name and format
+static std::string getOutputFormat(const char* magick, const char* path, size_t frames) {
+    ImageInfoHolder info;
+    ExceptionInfoHolder ex;
+    if (!info.get() || !ex.get()) {
+        return std::string();
+    }
+    if (magick) {
+        CopyMagickString(info->magick, magick, MagickPathExtent);
+    }
+    if (path) {
+        CopyMagickString(info->filename, path, MagickPathExtent);
+    }
+    SetImageInfo(info.get(), frames ? frames : 1, ex.get());
+    return info->magick;
+}
+
+int QoreMagickImage::checkNoDirectory(ExceptionSink* xsink) {
+    // a montage directory (read from MIFF data) names images that ImageMagick reads with full file name syntax when
+    // the image is identified verbosely or written as JSON, YAML or INFO
+    Image* image = GetImageFromMagickWand(wand);
+    for (image = image ? GetFirstImageInList(image) : nullptr; image; image = GetNextImageInList(image)) {
+        if (image->directory) {
+            xsink->raiseException("PERMISSION-DENIED", "the image has a montage directory, which names other images "
+                "that ImageMagick reads when it describes the image, and the calling code (also the code that a "
+                "host-created object was lent to) is restricted from the FILESYSTEM, NETWORK, EXTERNAL_PROCESS or "
+                "PROCESS_CONTROL functional domain, or a sandbox governs it");
             return -1;
         }
+    }
+    return 0;
+}
+
+int QoreMagickImage::checkOutputFormat(const char* path, bool all, ExceptionSink* xsink) {
+    if (checkNoDirectory(xsink)) {
+        return -1;
+    }
+    size_t frames = all ? MagickGetNumberImages(wand) : 1;
+    // the format that ImageMagick writes in: the wand's format (set by an explicit read format; WriteImages() does
+    // not use it), else the file name's; the file name's extension, which WriteImage() falls back to when the format
+    // has no encoder (WriteImage(), WriteImages(), ImageToBlob())
+    if (!all) {
         char* wf = MagickGetFormat(wand);
+        std::string magick = getOutputFormat(wf, path, frames);
         if (wf) {
-            CopyMagickString(info->magick, wf, MagickPathExtent);
             MagickRelinquishMemory(wf);
         }
-        if (path) {
-            CopyMagickString(info->filename, path, MagickPathExtent);
+        if (checkEncodeFormat(magick.c_str(), xsink)) {
+            return -1;
         }
-        size_t frames = all ? MagickGetNumberImages(wand) : 1;
-        SetImageInfo(info, frames ? frames : 1, ex);
-        magick = info->magick;
-        DestroyImageInfo(info);
-        DestroyExceptionInfo(ex);
     }
-    if (checkEncodeFormat(magick.c_str(), xsink)) {
+    if (path && checkEncodeFormat(getOutputFormat(nullptr, path, frames).c_str(), xsink)) {
         return -1;
     }
     // ImageMagick falls back to the format of an image whose output format has no encoder, and writes each image in
@@ -652,6 +683,10 @@ QoreStringNode* QoreMagickImage::getSignature(ExceptionSink* xsink) {
 
 QoreStringNode* QoreMagickImage::identify(ExceptionSink* xsink) {
     QoreAutoRWReadLocker al(rwlock);
+    // the verbose identification reads the images of a montage directory (module-imagemagick#13)
+    if (restrictedCaller() && checkNoDirectory(xsink)) {
+        return nullptr;
+    }
     char* id = MagickIdentifyImage(wand);
     QoreStringNode* rv = new QoreStringNode(id ? id : "");
     if (id) {
@@ -1334,8 +1369,9 @@ void QoreMagickImage::compositeGravity(QoreMagickImage* source, const char* op,
 void QoreMagickImage::annotate(const char* text, double x, double y, double angle,
                                const char* font, double font_size, const char* fill_color,
                                const char* stroke_color, ExceptionSink* xsink) {
-    // a font file is the calling code's input: checked before anything is drawn
-    if (checkFontAccess(font, xsink)) {
+    // a font file is the calling code's input: checked before anything is drawn; a font or text that ImageMagick
+    // renders with Ghostscript or an X server is refused for restricted code (module-imagemagick#13)
+    if (checkFontRenderer(font, true, xsink) || checkFontAccess(font, xsink)) {
         return;
     }
     QoreAutoRWWriteLocker al(rwlock);
@@ -1361,6 +1397,27 @@ void QoreMagickImage::annotate(const char* text, double x, double y, double angl
 }
 
 void QoreMagickImage::draw(DrawingWand* dw, ExceptionSink* xsink) {
+    // the font of a drawing that the host created and gave to restricted code is checked when it is drawn too: a font
+    // or text that ImageMagick renders with Ghostscript or an X server is refused for restricted code
+    // (module-imagemagick#13)
+    {
+        char* font = DrawGetFont(dw);
+        bool text = false;
+        if (!haveFreetype()) {
+            char* mvg = DrawGetVectorGraphics(dw);
+            text = !mvg || strstr(mvg, "text");
+            if (mvg) {
+                MagickRelinquishMemory(mvg);
+            }
+        }
+        int rc = checkFontRenderer(font, text, xsink);
+        if (font) {
+            MagickRelinquishMemory(font);
+        }
+        if (rc) {
+            return;
+        }
+    }
     QoreAutoRWWriteLocker al(rwlock);
     if (MagickDrawImage(wand, dw) == MagickFalse) {
         checkMagickError(wand, "error drawing on image", xsink);

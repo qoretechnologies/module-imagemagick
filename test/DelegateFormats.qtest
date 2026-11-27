@@ -134,6 +134,16 @@ string sub to_data(string format) {
     return run(sub () { new MagickImage(4, 4, \"red\").toData(format); });
 }
 
+# identifies an image made from the given data; the montage directory must not be listed
+string sub run_identify(binary data) {
+    string rv;
+    string err = run(sub () { rv = new MagickImage(data).identify(); });
+    if (err != \"ok\") {
+        return err;
+    }
+    return rv =~ /Directory:/ ? \"directory listed\" : \"ok\";
+}
+
 # calls a method of an object that the host created
 string sub lent_call(object obj, string method, softlist<auto> args) {
     return run(sub () { call_object_method_args(obj, method, args); });
@@ -221,6 +231,8 @@ string sub write_file(string op, string path) {
         string mvg_file;
         #! true if Ghostscript is installed
         bool have_gs;
+        #! MIFF data with a montage directory
+        binary miff_data;
         #! the formats that ImageMagick provides
         hash<string, bool> known_formats;
     }
@@ -259,6 +271,14 @@ string sub write_file(string op, string path) {
             "WPG": writeTestFile("x.bin", refused_data."WPG header"),
         };
         known_formats = map {$1: True}, MagickImage::queryFormats();
+        # a file named as a format prefix in the current directory (see testFormatPrefixFiles())
+        mkdir(dir + "/cwd");
+        mkdir(dir + "/cwd/PNG:");
+        chdir(dir + "/cwd");
+        # MIFF data with a montage directory that names the PNG file; each entry ends with 0xff, as ImageMagick writes
+        # them (its directory parser reads past the end of an entry that does not)
+        miff_data = binary("id=ImageMagick  version=1.0\nclass=DirectClass  colors=0  alpha-trait=Undefined\n"
+            "columns=1  rows=1  depth=8\ncolorspace=sRGB\nmontage=1x1+0+0\n\f\n:\x1a" + png_file) + <ff00ff0000>;
         have_gs = False;
         foreach string d in (ENV.PATH.split(":")) {
             if (is_executable(d + "/gs")) {
@@ -277,6 +297,9 @@ string sub write_file(string op, string path) {
             addTestCase("fonts, " + m, sub () { testFonts(m); });
             addTestCase("output formats, " + m, sub () { testOutputFormats(m); });
             addTestCase("lent objects, " + m, sub () { testLentObjects(m); });
+            addTestCase("format prefix files, " + m, sub () { testFormatPrefixFiles(m); });
+            addTestCase("montage directories, " + m, sub () { testMontageDirectories(m); });
+            addTestCase("lent drawings, " + m, sub () { testLentDrawings(m); });
             addTestCase("unrestricted, " + m, sub () { testUnrestricted(m); });
         }
         set_return_value(main());
@@ -373,8 +396,14 @@ string sub write_file(string op, string path) {
                 assertRegex("^FILESYSTEM-ACCESS-DENIED:", p.callFunction("file_op", "read", name),
                     sprintf("%s %y %s", kind, name, mode));
             }
-            assertRegex("^FILESYSTEM-ACCESS-DENIED:", p.callFunction("write_file", "writeFile", "png:" + dir
-                + "/out.png"), sprintf("%s output prefix %s", kind, mode));
+            # an output name with a coder prefix (also a one-letter one) or a "%" escape
+            foreach string name in ("png:" + dir + "/out.png", "r:" + dir + "/out.png", dir + "/%[p].png",
+                dir + "/out%d.png") {
+                foreach string op in ("writeFile", "writeFiles") {
+                    assertRegex("^FILESYSTEM-ACCESS-DENIED:", p.callFunction("write_file", op, name),
+                        sprintf("%s %s %y %s", kind, op, name, mode));
+                }
+            }
         }
         # unrestricted callers use the syntax
         Program p = getProgram("unrestricted", mode);
@@ -493,6 +522,55 @@ string sub write_file(string op, string path) {
                     sprintf("%s lent PNG file %s", kind, mode));
             }
         }
+    }
+
+    #! the checked format is decoded also when a file named as its prefix exists in the current directory
+    /** ImageMagick takes "PNG:" as a format prefix only if no file with the whole name exists; the data must be
+        decoded as PNG, not detected as PostScript
+    */
+    private testFormatPrefixFiles(string mode) {
+        assertTrue(is_dir("PNG:"), "prefix directory " + mode);
+        foreach string kind in (RestrictedKinds) {
+            Program p = getProgram(kind, mode);
+            assertRegex("^IMAGEMAGICK-ERROR:", p.callFunction("data_op", "ctor", binary(PsData), "PNG"),
+                sprintf("%s PS data as PNG %s", kind, mode));
+            assertEq("ok", p.callFunction("data_op", "ctor", png_data, "PNG"), sprintf("%s PNG %s", kind, mode));
+            assertEq("ok", p.callFunction("data_op", "read", png_data), sprintf("%s read PNG %s", kind, mode));
+        }
+    }
+
+    #! the montage directory of MIFF data, which names images that ImageMagick reads, is not used for restricted code
+    private testMontageDirectories(string mode) {
+        # the host's image has the directory, which ImageMagick reads when it identifies the image
+        MagickImage host(miff_data);
+        assertRegex("Directory:", host.identify(), "host directory " + mode);
+        foreach string kind in (RestrictedKinds) {
+            Program p = getProgram(kind, mode);
+            # the directory of data that restricted code decodes is removed
+            assertEq("ok", p.callFunction("run_identify", miff_data), sprintf("%s identify MIFF %s", kind, mode));
+            # an image that has one is not described or written for restricted code
+            assertRegex("^PERMISSION-DENIED:", p.callFunction("lent_call", host, "identify", ()),
+                sprintf("%s identify a host image %s", kind, mode));
+            assertRegex("^PERMISSION-DENIED:", p.callFunction("lent_call", host, "toData", "JSON"),
+                sprintf("%s JSON of a host image %s", kind, mode));
+        }
+    }
+
+    #! the font of a drawing that the host gives to restricted code is checked when the drawing is drawn
+    private testLentDrawings(string mode) {
+        MagickDrawing dw();
+        dw.setFont("^Helvetica");
+        dw.annotation(1.0, 5.0, "x");
+        MagickImage img(8, 8, "white");
+        foreach string kind in (RestrictedKinds) {
+            Program p = getProgram(kind, mode);
+            assertRegex("^PERMISSION-DENIED:", p.callFunction("lent_call", img, "draw", dw),
+                sprintf("%s draw %s", kind, mode));
+        }
+        # a drawing without such a font is drawn
+        MagickDrawing plain();
+        plain.line(0.0, 0.0, 4.0, 4.0);
+        assertEq("ok", getProgram("nofs", mode).callFunction("lent_call", img, "draw", plain), "nofs plain " + mode);
     }
 
     #! unrestricted code keeps decoding all formats

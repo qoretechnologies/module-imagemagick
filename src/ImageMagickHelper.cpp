@@ -388,6 +388,47 @@ int checkCallerPath(const char* path, ExceptionSink* xsink) {
     return 0;
 }
 
+bool haveFreetype() {
+    // the built-in delegate libraries, as "magick -version" lists them
+    const char* d = GetMagickDelegates();
+    if (!d) {
+        return false;
+    }
+    for (const char* p = d; (p = strstr(p, "freetype")); p += 8) {
+        if ((p == d || p[-1] == ' ') && (!p[8] || p[8] == ' ')) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int checkFontRenderer(const char* font, bool text, ExceptionSink* xsink) {
+    // ImageMagick renders a font that starts with "^" with Ghostscript (a PostScript program that it decodes), one
+    // that starts with "-" with an X server, and all text with Ghostscript if it was built without FreeType
+    // (module-imagemagick#13)
+    bool delegate_font = font && (font[0] == '^' || font[0] == '-');
+    if (!delegate_font && (!text || haveFreetype())) {
+        return 0;
+    }
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
+    if (!callerRestrictsFormats(static_cast<bool>(smh))) {
+        return 0;
+    }
+    if (delegate_font) {
+        xsink->raiseException("PERMISSION-DENIED", "font '%s' cannot be used: ImageMagick renders a font whose "
+            "name starts with '^' with Ghostscript and one whose name starts with '-' with an X server, and the "
+            "calling code (also the code that a host-created object was lent to) is restricted from the "
+            "FILESYSTEM, NETWORK, EXTERNAL_PROCESS or PROCESS_CONTROL functional domain, or a sandbox governs "
+            "it", font);
+    } else {
+        xsink->raiseException("PERMISSION-DENIED", "text cannot be rendered: ImageMagick was built without "
+            "FreeType and renders text with Ghostscript, and the calling code (also the code that a host-created "
+            "object was lent to) is restricted from the FILESYSTEM, NETWORK, EXTERNAL_PROCESS or PROCESS_CONTROL "
+            "functional domain, or a sandbox governs it");
+    }
+    return -1;
+}
+
 int checkFontAccess(const char* font, ExceptionSink* xsink) {
     if (!font || !font[0]) {
         return 0;
@@ -395,18 +436,8 @@ int checkFontAccess(const char* font, ExceptionSink* xsink) {
     if (checkFontName(font, "font", xsink)) {
         return -1;
     }
-    // ImageMagick renders a font that starts with "^" with Ghostscript (a PostScript program that it decodes) and
-    // one that starts with "-" with an X server (module-imagemagick#13)
-    if (font[0] == '^' || font[0] == '-') {
-        QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
-        if (callerRestrictsFormats(static_cast<bool>(smh))) {
-            xsink->raiseException("PERMISSION-DENIED", "font '%s' cannot be used: ImageMagick renders a font whose "
-                "name starts with '^' with Ghostscript and one whose name starts with '-' with an X server, and the "
-                "calling code (also the code that a host-created object was lent to) is restricted from the "
-                "FILESYSTEM, NETWORK, EXTERNAL_PROCESS or PROCESS_CONTROL functional domain, or a sandbox governs "
-                "it", font);
-            return -1;
-        }
+    if (checkFontRenderer(font, false, xsink)) {
+        return -1;
     }
     // ImageMagick reads a font that names an existing file (before it looks the name up among the registered
     // fonts), and "@" introduces a file: such a font is the calling code's input
@@ -432,16 +463,24 @@ int checkFontAccess(const char* font, ExceptionSink* xsink) {
 
 int checkMagickFileName(const char* path, ExceptionSink* xsink) {
     // a coder prefix ("png:file"), a list file ("@file") and a scene or size suffix ("file[0]") make ImageMagick
-    // open another file than the one that the policy checks (a one-letter prefix is a Windows drive)
+    // open another file than the one that the policy checks; "%" in a name that is written is replaced with image
+    // properties and the scene number (InterpretImageFilename()); one-letter coders exist (such as "r:"), so a
+    // one-letter prefix is a drive only on Windows (module-imagemagick#13)
     const char* p = path;
     while (*p && (isalnum(static_cast<unsigned char>(*p)) || *p == '-' || *p == '_')) {
         ++p;
     }
+#ifdef _WIN32
+    bool prefix = *p == ':' && (p - path) > 1;
+#else
+    bool prefix = *p == ':' && p != path;
+#endif
     size_t len = strlen(path);
-    if ((*p == ':' && (p - path) > 1) || path[0] == '@' || (len && path[len - 1] == ']')) {
+    if (prefix || path[0] == '@' || (len && path[len - 1] == ']') || strchr(path, '%')) {
         xsink->raiseException("FILESYSTEM-ACCESS-DENIED", "file name '%s' cannot be used by code that a sandbox "
             "governs or that is restricted from the FILESYSTEM, NETWORK, EXTERNAL_PROCESS or PROCESS_CONTROL "
-            "functional domain: ImageMagick would interpret its coder prefix, list file or suffix", path);
+            "functional domain: ImageMagick would interpret its coder prefix, list file, suffix or '%%' escape",
+            path);
         return -1;
     }
     return 0;
@@ -476,59 +515,6 @@ static bool isFormatName(const char* name) {
         }
     }
     return true;
-}
-
-//! RAII holders for ImageMagick structures
-namespace {
-class ImageInfoHolder {
-public:
-    DLLLOCAL ImageInfoHolder() : info(AcquireImageInfo()) {
-    }
-
-    DLLLOCAL ~ImageInfoHolder() {
-        if (info) {
-            // the blob is the caller's
-            SetImageInfoBlob(info, nullptr, 0);
-            DestroyImageInfo(info);
-        }
-    }
-
-    DLLLOCAL ImageInfo* operator->() const {
-        return info;
-    }
-
-    DLLLOCAL ImageInfo* get() const {
-        return info;
-    }
-
-    ImageInfoHolder(const ImageInfoHolder&) = delete;
-    ImageInfoHolder& operator=(const ImageInfoHolder&) = delete;
-
-private:
-    ImageInfo* info;
-};
-
-class ExceptionInfoHolder {
-public:
-    DLLLOCAL ExceptionInfoHolder() : ex(AcquireExceptionInfo()) {
-    }
-
-    DLLLOCAL ~ExceptionInfoHolder() {
-        if (ex) {
-            DestroyExceptionInfo(ex);
-        }
-    }
-
-    DLLLOCAL ExceptionInfo* get() const {
-        return ex;
-    }
-
-    ExceptionInfoHolder(const ExceptionInfoHolder&) = delete;
-    ExceptionInfoHolder& operator=(const ExceptionInfoHolder&) = delete;
-
-private:
-    ExceptionInfo* ex;
-};
 }
 
 std::string getDecodeFormat(const void* data, size_t len, const char* format, const char* path) {
@@ -679,6 +665,12 @@ int checkEncodeFormat(const char* magick, ExceptionSink* xsink) {
 }
 
 int readRegularFile(const char* path, std::vector<unsigned char>& buf, ExceptionSink* xsink) {
+    // ImageMagick's own path policy (policy.xml), which it applies when it opens a file itself
+    if (IsRightsAuthorized(PathPolicyDomain, ReadPolicyRights, path) == MagickFalse) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "error reading image file '%s': the ImageMagick security "
+            "policy does not allow the path", path);
+        return -1;
+    }
     // O_NONBLOCK: opening a FIFO does not wait for a writer
     int fd = open(path, O_RDONLY | O_CLOEXEC | O_NOCTTY | O_NONBLOCK);
     if (fd < 0) {

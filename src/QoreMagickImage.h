@@ -238,6 +238,13 @@ private:
     */
     DLLLOCAL int checkOutputFormat(const char* path, bool all, ExceptionSink* xsink);
 
+    //! Refuses an image with a montage directory (read from MIFF data), for restricted calling code
+    /** The lock must be held
+
+        @return 0 if no image has a directory, -1 if \c PERMISSION-DENIED was raised
+    */
+    DLLLOCAL int checkNoDirectory(ExceptionSink* xsink);
+
     //! Progress monitor callback - checks for sandbox interrupt
     static MagickBooleanType progressMonitor(const char* tag, const MagickOffsetType offset,
                                               const MagickSizeType size, void* client_data);

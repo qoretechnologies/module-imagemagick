@@ -214,6 +214,73 @@ DLLLOCAL int checkEncodeFormat(const char* magick, ExceptionSink* xsink);
 */
 DLLLOCAL int readRegularFile(const char* path, std::vector<unsigned char>& buf, ExceptionSink* xsink);
 
+//! Destroys an ImageInfo when it goes out of scope (the blob is not freed)
+class ImageInfoHolder {
+public:
+    DLLLOCAL ImageInfoHolder() : info(AcquireImageInfo()) {
+    }
+
+    DLLLOCAL ~ImageInfoHolder() {
+        if (info) {
+            // the blob is the caller's
+            SetImageInfoBlob(info, nullptr, 0);
+            DestroyImageInfo(info);
+        }
+    }
+
+    DLLLOCAL ImageInfo* operator->() const {
+        return info;
+    }
+
+    DLLLOCAL ImageInfo* get() const {
+        return info;
+    }
+
+    ImageInfoHolder(const ImageInfoHolder&) = delete;
+    ImageInfoHolder& operator=(const ImageInfoHolder&) = delete;
+
+private:
+    ImageInfo* info;
+};
+
+//! Destroys an ExceptionInfo when it goes out of scope
+class ExceptionInfoHolder {
+public:
+    DLLLOCAL ExceptionInfoHolder() : ex(AcquireExceptionInfo()) {
+    }
+
+    DLLLOCAL ~ExceptionInfoHolder() {
+        if (ex) {
+            DestroyExceptionInfo(ex);
+        }
+    }
+
+    DLLLOCAL ExceptionInfo* get() const {
+        return ex;
+    }
+
+    ExceptionInfoHolder(const ExceptionInfoHolder&) = delete;
+    ExceptionInfoHolder& operator=(const ExceptionInfoHolder&) = delete;
+
+private:
+    ExceptionInfo* ex;
+};
+
+//! Returns true if ImageMagick was built with FreeType
+DLLLOCAL bool haveFreetype();
+
+//! Refuses, for restricted calling code, a font that ImageMagick renders with Ghostscript or an X server
+/** A font whose name starts with \c "^" (Ghostscript) or \c "-" (X server), or any text if ImageMagick was built
+    without FreeType (it then renders all text with Ghostscript); the calling code is restricted as for
+    callerRestrictsFormats()
+
+    @param font the font, if any
+    @param text true if text is rendered (else only the font's name is checked)
+
+    @return 0 if the font can be used, -1 if \c PERMISSION-DENIED was raised
+*/
+DLLLOCAL int checkFontRenderer(const char* font, bool text, ExceptionSink* xsink);
+
 //! Destroys a MagickWand when it goes out of scope
 typedef std::unique_ptr<MagickWand, MagickWand* (*)(MagickWand*)> MagickWandHolder;
 
