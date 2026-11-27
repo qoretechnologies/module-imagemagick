@@ -55,7 +55,13 @@ bool QoreMagickImage::checkInterrupted(ExceptionSink* xsink) {
 
 QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(NewMagickWand()) {
     setupProgressMonitor();
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return;
+    }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return;
     }
@@ -91,6 +97,7 @@ QoreMagickImage::QoreMagickImage(const BinaryNode* data, const char* format,
         return;
     }
     // a format whose data names other files is refused for restricted or sandboxed calling code
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (checkReadFormat(format, static_cast<bool>(smh), xsink)) {
         return;
     }
@@ -129,7 +136,13 @@ QoreMagickImage::~QoreMagickImage() {
 // --- I/O ---
 
 void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return;
+    }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return;
     }
@@ -150,11 +163,24 @@ void QoreMagickImage::readData(const BinaryNode* data, ExceptionSink* xsink) {
     if (qore_check_cancel(xsink, "reading image from binary data")) {
         return;
     }
-    QoreAutoRWWriteLocker al(rwlock);
-    if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
-        if (!checkInterrupted(xsink)) {
-            checkMagickError(wand, "error reading image from binary data", xsink);
+    // the data is decoded in a new wand and its images are added: a wand keeps the format of the data that it read
+    // last, so data read into this wand after data in a format that names other files (such as MVG) would be decoded
+    // in that format and read the files that it names (module-imagemagick#10)
+    MagickWand* pw = NewMagickWand();
+    if (!pw) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "cannot allocate a wand to read the image data");
+        return;
+    }
+    ON_BLOCK_EXIT(DestroyMagickWand, pw);
+    if (MagickReadImageBlob(pw, data->getPtr(), data->size()) == MagickFalse) {
+        if (!checkMagickError(pw, "error reading image from binary data", xsink)) {
+            xsink->raiseException("IMAGEMAGICK-ERROR", "error reading image from binary data");
         }
+        return;
+    }
+    QoreAutoRWWriteLocker al(rwlock);
+    if (MagickAddImage(wand, pw) == MagickFalse) {
+        checkMagickError(wand, "error adding the images read from binary data", xsink);
     }
 }
 
@@ -166,6 +192,7 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
     }
     QoreAutoRWWriteLocker al(rwlock);
     // a format whose data names other files is refused for restricted or sandboxed calling code
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (checkReadFormat(format, static_cast<bool>(smh), xsink)) {
         return;
     }
@@ -178,7 +205,13 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
 }
 
 QoreHashNode* QoreMagickImage::pingFile(const char* path, ExceptionSink* xsink) {
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return nullptr;
+    }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return nullptr;
     }
@@ -260,7 +293,13 @@ QoreHashNode* QoreMagickImage::pingData(const BinaryNode* data, ExceptionSink* x
 }
 
 void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return;
+    }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
         return;
     }
@@ -277,7 +316,13 @@ void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
 }
 
 void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* xsink) {
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return;
+    }
     // Check filesystem sandbox access
+    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
         return;
     }

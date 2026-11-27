@@ -27,6 +27,8 @@
 
 %modern
 %prepend-module-path "${SCRIPT_DIR}/../qlib"
+# the test module whose objects the host lends
+%prepend-module-path "${SCRIPT_DIR}"
 
 %requires QUnit
 %requires Util
@@ -34,6 +36,7 @@
 %requires DataProvider
 %requires imagemagick
 %requires ImageMagickDataProvider
+%requires ImLentUser
 
 %exec-class CallerFileAccessTest
 
@@ -44,8 +47,11 @@
     Program with PO_NO_FILESYSTEM is refused with PERMISSION-DENIED, a Program whose sandbox denies the file system by
     default with FILESYSTEM-ACCESS-DENIED (its file-system policy, when the file is opened), and a location is refused
     for a Program restricted from a domain of its scheme's handler; nothing is written.  The public helper methods of
-    ImageMagickImageActionBase, and fonts that name files, are refused for restricted callers too.  Requests without
-    paths still work for restricted callers, and unrestricted callers use the paths.
+    ImageMagickImageActionBase, and fonts that name files, are refused for restricted callers too, and the paths,
+    fonts and data that a method of a lent object of a module class gives the ImageMagick classes are refused for the
+    restricted code that it was lent to (module-imagemagick#10).  The file operations of an image that the host
+    created check the policy of the sandbox that governs their caller (module-imagemagick#11).  Requests without paths
+    still work for restricted callers, and unrestricted callers use the paths.
 */
 class CallerFileAccessTest inherits QUnit::Test {
     private {
@@ -110,6 +116,16 @@ string sub helper(string what, string path, binary data) {
 string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
     return run(sub () { dp.doRequest(req); });
 }
+
+# calls a method of an object that the host created
+string sub lent_call(object obj, string method, softlist<auto> args) {
+    return run(sub () { call_object_method_args(obj, method, args); });
+}
+
+# returns a new image
+MagickImage sub new_image() {
+    return new MagickImage(8, 8, \"blue\");
+}
 ";
     }
 
@@ -158,6 +174,9 @@ string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
             addTestCase("location options, " + m, sub () { testLocationOptions(m); });
             addTestCase("font injection, " + m, sub () { testFontInjection(m); });
             addTestCase("sandbox file names, " + m, sub () { testSandboxFileNames(m); });
+            addTestCase("lent objects, " + m, sub () { testLentObjects(m); });
+            addTestCase("host images in a sandbox, " + m, sub () { testHostImageSandbox(m); });
+            addTestCase("data read after MVG data, " + m, sub () { testReadAfterMvg(m); });
         }
         set_return_value(main());
     }
@@ -337,6 +356,135 @@ string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
                 "unrestricted helper " + desc);
             reset();
         }
+    }
+
+    #! the paths, fonts and data that a lent object gives the ImageMagick classes are decided with the restricted
+    #! code it was lent to
+    /** An object of a module class that the host creates and lends to restricted code runs its methods with the file
+        system lent, so the ImageMagick classes decide on the paths, fonts that name files and data in formats that
+        name other files that such a method gives them with the code that the object was lent to
+        (module-imagemagick#10), before anything is read or written; the image's own state, registered fonts and data
+        in other formats stay usable for that code, and unrestricted borrowers and the host use the paths
+    */
+    private testLentObjects(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        MagickImage img(8, 8, "red");
+        ImageUser user(img);
+        Program nofs = getProgram("nofs", mode);
+        Program unrestricted = getProgram("unrestricted", mode);
+        binary mvg = binary("viewbox 0 0 4 4 image over 0,0 4,4 '" + image + "'");
+
+        # built with an older Qore, the module cannot see the code that the object was lent to
+        if (IM_LENT_PATH_CHECKS) {
+            foreach list<auto> c in (("annotate", font), ("setFont", font), ("newFromData", (mvg, "MVG")),
+                    ("readFile", image), ("pingFile", image), ("load", image), ("writeFile", out),
+                    ("writeFiles", out), ("writeFile", "0")) {
+                assertEq("PERMISSION-DENIED", nofs.callFunction("lent_call", user, c[0], c[1]),
+                    sprintf("nofs lent %s %s", c[0], mode));
+                checkUnchanged(sprintf("nofs lent %s %s", c[0], mode));
+            }
+        }
+
+        # the object's own state, font names and data in other formats stay usable
+        assertEq("ok", nofs.callFunction("lent_call", user, "setFontFamily", "Helvetica"),
+            "nofs lent font family " + mode);
+        assertEq("ok", nofs.callFunction("lent_call", user, "newFromData", (image_data, "PNG")),
+            "nofs lent PNG data " + mode);
+        assertEq("ok", nofs.callFunction("lent_call", user, "toData", ()), "nofs lent to data " + mode);
+        # the image itself is not a capability: its methods are called by the restricted code
+        assertEq("INVALID-FUNCTION-ACCESS", nofs.callFunction("lent_call", img, "writeFile", out),
+            "nofs image write " + mode);
+        checkUnchanged("nofs lent state " + mode);
+
+        # unrestricted borrowers use the paths
+        assertEq("ok", unrestricted.callFunction("lent_call", user, "readFile", image), "unrestricted lent read "
+            + mode);
+        assertEq("ok", unrestricted.callFunction("lent_call", user, "writeFile", out), "unrestricted lent write "
+            + mode);
+        assertTrue(is_file(out), "unrestricted lent written " + mode);
+        unlink(out);
+        # the font file is not a font: it is read and fails to load
+        assertEq("IMAGEMAGICK-ERROR", unrestricted.callFunction("lent_call", user, "annotate", font),
+            "unrestricted lent font " + mode);
+
+        # the host uses the paths itself
+        user.writeFile(out);
+        assertTrue(is_file(out), "host writes " + mode);
+        reset();
+        if (!IM_LENT_PATH_CHECKS) {
+            testSkip("the module was built with a Qore without qore_caller_lent_to_restricts_domain()");
+        }
+    }
+
+    #! the file operations of an image that the host created check the policy of the sandbox that governs the caller
+    /** The policy was acquired when the image was created, so an image that the host created and gave to sandboxed
+        code read and wrote any file for it (module-imagemagick#11)
+    */
+    private testHostImageSandbox(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        MagickImage img(8, 8, "red");
+        Program sandbox = getProgram("sandbox", mode);
+        foreach list<auto> c in (("readFile", image), ("pingFile", image), ("writeFile", out), ("writeFiles", out)) {
+            assertEq("FILESYSTEM-ACCESS-DENIED", sandbox.callFunction("lent_call", img, c[0], c[1]),
+                sprintf("sandbox host image %s %s", c[0], mode));
+            checkUnchanged(sprintf("sandbox host image %s %s", c[0], mode));
+        }
+        # a sandbox that allows the directory allows the operations
+        SandboxManager sm();
+        sm.setFilesystemDefaultPolicy(False);
+        sm.addFilesystemAllowedPath(dir, QSEC_READ | QSEC_WRITE | QSEC_CREATE);
+        Program allowed(PO_NEW_STYLE);
+        allowed.setSandboxManager(sm);
+        allowed.setExecMode(Modes{mode});
+        allowed.parse(Source, "allowed");
+        assertEq("ok", allowed.callFunction("lent_call", img, "readFile", image), "allowed host image read " + mode);
+        assertEq("ok", allowed.callFunction("lent_call", img, "writeFile", out), "allowed host image write " + mode);
+        assertTrue(is_file(out), "allowed host image written " + mode);
+        unlink(out);
+        # an unrestricted caller and the host use the paths
+        assertEq("ok", getProgram("unrestricted", mode).callFunction("lent_call", img, "writeFile", out),
+            "unrestricted host image write " + mode);
+        assertTrue(is_file(out), "unrestricted host image written " + mode);
+        unlink(out);
+        img.writeFile(out);
+        assertTrue(is_file(out), "host writes " + mode);
+        unlink(out);
+        # an image that sandboxed code created stays governed by its sandbox, also when the host uses it
+        MagickImage simg = sandbox.callFunction("new_image");
+        assertThrows("FILESYSTEM-ACCESS-DENIED", \simg.writeFile(), out, "host writes a sandbox image " + mode);
+        checkUnchanged("host writes a sandbox image " + mode);
+        reset();
+    }
+
+    #! data read into an image that decoded MVG data is not decoded as MVG
+    /** A wand keeps the format of the data that it read last, so data read into an image that the host made from MVG
+        data was decoded as MVG and read the files that it named, also for restricted and sandboxed code
+        (module-imagemagick#10)
+    */
+    private testReadAfterMvg(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        binary mvg = binary("viewbox 0 0 4 4 image over 0,0 4,4 '" + image + "'");
+        foreach string kind in ("nofs", "sandbox", "unrestricted") {
+            Program p = getProgram(kind, mode);
+            foreach string how in ("image", "copy") {
+                MagickImage img(mvg, "MVG");
+                if (how == "copy") {
+                    img = img.copy();
+                }
+                int count = img.numberImages();
+                string desc = sprintf("%s %s %s", kind, how, mode);
+                # MVG data has no signature: as a new image, it is not decoded
+                assertEq("IMAGEMAGICK-ERROR", p.callFunction("lent_call", img, "readData", mvg), "MVG data " + desc);
+                assertEq(count, img.numberImages(), "no image added " + desc);
+                # data in other formats is read
+                assertEq("ok", p.callFunction("lent_call", img, "readData", image_data), "PNG data " + desc);
+                assertEq(count + 1, img.numberImages(), "image added " + desc);
+            }
+        }
+        checkUnchanged("read after MVG " + mode);
     }
 
     #! a font or font family that would end its quotes in the drawing script is refused for all callers

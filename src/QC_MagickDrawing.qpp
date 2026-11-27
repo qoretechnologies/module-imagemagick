@@ -81,7 +81,8 @@ MagickDrawing::destructor() {
 
     @throw PERMISSION-DENIED the font names a file (it starts with \c "@" or \c "~", contains a path separator, or a
     file with its name exists; ImageMagick reads such a file before it looks the name up among the registered fonts)
-    and the calling code is restricted from the \c FILESYSTEM functional domain
+    and the calling code is restricted from the \c FILESYSTEM functional domain (also the code that a host-created
+    object of a module class that gives the font was lent to; see @ref imagemagickcallerpaths)
     @throw IMAGEMAGICK-ERROR the font contains a quote, a backslash or a control character
     @throw FILESYSTEM-ACCESS-DENIED the font names a file that the file-system policy of a sandbox that governs the
     calling code does not allow to read

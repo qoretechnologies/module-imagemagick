@@ -1,0 +1,105 @@
+# -*- mode: qore; indent-tabs-mode: nil -*-
+#! @file ImLentUser.qm test module whose objects the host lends to restricted code (module-imagemagick#10)
+
+/*  ImLentUser.qm Copyright 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+%requires imagemagick
+
+%modern
+
+module ImLentUser {
+    version = "1.0";
+    desc = "test module whose objects the host lends to restricted code";
+    author = "Qore Technologies, s.r.o.";
+    url = "https://github.com/qoretechnologies/module-imagemagick";
+    license = "MIT";
+}
+
+#! the test module's namespace
+public namespace ImLentUser {
+#! uses an image and a drawing with the paths, fonts and data that its caller gives
+/** An object of a class of a module that unrestricted code (the host) creates is a capability: when the host lends
+    it to restricted code, its methods run with the file system lent, so the ImageMagick classes decide on what they
+    are given with the code that it was lent to
+*/
+public class ImageUser {
+    private {
+        MagickImage img;
+        MagickDrawing dw();
+    }
+
+    #! creates the object with the image that the host gives
+    constructor(MagickImage img) {
+        self.img = img;
+    }
+
+    #! annotates the image with the given font
+    annotate(string font) {
+        img.annotate("x", 1.0, 5.0, 0.0, font);
+    }
+
+    #! sets the font of the drawing
+    setFont(string font) {
+        dw.setFont(font);
+    }
+
+    #! creates an image from data in the given format
+    newFromData(binary data, string format) {
+        MagickImage i(data, format);
+    }
+
+    #! reads the given file
+    readFile(string path) {
+        img.readFile(path);
+    }
+
+    #! pings the given file
+    hash<auto> pingFile(string path) {
+        return img.pingFile(path);
+    }
+
+    #! creates an image from the given file
+    load(string path) {
+        MagickImage i(path);
+    }
+
+    #! writes the image to the given file
+    writeFile(string path) {
+        img.writeFile(path);
+    }
+
+    #! writes the image's frames to the given file
+    writeFiles(string path) {
+        img.writeFiles(path);
+    }
+
+    #! returns the image as PNG data
+    binary toData() {
+        return img.toData("PNG");
+    }
+
+    #! sets a font family of the drawing
+    setFontFamily(string family) {
+        dw.setFontFamily(family);
+    }
+}
+}

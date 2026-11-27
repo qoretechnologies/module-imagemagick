@@ -104,6 +104,34 @@ DLLLOCAL const char* imageTypeToString(ImageType it);
 //! Get a color string from a PixelWand
 DLLLOCAL QoreStringNode* getPixelColor(PixelWand* pw);
 
+#ifdef QORE_HAVE_CALLER_AMBIENT_PREDICATES
+//! the paths, fonts and data that a lent object gives are decided with the code that it was lent to
+#define IM_LENT_PATH_CHECKS_VAL true
+#else
+#define IM_LENT_PATH_CHECKS_VAL false
+#endif
+
+//! Returns true if the calling code is restricted from any of the given functional domains
+/** A method of an object that unrestricted code (the host) created and lent to restricted code runs with what the
+    object lends (a capability frame): the code that the object was lent to decides
+    (qore_caller_lent_to_restricts_domain(); module-imagemagick#10).  With a %Qore without that function
+    (\c QORE_HAVE_CALLER_AMBIENT_PREDICATES is not defined), only the calling code decides
+    (qore_caller_restricts_domain()) if \a always is true, and false is returned otherwise: the methods with the
+    \c FILESYSTEM functional domain are refused for restricted calling code when they are called
+
+    @param domain the functional domains (\c QDOM_*)
+    @param always true for a value that a method without the domain takes (such as a font that names a file)
+*/
+DLLLOCAL bool callerRestricts(int64 domain, bool always);
+
+//! Refuses a file path that a method with the \c FILESYSTEM functional domain is given, for restricted code
+/** For the code that a host-created object was lent to (see callerRestricts()), as such code cannot call the method
+    itself
+
+    @return 0 if the path can be used, -1 if \c PERMISSION-DENIED was raised
+*/
+DLLLOCAL int checkCallerPath(const char* path, ExceptionSink* xsink);
+
 //! Refuses a font or font family name that would break out of the quoted name in an ImageMagick drawing script
 /** @return 0 if the name can be used, -1 if \c IMAGEMAGICK-ERROR was raised
 */

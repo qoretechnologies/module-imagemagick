@@ -367,6 +367,24 @@ int checkFontName(const char* font, const char* what, ExceptionSink* xsink) {
     return 0;
 }
 
+bool callerRestricts(int64 domain, bool always) {
+#ifdef QORE_HAVE_CALLER_AMBIENT_PREDICATES
+    // a method of a lent object runs with what the object lends: the code that it was lent to counts
+    return qore_caller_lent_to_restricts_domain(domain);
+#else
+    return always && qore_caller_restricts_domain(domain);
+#endif
+}
+
+int checkCallerPath(const char* path, ExceptionSink* xsink) {
+    if (callerRestricts(QDOM_FILESYSTEM, false)) {
+        xsink->raiseException("PERMISSION-DENIED", "file '%s' cannot be used: the calling code (also the code that a "
+            "host-created object was lent to) is restricted from the FILESYSTEM functional domain", path);
+        return -1;
+    }
+    return 0;
+}
+
 int checkFontAccess(const char* font, ExceptionSink* xsink) {
     if (!font || !font[0]) {
         return 0;
@@ -381,10 +399,12 @@ int checkFontAccess(const char* font, ExceptionSink* xsink) {
     if (!path) {
         return 0;
     }
-    // the options of a module's own Program do not decide (module-imagemagick#8)
-    if (qore_caller_restricts_domain(QDOM_FILESYSTEM)) {
+    // the options of a module's own Program do not decide (module-imagemagick#8); the code that a host-created object
+    // was lent to does (module-imagemagick#10)
+    if (callerRestricts(QDOM_FILESYSTEM, true)) {
         xsink->raiseException("PERMISSION-DENIED", "font '%s' names a file, which cannot be used: the calling code "
-            "is restricted from the FILESYSTEM functional domain", font);
+            "(also the code that a host-created object was lent to) is restricted from the FILESYSTEM functional "
+            "domain", font);
         return -1;
     }
     QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
@@ -416,8 +436,8 @@ int checkReadFormat(const char* format, bool sandboxed, ExceptionSink* xsink) {
     }
     // formats whose data can name other files or URLs that ImageMagick reads
     static const char* const formats[] = {
-        "MVG", "SVG", "MSVG", "RSVG", "MSL", "TEXT", "LABEL", "CAPTION", "PANGO", "EPHEMERAL", "URL", "HTTP",
-        "HTTPS", "FTP", "FILE", "INLINE",
+        "MVG", "SVG", "SVGZ", "MSVG", "MSVGZ", "RSVG", "MSL", "TEXT", "LABEL", "CAPTION", "PANGO", "EPHEMERAL",
+        "URL", "HTTP", "HTTPS", "FTP", "FILE", "INLINE", "VID", "SCREENSHOT", "X", "MPR", "MPRI",
     };
     bool found = false;
     for (const char* f : formats) {
@@ -429,10 +449,11 @@ int checkReadFormat(const char* format, bool sandboxed, ExceptionSink* xsink) {
     if (!found) {
         return 0;
     }
-    if (sandboxed || qore_caller_restricts_domain(QDOM_FILESYSTEM | QDOM_NETWORK)) {
+    if (sandboxed || callerRestricts(QDOM_FILESYSTEM | QDOM_NETWORK, true)) {
         xsink->raiseException("PERMISSION-DENIED", "image data in format '%s' cannot be read for the calling code: "
-            "the format can name other files that ImageMagick reads, and the calling code is restricted from the "
-            "FILESYSTEM or NETWORK functional domain, or a sandbox governs it", format);
+            "the format can name other files that ImageMagick reads, and the calling code (also the code that a "
+            "host-created object was lent to) is restricted from the FILESYSTEM or NETWORK functional domain, or a "
+            "sandbox governs it", format);
         return -1;
     }
     return 0;
