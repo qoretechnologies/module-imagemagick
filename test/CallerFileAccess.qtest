@@ -27,6 +27,8 @@
 
 %modern
 %prepend-module-path "${SCRIPT_DIR}/../qlib"
+# the test module whose objects the host lends
+%prepend-module-path "${SCRIPT_DIR}"
 
 %requires QUnit
 %requires Util
@@ -34,6 +36,7 @@
 %requires DataProvider
 %requires imagemagick
 %requires ImageMagickDataProvider
+%requires ImLentUser
 
 %exec-class CallerFileAccessTest
 
@@ -44,8 +47,10 @@
     Program with PO_NO_FILESYSTEM is refused with PERMISSION-DENIED, a Program whose sandbox denies the file system by
     default with FILESYSTEM-ACCESS-DENIED (its file-system policy, when the file is opened), and a location is refused
     for a Program restricted from a domain of its scheme's handler; nothing is written.  The public helper methods of
-    ImageMagickImageActionBase, and fonts that name files, are refused for restricted callers too.  Requests without
-    paths still work for restricted callers, and unrestricted callers use the paths.
+    ImageMagickImageActionBase, and fonts that name files, are refused for restricted callers too, and the paths,
+    fonts and data that a method of a lent object of a module class gives the ImageMagick classes are refused for the
+    restricted code that it was lent to (module-imagemagick#10).  Requests without paths still work for restricted
+    callers, and unrestricted callers use the paths.
 */
 class CallerFileAccessTest inherits QUnit::Test {
     private {
@@ -110,6 +115,11 @@ string sub helper(string what, string path, binary data) {
 string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
     return run(sub () { dp.doRequest(req); });
 }
+
+# calls a method of an object that the host created
+string sub lent_call(object obj, string method, softlist<auto> args) {
+    return run(sub () { call_object_method_args(obj, method, args); });
+}
 ";
     }
 
@@ -158,6 +168,7 @@ string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
             addTestCase("location options, " + m, sub () { testLocationOptions(m); });
             addTestCase("font injection, " + m, sub () { testFontInjection(m); });
             addTestCase("sandbox file names, " + m, sub () { testSandboxFileNames(m); });
+            addTestCase("lent objects, " + m, sub () { testLentObjects(m); });
         }
         set_return_value(main());
     }
@@ -336,6 +347,65 @@ string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
                 getProgram("unrestricted", mode).callFunction("helper", h[0], h[1], image_data),
                 "unrestricted helper " + desc);
             reset();
+        }
+    }
+
+    #! the paths, fonts and data that a lent object gives the ImageMagick classes are decided with the restricted
+    #! code it was lent to
+    /** An object of a module class that the host creates and lends to restricted code runs its methods with the file
+        system lent, so the ImageMagick classes decide on the paths, fonts that name files and data in formats that
+        name other files that such a method gives them with the code that the object was lent to
+        (module-imagemagick#10), before anything is read or written; the image's own state, registered fonts and data
+        in other formats stay usable for that code, and unrestricted borrowers and the host use the paths
+    */
+    private testLentObjects(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        MagickImage img(8, 8, "red");
+        ImageUser user(img);
+        Program nofs = getProgram("nofs", mode);
+        Program unrestricted = getProgram("unrestricted", mode);
+        binary mvg = binary("viewbox 0 0 4 4 image over 0,0 4,4 '" + image + "'");
+
+        # built with an older Qore, the module cannot see the code that the object was lent to
+        if (IM_LENT_PATH_CHECKS) {
+            foreach list<auto> c in (("annotate", font), ("setFont", font), ("newFromData", (mvg, "MVG")),
+                    ("readFile", image), ("pingFile", image), ("load", image), ("writeFile", out),
+                    ("writeFiles", out), ("writeFile", "0")) {
+                assertEq("PERMISSION-DENIED", nofs.callFunction("lent_call", user, c[0], c[1]),
+                    sprintf("nofs lent %s %s", c[0], mode));
+                checkUnchanged(sprintf("nofs lent %s %s", c[0], mode));
+            }
+        }
+
+        # the object's own state, font names and data in other formats stay usable
+        assertEq("ok", nofs.callFunction("lent_call", user, "setFontFamily", "Helvetica"),
+            "nofs lent font family " + mode);
+        assertEq("ok", nofs.callFunction("lent_call", user, "newFromData", (image_data, "PNG")),
+            "nofs lent PNG data " + mode);
+        assertEq("ok", nofs.callFunction("lent_call", user, "toData", ()), "nofs lent to data " + mode);
+        # the image itself is not a capability: its methods are called by the restricted code
+        assertEq("INVALID-FUNCTION-ACCESS", nofs.callFunction("lent_call", img, "writeFile", out),
+            "nofs image write " + mode);
+        checkUnchanged("nofs lent state " + mode);
+
+        # unrestricted borrowers use the paths
+        assertEq("ok", unrestricted.callFunction("lent_call", user, "readFile", image), "unrestricted lent read "
+            + mode);
+        assertEq("ok", unrestricted.callFunction("lent_call", user, "writeFile", out), "unrestricted lent write "
+            + mode);
+        assertTrue(is_file(out), "unrestricted lent written " + mode);
+        unlink(out);
+        # the font file is not a font: it is read and fails to load
+        assertEq("IMAGEMAGICK-ERROR", unrestricted.callFunction("lent_call", user, "annotate", font),
+            "unrestricted lent font " + mode);
+
+        # the host uses the paths itself
+        user.writeFile(out);
+        assertTrue(is_file(out), "host writes " + mode);
+        reset();
+        if (!IM_LENT_PATH_CHECKS) {
+            testSkip("the module was built with a Qore without qore_caller_lent_to_restricts_domain()");
         }
     }
 

@@ -55,6 +55,10 @@ bool QoreMagickImage::checkInterrupted(ExceptionSink* xsink) {
 
 QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(NewMagickWand()) {
     setupProgressMonitor();
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return;
+    }
     // Check filesystem sandbox access
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return;
@@ -129,6 +133,10 @@ QoreMagickImage::~QoreMagickImage() {
 // --- I/O ---
 
 void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return;
+    }
     // Check filesystem sandbox access
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return;
@@ -178,6 +186,10 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
 }
 
 QoreHashNode* QoreMagickImage::pingFile(const char* path, ExceptionSink* xsink) {
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return nullptr;
+    }
     // Check filesystem sandbox access
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return nullptr;
@@ -260,6 +272,10 @@ QoreHashNode* QoreMagickImage::pingData(const BinaryNode* data, ExceptionSink* x
 }
 
 void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return;
+    }
     // Check filesystem sandbox access
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
         return;
@@ -277,6 +293,10 @@ void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
 }
 
 void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* xsink) {
+    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
+    if (checkCallerPath(path, xsink)) {
+        return;
+    }
     // Check filesystem sandbox access
     if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
         return;

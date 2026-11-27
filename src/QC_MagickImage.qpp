@@ -29,6 +29,20 @@
 #include "QC_MagickDrawing.h"
 #include "QoreMagickDrawing.h"
 
+/** @defgroup im_build_constants ImageMagick Module Build Constants
+    These constants describe how the module was built.
+*/
+///@{
+//! True if the module decides on the paths, fonts and data that a lent object gives with the code it was lent to
+/** The module does if it was built with a %Qore that provides \c qore_caller_lent_to_restricts_domain() (see
+    @ref imagemagickcallerpaths); built with an older %Qore, only the calling code decides, and only for fonts that name
+    files and formats whose data names other files
+
+    @since %imagemagick 1.0
+*/
+const IM_LENT_PATH_CHECKS = bool(IM_LENT_PATH_CHECKS_VAL);
+///@}
+
 /** @defgroup im_filter_types ImageMagick Filter Types
     These constants define the filter types for image resizing.
 */
@@ -272,6 +286,8 @@ qclass MagickImage [arg=QoreMagickImage* img; ns=Qore::ImageMagick];
     @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
     has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
     \c "[...]" suffix)
+    @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
+    gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
 */
 MagickImage::constructor(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(path->c_str(), xsink), xsink);
@@ -301,7 +317,8 @@ MagickImage::constructor(binary data) [flags=NAMED_ARGS] {
     @throw IMAGEMAGICK-ERROR error reading the image data
     @throw PERMISSION-DENIED the format's data can name other files that ImageMagick reads (such as \c MVG, \c SVG,
     \c MSL or \c TEXT), and the calling code is restricted from the \c FILESYSTEM or \c NETWORK functional domain
-    or a sandbox governs it
+    (also the code that a host-created object of a module class that gives the data was lent to; see
+    @ref imagemagickcallerpaths) or a sandbox governs it
 */
 MagickImage::constructor(binary data, string format) [flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(data, format->c_str(), xsink), xsink);
@@ -357,6 +374,8 @@ MagickImage::destructor() {
     @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
     has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
     \c "[...]" suffix)
+    @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
+    gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
 */
 nothing MagickImage::readFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->readFile(path->c_str(), xsink);
@@ -380,6 +399,8 @@ nothing MagickImage::readData(binary data) [flags=NAMED_ARGS] {
     @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
     has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
     \c "[...]" suffix)
+    @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
+    gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
 */
 hash<ImageInfo> MagickImage::pingFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     return img->pingFile(path->c_str(), xsink);
@@ -403,6 +424,8 @@ hash<ImageInfo> MagickImage::pingData(binary data) [flags=NAMED_ARGS] {
     @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
     has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
     \c "[...]" suffix)
+    @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
+    gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
 */
 nothing MagickImage::writeFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->writeFile(path->c_str(), xsink);
@@ -416,6 +439,8 @@ nothing MagickImage::writeFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
     has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
     \c "[...]" suffix)
+    @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
+    gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
 */
 nothing MagickImage::writeFiles(string path, bool adjoin = True) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->writeFiles(path->c_str(), adjoin, xsink);
@@ -1332,7 +1357,8 @@ nothing MagickImage::compositeGravity(MagickImage[QoreMagickImage] source, strin
     @throw IMAGEMAGICK-ERROR error annotating the image
     @throw PERMISSION-DENIED the font names a file (it starts with \c "@" or \c "~", contains a path separator, or a
     file with its name exists; ImageMagick reads such a file before it looks the name up among the registered fonts)
-    and the calling code is restricted from the \c FILESYSTEM functional domain
+    and the calling code is restricted from the \c FILESYSTEM functional domain (also the code that a host-created
+    object of a module class that gives the font was lent to; see @ref imagemagickcallerpaths)
     @throw IMAGEMAGICK-ERROR the font contains a quote, a backslash or a control character
     @throw FILESYSTEM-ACCESS-DENIED the font names a file that the file-system policy of a sandbox that governs the
     calling code does not allow to read
