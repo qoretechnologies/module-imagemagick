@@ -436,8 +436,8 @@ int checkReadFormat(const char* format, bool sandboxed, ExceptionSink* xsink) {
     }
     // formats whose data can name other files or URLs that ImageMagick reads
     static const char* const formats[] = {
-        "MVG", "SVG", "MSVG", "RSVG", "MSL", "TEXT", "LABEL", "CAPTION", "PANGO", "EPHEMERAL", "URL", "HTTP",
-        "HTTPS", "FTP", "FILE", "INLINE",
+        "MVG", "SVG", "SVGZ", "MSVG", "MSVGZ", "RSVG", "MSL", "TEXT", "LABEL", "CAPTION", "PANGO", "EPHEMERAL",
+        "URL", "HTTP", "HTTPS", "FTP", "FILE", "INLINE", "VID", "SCREENSHOT", "X", "MPR", "MPRI",
     };
     bool found = false;
     for (const char* f : formats) {

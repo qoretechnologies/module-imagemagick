@@ -19,7 +19,9 @@
     - the file paths, the fonts that name files and the image data in formats that name other files that the methods
       of @ref Qore::ImageMagick::MagickImage "MagickImage" and @ref Qore::ImageMagick::MagickDrawing "MagickDrawing"
       take are refused with \c PERMISSION-DENIED for the restricted code that a host-created object of a module class
-      was given to, as the object's methods run with the file system lent (see @ref imagemagickcallerpaths and
+      was given to, as the object's methods run with the file system lent, and
+      @ref Qore::ImageMagick::MagickImage::readData() "MagickImage::readData()" no longer decodes data in the format of
+      the data that the image read before (such as MVG, which names other files) (see @ref imagemagickcallerpaths and
       @ref Qore::ImageMagick::IM_LENT_PATH_CHECKS,
       <a href="https://github.com/qoretechnologies/module-imagemagick/issues/10">issue 10</a>)
     - the file operations of @ref Qore::ImageMagick::MagickImage "MagickImage" check the file-system policy of the

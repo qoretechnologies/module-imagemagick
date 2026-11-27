@@ -163,11 +163,24 @@ void QoreMagickImage::readData(const BinaryNode* data, ExceptionSink* xsink) {
     if (qore_check_cancel(xsink, "reading image from binary data")) {
         return;
     }
-    QoreAutoRWWriteLocker al(rwlock);
-    if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
-        if (!checkInterrupted(xsink)) {
-            checkMagickError(wand, "error reading image from binary data", xsink);
+    // the data is decoded in a new wand and its images are added: a wand keeps the format of the data that it read
+    // last, so data read into this wand after data in a format that names other files (such as MVG) would be decoded
+    // in that format and read the files that it names (module-imagemagick#10)
+    MagickWand* pw = NewMagickWand();
+    if (!pw) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "cannot allocate a wand to read the image data");
+        return;
+    }
+    ON_BLOCK_EXIT(DestroyMagickWand, pw);
+    if (MagickReadImageBlob(pw, data->getPtr(), data->size()) == MagickFalse) {
+        if (!checkMagickError(pw, "error reading image from binary data", xsink)) {
+            xsink->raiseException("IMAGEMAGICK-ERROR", "error reading image from binary data");
         }
+        return;
+    }
+    QoreAutoRWWriteLocker al(rwlock);
+    if (MagickAddImage(wand, pw) == MagickFalse) {
+        checkMagickError(wand, "error adding the images read from binary data", xsink);
     }
 }
 

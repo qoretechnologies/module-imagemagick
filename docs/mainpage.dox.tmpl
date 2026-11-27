@@ -56,6 +56,11 @@
     calling code applies when a file is opened (\c FILESYSTEM-ACCESS-DENIED).  Images given as data in other formats,
     registered font names and the state of an existing object can be used by restricted code.
 
+    The code that decides is that of the caller of the module code that calls these classes, not the module's own
+    %Program: a user module that restricted code calls (with or without a lent object) is refused the paths that it
+    gives these classes for that code, also paths of its own (such as bundled images); module code that serves
+    restricted code uses the methods that take and return data.
+
     @section imagemagickqlibmodules Qore User Modules
 
     - @ref imagemagickdataproviderintro "ImageMagickDataProvider" — Qore ImageMagick data provider module

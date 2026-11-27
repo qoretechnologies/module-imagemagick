@@ -176,6 +176,7 @@ MagickImage sub new_image() {
             addTestCase("sandbox file names, " + m, sub () { testSandboxFileNames(m); });
             addTestCase("lent objects, " + m, sub () { testLentObjects(m); });
             addTestCase("host images in a sandbox, " + m, sub () { testHostImageSandbox(m); });
+            addTestCase("data read after MVG data, " + m, sub () { testReadAfterMvg(m); });
         }
         set_return_value(main());
     }
@@ -455,6 +456,35 @@ MagickImage sub new_image() {
         assertThrows("FILESYSTEM-ACCESS-DENIED", \simg.writeFile(), out, "host writes a sandbox image " + mode);
         checkUnchanged("host writes a sandbox image " + mode);
         reset();
+    }
+
+    #! data read into an image that decoded MVG data is not decoded as MVG
+    /** A wand keeps the format of the data that it read last, so data read into an image that the host made from MVG
+        data was decoded as MVG and read the files that it named, also for restricted and sandboxed code
+        (module-imagemagick#10)
+    */
+    private testReadAfterMvg(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        binary mvg = binary("viewbox 0 0 4 4 image over 0,0 4,4 '" + image + "'");
+        foreach string kind in ("nofs", "sandbox", "unrestricted") {
+            Program p = getProgram(kind, mode);
+            foreach string how in ("image", "copy") {
+                MagickImage img(mvg, "MVG");
+                if (how == "copy") {
+                    img = img.copy();
+                }
+                int count = img.numberImages();
+                string desc = sprintf("%s %s %s", kind, how, mode);
+                # MVG data has no signature: as a new image, it is not decoded
+                assertEq("IMAGEMAGICK-ERROR", p.callFunction("lent_call", img, "readData", mvg), "MVG data " + desc);
+                assertEq(count, img.numberImages(), "no image added " + desc);
+                # data in other formats is read
+                assertEq("ok", p.callFunction("lent_call", img, "readData", image_data), "PNG data " + desc);
+                assertEq(count + 1, img.numberImages(), "image added " + desc);
+            }
+        }
+        checkUnchanged("read after MVG " + mode);
     }
 
     #! a font or font family that would end its quotes in the drawing script is refused for all callers
