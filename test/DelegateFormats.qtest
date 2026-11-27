@@ -233,6 +233,8 @@ string sub write_file(string op, string path) {
         bool have_gs;
         #! MIFF data with a montage directory
         binary miff_data;
+        #! output formats that the ImageMagick configuration writes with a delegate
+        hash<string, bool> encode_delegates;
         #! the formats that ImageMagick provides
         hash<string, bool> known_formats;
     }
@@ -241,7 +243,8 @@ string sub write_file(string op, string path) {
         dir = make_tmp_dir("imagemagick-delegate-formats-");
         MagickImage img(8, 8, "red");
         png_data = img.toData("PNG");
-        pdf_data = img.toData("PDF");
+        # written here: ImageMagick may lack a PDF encoder (Alpine)
+        pdf_data = makePdf();
         png_file = writeTestFile("image.png", png_data);
         ps_png_file = writeTestFile("ps.png", binary(PsData));
         mvg_file = writeTestFile("draw.mvg", binary("viewbox 0 0 4 4 image over 0,0 4,4 '" + png_file + "'"));
@@ -271,6 +274,19 @@ string sub write_file(string op, string path) {
             "WPG": writeTestFile("x.bin", refused_data."WPG header"),
         };
         known_formats = map {$1: True}, MagickImage::queryFormats();
+        # the output delegates of the ImageMagick configuration that the test uses, if it can be found
+        foreach string cfg in ("/etc/ImageMagick-7/delegates.xml", "/usr/etc/ImageMagick-7/delegates.xml",
+                "/usr/local/etc/ImageMagick-7/delegates.xml") {
+            if (is_file(cfg)) {
+                string xml = ReadOnlyFile::readTextFile(cfg);
+                foreach string name in ("print", "bpg", "launch") {
+                    if (xml.find("encode=\"" + name + "\"") >= 0) {
+                        encode_delegates{name} = True;
+                    }
+                }
+                break;
+            }
+        }
         # a file named as a format prefix in the current directory (see testFormatPrefixFiles())
         mkdir(dir + "/cwd");
         mkdir(dir + "/cwd/PNG:");
@@ -459,7 +475,8 @@ string sub write_file(string op, string path) {
     private testOutputFormats(string mode) {
         foreach string kind in (RestrictedKinds) {
             Program p = getProgram(kind, mode);
-            foreach string format in ("MP4", "MPEG") {
+            # video formats are encoded with ffmpeg; without the coder, the format cannot be set
+            foreach string format in (select ("MP4", "MPEG"), known_formats{$1}) {
                 assertRegex("^PERMISSION-DENIED:", p.callFunction("to_data", format),
                     sprintf("%s to data %s %s", kind, format, mode));
             }
@@ -469,7 +486,11 @@ string sub write_file(string op, string path) {
             Program p = getProgram(kind, mode);
             foreach string op in ("writeFile", "writeFiles") {
                 # formats with an external encoder, and names that ImageMagick gives to a delegate
-                foreach string name in ("out.mp4", "out.print", "out.bpg", "out.launch") {
+                list<string> names = map "out." + $1.lwr(), keys encode_delegates;
+                if (known_formats.MP4) {
+                    push names, "out.mp4";
+                }
+                foreach string name in (names) {
                     string path = dir + "/" + name;
                     assertRegex("^PERMISSION-DENIED:", p.callFunction("write_file", op, path),
                         sprintf("%s %s %s %s", kind, op, name, mode));
@@ -501,7 +522,6 @@ string sub write_file(string op, string path) {
                 ("pingData", refused_data.EPS),
                 ("annotate", "^Helvetica"),
                 ("setFont", "^Helvetica"),
-                ("toDataInFormat", "MP4"),
             );
             if (kind != "nofs") {
                 calls += (
@@ -510,6 +530,9 @@ string sub write_file(string op, string path) {
                     ("pingFile", ps_png_file),
                     ("readFile", refused_files.SVG),
                 );
+            }
+            if (known_formats.MP4) {
+                push calls, ("toDataInFormat", "MP4");
             }
             foreach list<auto> c in (calls) {
                 assertRegex("^PERMISSION-DENIED:", p.callFunction("lent_call", user, c[0], c[1]),
@@ -590,6 +613,9 @@ string sub write_file(string op, string path) {
         if (!have_gs) {
             testSkip("Ghostscript is not installed");
         }
+        if (!known_formats.PS || !known_formats.PDF) {
+            testSkip("ImageMagick has no PostScript or PDF coder");
+        }
         list<list<auto>> cases = (
             ("data_op", ("ctor", binary(PsData), "PS")),
             ("data_op", ("ctor", binary(PsData))),
@@ -614,6 +640,29 @@ string sub write_file(string op, string path) {
             dp = dp.getChildProviderEx(seg);
         }
         return dp;
+    }
+
+    #! returns a one-page PDF document with a filled square
+    private static binary makePdf() {
+        list<string> objs = (
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 8 8] /Contents 4 0 R /Resources << >> >>",
+            "<< /Length 12 >>\nstream\n0 0 8 8 re f\nendstream",
+        );
+        string pdf = "%PDF-1.4\n";
+        list<int> offsets = ();
+        foreach string obj in (objs) {
+            push offsets, pdf.size();
+            pdf += sprintf("%d 0 obj\n%s\nendobj\n", $# + 1, obj);
+        }
+        int xref = pdf.size();
+        pdf += sprintf("xref\n0 %d\n0000000000 65535 f \n", objs.size() + 1);
+        foreach int offset in (offsets) {
+            pdf += sprintf("%010d 00000 n \n", offset);
+        }
+        pdf += sprintf("trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", objs.size() + 1, xref);
+        return binary(pdf);
     }
 
     #! writes a file in the test directory and returns its path
