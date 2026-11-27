@@ -390,12 +390,17 @@ string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
             ("image/composite", {"data": image_data, "overlay_data": image_data, "x": 0, "y": 0}),
             # a registered font, or a font name that names no file, is not a path
             ("image/annotate", {"data": image_data, "text": "x", "x": 1.0, "y": 5.0}),
-            ("image/annotate", {"data": image_data, "text": "x", "x": 1.0, "y": 5.0, "font": "no-such-font"}),
             ("image/draw", {"data": image_data, "font_family": "Courier", "operations": ({"type": "line", "sx": 0,
                 "sy": 0, "ex": 4, "ey": 4},)}),
             ("info/get", {"data": image_data}),
             ("convert/format", {"data": image_data, "format": "JPEG"}),
         );
+        # a registered font name is not a path (an unknown name is read as a file by ImageMagick, which fails where no
+        # fallback font is configured)
+        *string registered = MagickImage::queryFonts()[0];
+        if (registered) {
+            push reqs, ("image/annotate", {"data": image_data, "text": "x", "x": 1.0, "y": 5.0, "font": registered});
+        }
         foreach list<auto> r in (reqs) {
             foreach string kind in ("nofs", "sandbox") {
                 string desc = sprintf("%s %s %s", kind, r[0], mode);
