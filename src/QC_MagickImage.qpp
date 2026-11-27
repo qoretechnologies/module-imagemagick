@@ -269,6 +269,9 @@ qclass MagickImage [arg=QoreMagickImage* img; ns=Qore::ImageMagick];
 /** @param path the path to the image file
 
     @throw IMAGEMAGICK-ERROR error reading the image file
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
+    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
+    \c "[...]" suffix)
 */
 MagickImage::constructor(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(path->c_str(), xsink), xsink);
@@ -296,6 +299,9 @@ MagickImage::constructor(binary data) [flags=NAMED_ARGS] {
     @param format the image format (e.g. "PNG", "JPEG")
 
     @throw IMAGEMAGICK-ERROR error reading the image data
+    @throw PERMISSION-DENIED the format's data can name other files that ImageMagick reads (such as \c MVG, \c SVG,
+    \c MSL or \c TEXT), and the calling code is restricted from the \c FILESYSTEM or \c NETWORK functional domain
+    or a sandbox governs it
 */
 MagickImage::constructor(binary data, string format) [flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(data, format->c_str(), xsink), xsink);
@@ -348,6 +354,9 @@ MagickImage::destructor() {
 /** @param path the path to the image file
 
     @throw IMAGEMAGICK-ERROR error reading the image file
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
+    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
+    \c "[...]" suffix)
 */
 nothing MagickImage::readFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->readFile(path->c_str(), xsink);
@@ -368,6 +377,9 @@ nothing MagickImage::readData(binary data) [flags=NAMED_ARGS] {
     @return an @ref Qore::ImageMagick::ImageInfo hash with image metadata
 
     @throw IMAGEMAGICK-ERROR error pinging the image file
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
+    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
+    \c "[...]" suffix)
 */
 hash<ImageInfo> MagickImage::pingFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     return img->pingFile(path->c_str(), xsink);
@@ -388,6 +400,9 @@ hash<ImageInfo> MagickImage::pingData(binary data) [flags=NAMED_ARGS] {
 /** @param path the output file path; the format is determined by the file extension
 
     @throw IMAGEMAGICK-ERROR error writing the image file
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
+    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
+    \c "[...]" suffix)
 */
 nothing MagickImage::writeFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->writeFile(path->c_str(), xsink);
@@ -398,6 +413,9 @@ nothing MagickImage::writeFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     @param adjoin if True, join all images into a single multi-image file
 
     @throw IMAGEMAGICK-ERROR error writing the image files
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
+    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
+    \c "[...]" suffix)
 */
 nothing MagickImage::writeFiles(string path, bool adjoin = True) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->writeFiles(path->c_str(), adjoin, xsink);
@@ -1312,6 +1330,12 @@ nothing MagickImage::compositeGravity(MagickImage[QoreMagickImage] source, strin
     @param stroke_color the text stroke color (empty for none)
 
     @throw IMAGEMAGICK-ERROR error annotating the image
+    @throw PERMISSION-DENIED the font names a file (it starts with \c "@" or \c "~", contains a path separator, or a
+    file with its name exists; ImageMagick reads such a file before it looks the name up among the registered fonts)
+    and the calling code is restricted from the \c FILESYSTEM functional domain
+    @throw IMAGEMAGICK-ERROR the font contains a quote, a backslash or a control character
+    @throw FILESYSTEM-ACCESS-DENIED the font names a file that the file-system policy of a sandbox that governs the
+    calling code does not allow to read
 */
 nothing MagickImage::annotate(string text, float x, float y, float angle = 0.0,
                               string font = "", float font_size = 0.0,

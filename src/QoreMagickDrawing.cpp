@@ -36,6 +36,10 @@ QoreMagickDrawing::~QoreMagickDrawing() {
 }
 
 void QoreMagickDrawing::setFont(const char* font, ExceptionSink* xsink) {
+    // a font file is the calling code's input
+    if (checkFontAccess(font, xsink)) {
+        return;
+    }
     DrawSetFont(dw, font);
 }
 
@@ -44,6 +48,10 @@ void QoreMagickDrawing::setFontSize(double size, ExceptionSink* xsink) {
 }
 
 void QoreMagickDrawing::setFontFamily(const char* family, ExceptionSink* xsink) {
+    // the name is written into the drawing script: it cannot end its quotes
+    if (checkFontName(family, "font family", xsink)) {
+        return;
+    }
     DrawSetFontFamily(dw, family);
 }
 

@@ -1,0 +1,473 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+/*
+    Qore ImageMagickDataProvider caller file access test
+
+    Copyright (C) 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+%modern
+%prepend-module-path "${SCRIPT_DIR}/../qlib"
+
+%requires QUnit
+%requires Util
+%requires FsUtil
+%requires DataProvider
+%requires imagemagick
+%requires ImageMagickDataProvider
+
+%exec-class CallerFileAccessTest
+
+#! Tests that the paths that restricted callers give the ImageMagick actions are refused before they are used
+#! (module-imagemagick#8)
+/** Library code runs with its own Program's options, so the actions refuse a path or location in a request if the
+    calling code is restricted from the file system, also if a host-created provider was lent to that code: a
+    Program with PO_NO_FILESYSTEM is refused with PERMISSION-DENIED, a Program whose sandbox denies the file system by
+    default with FILESYSTEM-ACCESS-DENIED (its file-system policy, when the file is opened), and a location is refused
+    for a Program restricted from a domain of its scheme's handler; nothing is written.  The public helper methods of
+    ImageMagickImageActionBase, and fonts that name files, are refused for restricted callers too.  Requests without
+    paths still work for restricted callers, and unrestricted callers use the paths.
+*/
+class CallerFileAccessTest inherits QUnit::Test {
+    private {
+        const Modes = {"ast": EM_AST, "ir": EM_IR, "jit": EM_JIT, "tiered": EM_TIERED};
+
+        const Source = "%modern
+%requires DataProvider
+%requires imagemagick
+%requires ImageMagickDataProvider
+
+# runs the given use and returns \"ok\" or the error
+string sub run(code c) {
+    try {
+        c();
+        return \"ok\";
+    } catch (hash<ExceptionInfo> ex) {
+        return ex.err;
+    }
+}
+
+# returns the provider at the given path below the given provider
+AbstractDataProvider sub get_child(AbstractDataProvider dp, string path) {
+    foreach string seg in (path.split(\"/\")) {
+        dp = dp.getChildProviderEx(seg);
+    }
+    return dp;
+}
+
+# makes a request with a provider that this Program creates
+string sub request(string path, hash<auto> req) {
+    return run(sub () { get_child(new ImageMagickDataProvider(), path).doRequest(req); });
+}
+
+# calls a public helper or a font method with the given path
+string sub helper(string what, string path, binary data) {
+    return run(sub () {
+        switch (what) {
+            case \"load\":
+                ImageMagickImageActionBase::loadImage({\"input_path\": path});
+                break;
+            case \"output\":
+                ImageMagickImageActionBase::makeResponse(new MagickImage(data), {\"output_path\": path});
+                break;
+            case \"annotate\":
+                new MagickImage(data).annotate(\"x\", 1.0, 5.0, 0.0, path);
+                break;
+            case \"mvg\":
+                new MagickImage(binary(\"viewbox 0 0 4 4 image over 0,0 4,4 '\" + path + \"'\"), \"MVG\");
+                break;
+            case \"set-font\": {
+                MagickDrawing dw();
+                dw.setFont(path);
+                break;
+            }
+            default:
+                throw \"TEST-ERROR\", what;
+        }
+    });
+}
+
+# makes a request with a provider that the host created
+string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
+    return run(sub () { dp.doRequest(req); });
+}
+";
+    }
+
+    private {
+        #! the directory of the test
+        string dir;
+        #! a PNG image
+        string image;
+        #! a file named as a font
+        string font;
+        #! a path that does not exist
+        string missing;
+        #! the image's data
+        binary image_data;
+        #! the output file
+        string out;
+    }
+
+    constructor() : QUnit::Test("CallerFileAccess", "1.0", \ARGV) {
+        dir = make_tmp_dir("imagemagick-caller-file-access-");
+        out = dir + "/out.png";
+        image = dir + "/image.png";
+        missing = dir + "/missing.png";
+        # a relative path is used in the current directory
+        mkdir(dir + "/cwd");
+        chdir(dir + "/cwd");
+        File f;
+        MagickImage img(8, 8, "red");
+        img.setFormat("PNG");
+        image_data = img.toData();
+        # a file that is not a registered font
+        font = dir + "/font.ttf";
+        f = new File();
+        f.open2(font, O_CREAT | O_WRONLY | O_TRUNC);
+        f.write(<00>);
+        f.close();
+        resetImage();
+
+        foreach string mode in (keys Modes) {
+            string m = mode;
+            addTestCase("restricted callers, " + m, sub () { testRestricted(m); });
+            addTestCase("lent providers, " + m, sub () { testLent(m); });
+            addTestCase("requests without paths, " + m, sub () { testNoPaths(m); });
+            addTestCase("network locations, " + m, sub () { testNetworkLocations(m); });
+            addTestCase("helper methods, " + m, sub () { testHelpers(m); });
+            addTestCase("location options, " + m, sub () { testLocationOptions(m); });
+            addTestCase("font injection, " + m, sub () { testFontInjection(m); });
+            addTestCase("sandbox file names, " + m, sub () { testSandboxFileNames(m); });
+        }
+        set_return_value(main());
+    }
+
+    destructor() {
+        if (dir) {
+            remove_tree(dir);
+        }
+    }
+
+    #! returns the requests with paths: action path, description, request
+    /** @param img the image that the requests read; a missing file shows that a request is refused before it is read
+    */
+    private list<list<auto>> getPathRequests(*string img) {
+        string image = img ?? self.image;
+        hash<auto> d = {"data": image_data};
+        return (
+            ("image/resize", "input_path", {"input_path": image, "width": 4, "height": 4}),
+            ("image/resize", "location", {"location": "file://" + image, "width": 4, "height": 4}),
+            ("image/resize", "plain location", {"location": image, "width": 4, "height": 4}),
+            ("image/resize", "output_path", d + {"width": 4, "height": 4, "output_path": out}),
+            ("image/resize", "output_location", d + {"width": 4, "height": 4, "output_location": "file://" + out}),
+            ("image/crop", "input_path", {"input_path": image, "width": 4, "height": 4, "x": 0, "y": 0}),
+            ("image/rotate", "output_path", d + {"degrees": 90.0, "output_path": out}),
+            ("image/strip", "input_path", {"input_path": image}),
+            ("image/composite", "overlay_path", d + {"overlay_path": image, "x": 0, "y": 0}),
+            ("image/composite", "overlay_location", d + {"overlay_location": "file://" + image, "x": 0, "y": 0}),
+            # the font file is not a font: an unrestricted caller reads it and fails to load it
+            ("image/annotate", "font", d + {"text": "x", "x": 1.0, "y": 5.0, "font": font}, "IMAGEMAGICK-ERROR"),
+            ("image/draw", "font", d + {"font": font, "operations": ({"type": "line", "sx": 0, "sy": 0, "ex": 4,
+                "ey": 4},)}, "ok"),
+            ("image/draw", "input_path", {"input_path": image, "operations": ({"type": "line", "sx": 0, "sy": 0,
+                "ex": 4, "ey": 4},)}),
+            # "@" introduces a file
+            ("image/annotate", "@font", d + {"text": "x", "x": 1.0, "y": 5.0, "font": "@" + font},
+                "IMAGEMAGICK-ERROR"),
+            ("image/effects/charcoal", "input_path", {"input_path": image, "radius": 1.0, "sigma": 1.0}),
+            ("convert/format", "input_path", {"input_path": image, "format": "JPEG"}),
+            ("convert/format", "output_path", d + {"format": "JPEG", "output_path": out}),
+            ("info/get", "input_path", {"input_path": image}),
+            ("info/get", "location", {"location": "file://" + image}),
+        );
+    }
+
+    #! paths given by restricted callers are refused before they are used; unrestricted callers use them
+    private testRestricted(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        foreach list<auto> r in (getPathRequests()) {
+            string desc = sprintf("%s %s %s", r[0], r[1], mode);
+            assertEq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("request", r[0], r[2]),
+                "nofs " + desc);
+            checkUnchanged("nofs " + desc);
+            # the file-system policy of the sandbox refuses the file when it is opened
+            assertEq("FILESYSTEM-ACCESS-DENIED", getProgram("sandbox", mode).callFunction("request", r[0], r[2]),
+                "sandbox " + desc);
+            checkUnchanged("sandbox " + desc);
+            assertEq(r[3] ?? "ok", getProgram("unrestricted", mode).callFunction("request", r[0], r[2]),
+                "unrestricted " + desc);
+            reset();
+        }
+        # the requests are refused before the file is read: a missing file would raise another error
+        foreach list<auto> r in (getPathRequests(missing)) {
+            string desc = sprintf("%s %s %s", r[0], r[1], mode);
+            assertEq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("request", r[0], r[2]),
+                "nofs missing " + desc);
+            assertEq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("lent_request", getLeaf(r[0]), r[2]),
+                "nofs lent missing " + desc);
+        }
+    }
+
+    #! paths given by the restricted code that a host-created provider was lent to are refused
+    /** The host creates the action's provider itself: a provider that a method of a lent provider of another module
+        (DataProvider's AbstractDataProvider::getChildProviderEx()) creates is not lent
+    */
+    private testLent(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        foreach list<auto> r in (getPathRequests()) {
+            string desc = sprintf("%s %s %s", r[0], r[1], mode);
+            assertEq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("lent_request", getLeaf(r[0]), r[2]),
+                "nofs lent " + desc);
+            checkUnchanged("nofs lent " + desc);
+            assertEq("FILESYSTEM-ACCESS-DENIED", getProgram("sandbox", mode).callFunction("lent_request",
+                getLeaf(r[0]), r[2]), "sandbox lent " + desc);
+            checkUnchanged("sandbox lent " + desc);
+            assertEq(r[3] ?? "ok", getProgram("unrestricted", mode).callFunction("lent_request", getLeaf(r[0]), r[2]),
+                "unrestricted lent " + desc);
+            reset();
+        }
+    }
+
+    #! a location is refused if the calling code is restricted from a functional domain of the handler of its scheme
+    /** For a direct caller, FileLocationHandler refuses such a location itself; the lent cases show the module's check
+    */
+    private testNetworkLocations(string mode) {
+        # the refusal comes before any connection: nothing listens on the port
+        string url = "http://127.0.0.1:1/image.png";
+        foreach list<auto> r in ((
+                ("info/get", {"location": url}),
+                ("image/composite", {"data": image_data, "overlay_location": url, "x": 0, "y": 0}),
+                ("image/resize", {"data": image_data, "width": 4, "height": 4, "output_location": url}),
+            )) {
+            string desc = sprintf("%s %s", r[0], mode);
+            assertEq("PERMISSION-DENIED", getProgram("nonet", mode).callFunction("request", r[0], r[1]),
+                "nonet " + desc);
+            assertEq("PERMISSION-DENIED", getProgram("nonet", mode).callFunction("lent_request", getLeaf(r[0]),
+                r[1]), "nonet lent " + desc);
+        }
+    }
+
+    #! the locations that restricted callers may use, the options of locations and the options of conn locations
+    private testLocationOptions(string mode) {
+        # a file location for code restricted only from the network
+        assertEq("ok", getProgram("nonet", mode).callFunction("request", "info/get",
+            {"location": "file://" + image}),
+            "nonet file location " + mode);
+        assertEq("ok", getProgram("nonet", mode).callFunction("lent_request", getLeaf("info/get"),
+            {"location": "file://" + image}), "nonet lent file location " + mode);
+        # a network location for code restricted only from the file system: refused by the network, not by the module
+        string url = "http://127.0.0.1:1/x";
+        assertNeq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("request", "info/get",
+            {"location": url}),
+            "nofs http location " + mode);
+        assertNeq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("lent_request", getLeaf("info/get"),
+            {"location": url}), "nofs lent http location " + mode);
+        # an option of a network location that names a local file
+        url = "https://127.0.0.1:1/x{ssl_cert_path=/etc/hostname}";
+        assertEq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("request", "info/get",
+            {"location": url}),
+            "nofs https location with a file option " + mode);
+        assertEq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("lent_request", getLeaf("info/get"),
+            {"location": url}), "nofs lent https location with a file option " + mode);
+        # the options of a conn location are given to the handler of its connection, which does not see the code that
+        # a provider was lent to
+        url = "conn://no-such-connection/x{ssl_cert_path=/etc/hostname}";
+        assertEq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("lent_request", getLeaf("info/get"),
+            {"location": url}), "nofs lent conn location with options " + mode);
+        assertNeq("ok", getProgram("nofs", mode).callFunction("request", "info/get", {"location": url}),
+            "nofs conn location with options " + mode);
+        # without options, the connection decides
+        assertNeq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("lent_request", getLeaf("info/get"),
+            {"location": "conn://no-such-connection/x"}), "nofs lent conn location " + mode);
+        # the options of other handlers without domains of their own are not given to another handler
+        assertNeq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("lent_request", getLeaf("info/get"),
+            {"location": "data://abc{encoding_errors=strict}"}), "nofs lent data location with options " + mode);
+        # options that cannot be parsed
+        assertEq("LOCATION-ERROR", getProgram("nofs", mode).callFunction("lent_request", getLeaf("info/get"),
+            {"location": "file:///x{(1,2)}"}), "nofs lent location with invalid options " + mode);
+    }
+
+    #! the public helper methods of ImageMagickImageActionBase and the font methods refuse the paths of restricted
+    #! callers
+    private testHelpers(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        # a path that evaluates to False is a path too
+        # a font name that names a file in the current directory is a path too
+        File f();
+        f.open2("AvantGarde-Book", O_CREAT | O_WRONLY | O_TRUNC);
+        f.write(<00>);
+        f.close();
+        on_exit unlink("AvantGarde-Book");
+        foreach list<string> h in (("output", out), ("output", "0"), ("load", image), ("annotate", font),
+                ("set-font", font), ("annotate", "AvantGarde-Book"), ("mvg", image)) {
+            string desc = sprintf("%s %s", h[0], mode);
+            assertEq("PERMISSION-DENIED", getProgram("nofs", mode).callFunction("helper", h[0], h[1], image_data),
+                "nofs helper " + desc);
+            checkUnchanged("nofs helper " + desc);
+            if (h[1] == "0") {
+                # makeResponse() does not write to a path that evaluates to False
+                continue;
+            }
+            # the font file is not a font: annotate() reads it and fails to load it
+            assertEq(h[0] == "annotate" ? "IMAGEMAGICK-ERROR" : "ok",
+                getProgram("unrestricted", mode).callFunction("helper", h[0], h[1], image_data),
+                "unrestricted helper " + desc);
+            reset();
+        }
+    }
+
+    #! a font or font family that would end its quotes in the drawing script is refused for all callers
+    private testFontInjection(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        # an existing image, which the injected command would read
+        string inj = "x'\nimage copy 0,0 4,4 '" + image;
+        foreach string field in ("font", "font_family") {
+            hash<auto> req = {"data": image_data, field: inj, "operations": ({"type": "line", "sx": 0, "sy": 0,
+                "ex": 4, "ey": 4},)};
+            # the font names a path too, which a restricted caller is refused first
+            assertRegex("^(IMAGEMAGICK-ERROR|PERMISSION-DENIED)$", getProgram("nofs", mode).callFunction("request",
+                "image/draw", req), sprintf("nofs %s injection %s", field, mode));
+            assertEq("IMAGEMAGICK-ERROR", getProgram("unrestricted", mode).callFunction("request", "image/draw",
+                req), sprintf("unrestricted %s injection %s", field, mode));
+        }
+    }
+
+    #! for code that a sandbox governs, a file name with ImageMagick syntax that opens another file is refused
+    private testSandboxFileNames(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        SandboxManager sm();
+        sm.setFilesystemDefaultPolicy(False);
+        sm.addFilesystemAllowedPath(dir, QSEC_READ | QSEC_WRITE | QSEC_CREATE);
+        Program p(PO_NEW_STYLE);
+        p.setSandboxManager(sm);
+        p.setExecMode(Modes{mode});
+        p.parse(Source, "sandbox-names");
+        hash<auto> req = {"width": 4, "height": 4};
+        assertEq("ok", p.callFunction("request", "image/resize", req + {"input_path": image}),
+            "sandbox plain name " + mode);
+        foreach string name in ("png:" + image, image + "[0]", "@" + image) {
+            assertEq("FILESYSTEM-ACCESS-DENIED", p.callFunction("request", "image/resize", req + {"input_path": name}),
+                sprintf("sandbox %y %s", name, mode));
+        }
+        assertEq("FILESYSTEM-ACCESS-DENIED", p.callFunction("request", "image/resize", req + {"data": image_data,
+            "output_path": "png:" + out}), "sandbox output prefix " + mode);
+        assertFalse(exists hstat(out), "nothing written " + mode);
+        # an explicit read format whose data can name other files
+        assertEq("PERMISSION-DENIED", p.callFunction("helper", "mvg", image, image_data), "sandbox mvg " + mode);
+    }
+
+    #! requests without paths work for restricted callers and with lent providers
+    private testNoPaths(string mode) {
+        # a failed case before this one can leave outputs
+        reset();
+        list<list<auto>> reqs = (
+            ("image/resize", {"data": image_data, "width": 4, "height": 4}),
+            ("image/composite", {"data": image_data, "overlay_data": image_data, "x": 0, "y": 0}),
+            # a registered font, or a font name that names no file, is not a path
+            ("image/annotate", {"data": image_data, "text": "x", "x": 1.0, "y": 5.0}),
+            ("image/annotate", {"data": image_data, "text": "x", "x": 1.0, "y": 5.0, "font": "no-such-font"}),
+            ("image/draw", {"data": image_data, "font_family": "Courier", "operations": ({"type": "line", "sx": 0,
+                "sy": 0, "ex": 4, "ey": 4},)}),
+            ("info/get", {"data": image_data}),
+            ("convert/format", {"data": image_data, "format": "JPEG"}),
+        );
+        foreach list<auto> r in (reqs) {
+            foreach string kind in ("nofs", "sandbox") {
+                string desc = sprintf("%s %s %s", kind, r[0], mode);
+                assertEq("ok", getProgram(kind, mode).callFunction("request", r[0], r[1]), desc);
+                assertEq("ok", getProgram(kind, mode).callFunction("lent_request", getLeaf(r[0]), r[1]),
+                    "lent " + desc);
+            }
+        }
+        checkUnchanged("no paths " + mode);
+    }
+
+    #! returns the action's provider, created by the host: the provider that the host lends to the restricted code
+    private static AbstractDataProvider getLeaf(string path) {
+        AbstractDataProvider dp = new ImageMagickDataProvider();
+        foreach string seg in (path.split("/")) {
+            dp = dp.getChildProviderEx(seg);
+        }
+        return dp;
+    }
+
+    #! checks that nothing was written
+    private checkUnchanged(string desc) {
+        assertFalse(is_file(out), "nothing written: " + desc);
+        assertFalse(exists hstat("0"), "nothing written to a relative path: " + desc);
+        assertEq(image_data, ReadOnlyFile::readBinaryFile(image), "image unchanged: " + desc);
+        assertFalse(exists hstat(missing), "no missing file created: " + desc);
+    }
+
+    #! removes the outputs and restores the image
+    private reset() {
+        if (is_file(out)) {
+            unlink(out);
+        }
+        if (is_dir("0")) {
+            remove_tree("0");
+        } else if (exists hstat("0")) {
+            unlink("0");
+        }
+        resetImage();
+    }
+
+    #! writes the image
+    private resetImage() {
+        File f();
+        f.open2(image, O_CREAT | O_WRONLY | O_TRUNC);
+        f.write(image_data);
+        f.close();
+    }
+
+    #! returns a Program of the given kind
+    private Program getProgram(string kind, string mode) {
+        Program p;
+        switch (kind) {
+            case "nofs":
+                p = new Program(PO_NEW_STYLE | PO_NO_FILESYSTEM);
+                break;
+            case "nonet":
+                p = new Program(PO_NEW_STYLE | PO_NO_NETWORK);
+                break;
+            case "sandbox": {
+                SandboxManager sm();
+                sm.setFilesystemDefaultPolicy(False);
+                p = new Program(PO_NEW_STYLE);
+                p.setSandboxManager(sm);
+                break;
+            }
+            default:
+                p = new Program(PO_NEW_STYLE);
+                break;
+        }
+        p.setExecMode(Modes{mode});
+        p.parse(Source, kind);
+        return p;
+    }
+}

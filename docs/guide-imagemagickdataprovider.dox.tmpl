@@ -4,6 +4,10 @@
 
     @tableofcontents
 
+    The paths, locations and font files in a request are refused with \c PERMISSION-DENIED before they are used if
+    the calling code is restricted from the file system, also when the host created the provider and gave it to that
+    code; see @ref imagemagickdataprovider_caller_paths "Paths Given by Restricted Callers".
+
     The \c ImageMagickDataProvider module provides integration with the %Qore data provider
     framework for use with Qorus. It registers the \c "imagemagick" factory with the following
     provider tree:
