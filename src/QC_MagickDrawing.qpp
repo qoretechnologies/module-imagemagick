@@ -78,6 +78,13 @@ MagickDrawing::destructor() {
 
 //! Sets the font for text operations
 /** @param font the font name or path to a font file
+
+    @throw PERMISSION-DENIED the font names a file (it starts with \c "@" or \c "~", contains a path separator, or a
+    file with its name exists; ImageMagick reads such a file before it looks the name up among the registered fonts)
+    and the calling code is restricted from the \c FILESYSTEM functional domain
+    @throw IMAGEMAGICK-ERROR the font contains a quote, a backslash or a control character
+    @throw FILESYSTEM-ACCESS-DENIED the font names a file that the file-system policy of a sandbox that governs the
+    calling code does not allow to read
 */
 nothing MagickDrawing::setFont(string font) [flags=NAMED_ARGS] {
     dw->setFont(font->c_str(), xsink);
@@ -92,6 +99,8 @@ nothing MagickDrawing::setFontSize(float size) [flags=NAMED_ARGS] {
 
 //! Sets the font family for text operations
 /** @param family the font family name (e.g. "Helvetica", "Times", "Courier")
+
+    @throw IMAGEMAGICK-ERROR the name contains a quote, a backslash or a control character
 */
 nothing MagickDrawing::setFontFamily(string family) [flags=NAMED_ARGS] {
     dw->setFontFamily(family->c_str(), xsink);

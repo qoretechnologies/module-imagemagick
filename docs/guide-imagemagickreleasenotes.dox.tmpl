@@ -6,4 +6,14 @@
 
     @section imagemagick_v1_0 imagemagick Module Version 1.0
     - initial release
+    - a font that names a file is refused with \c PERMISSION-DENIED by
+      @ref Qore::ImageMagick::MagickImage::annotate() "MagickImage::annotate()" and
+      @ref Qore::ImageMagick::MagickDrawing::setFont() "MagickDrawing::setFont()" if the calling code is restricted
+      from the file system, and the file-system policy of a sandbox that governs the code applies to it
+      (<a href="https://github.com/qoretechnologies/module-imagemagick/issues/8">issue 8</a>)
+    - a font or font family with a quote, a backslash or a control character is refused, as it would add commands to
+      the drawing script; for code that a sandbox governs, a file name with a coder prefix, a list file or a
+      \c "[...]" suffix is refused, and for restricted or sandboxed code an explicit read format whose data can name
+      other files (such as \c MVG, \c SVG, \c MSL or \c TEXT) is refused
+      (<a href="https://github.com/qoretechnologies/module-imagemagick/issues/8">issue 8</a>)
 */

@@ -56,7 +56,7 @@ bool QoreMagickImage::checkInterrupted(ExceptionSink* xsink) {
 QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(NewMagickWand()) {
     setupProgressMonitor();
     // Check filesystem sandbox access
-    if (smh && !smh->checkFilesystemAccess(path, QSEC_READ, xsink)) {
+    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return;
     }
     // Check for I/O interrupt before file operation
@@ -88,6 +88,10 @@ QoreMagickImage::QoreMagickImage(const BinaryNode* data, const char* format,
     setupProgressMonitor();
     // Check for I/O interrupt before blob read operation
     if (qore_check_cancel(xsink, "reading image from binary data with format")) {
+        return;
+    }
+    // a format whose data names other files is refused for restricted or sandboxed calling code
+    if (checkReadFormat(format, static_cast<bool>(smh), xsink)) {
         return;
     }
     MagickSetFormat(wand, format);
@@ -126,7 +130,7 @@ QoreMagickImage::~QoreMagickImage() {
 
 void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
     // Check filesystem sandbox access
-    if (smh && !smh->checkFilesystemAccess(path, QSEC_READ, xsink)) {
+    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return;
     }
     // Check for I/O interrupt before file operation
@@ -161,6 +165,10 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
         return;
     }
     QoreAutoRWWriteLocker al(rwlock);
+    // a format whose data names other files is refused for restricted or sandboxed calling code
+    if (checkReadFormat(format, static_cast<bool>(smh), xsink)) {
+        return;
+    }
     MagickSetFormat(wand, format);
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
         if (!checkInterrupted(xsink)) {
@@ -171,7 +179,7 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
 
 QoreHashNode* QoreMagickImage::pingFile(const char* path, ExceptionSink* xsink) {
     // Check filesystem sandbox access
-    if (smh && !smh->checkFilesystemAccess(path, QSEC_READ, xsink)) {
+    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
         return nullptr;
     }
     // Check for I/O interrupt before file operation
@@ -253,7 +261,7 @@ QoreHashNode* QoreMagickImage::pingData(const BinaryNode* data, ExceptionSink* x
 
 void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
     // Check filesystem sandbox access
-    if (smh && !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink)) {
+    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
         return;
     }
     // Check for I/O interrupt before file operation
@@ -270,7 +278,7 @@ void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
 
 void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* xsink) {
     // Check filesystem sandbox access
-    if (smh && !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink)) {
+    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
         return;
     }
     // Check for I/O interrupt before file operation
@@ -1106,6 +1114,10 @@ void QoreMagickImage::compositeGravity(QoreMagickImage* source, const char* op,
 void QoreMagickImage::annotate(const char* text, double x, double y, double angle,
                                const char* font, double font_size, const char* fill_color,
                                const char* stroke_color, ExceptionSink* xsink) {
+    // a font file is the calling code's input: checked before anything is drawn
+    if (checkFontAccess(font, xsink)) {
+        return;
+    }
     QoreAutoRWWriteLocker al(rwlock);
     DrawingWand* dw = NewDrawingWand();
     if (font && font[0]) {

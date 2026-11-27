@@ -27,6 +27,9 @@
 #include "ImageMagickHelper.h"
 
 #include <cstring>
+#include <strings.h>
+#include <sys/stat.h>
+#include <cctype>
 
 bool checkMagickError(MagickWand* wand, const char* context, ExceptionSink* xsink) {
     ExceptionType severity;
@@ -343,4 +346,94 @@ QoreStringNode* getPixelColor(PixelWand* pw) {
     QoreStringNode* rv = new QoreStringNode(color);
     MagickRelinquishMemory(color);
     return rv;
+}
+
+//! returns true if the string has a character that ends a quoted name in an ImageMagick drawing script
+static bool hasScriptBreak(const char* name) {
+    for (const unsigned char* p = reinterpret_cast<const unsigned char*>(name); *p; ++p) {
+        if (*p == '\'' || *p == '\\' || *p < 0x20 || *p == 0x7f) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int checkFontName(const char* font, const char* what, ExceptionSink* xsink) {
+    if (font && hasScriptBreak(font)) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "invalid %s: it contains a quote, a backslash or a control "
+            "character", what);
+        return -1;
+    }
+    return 0;
+}
+
+int checkFontAccess(const char* font, ExceptionSink* xsink) {
+    if (!font || !font[0]) {
+        return 0;
+    }
+    if (checkFontName(font, "font", xsink)) {
+        return -1;
+    }
+    // ImageMagick reads a font that names an existing file (before it looks the name up among the registered
+    // fonts), and "@" introduces a file: such a font is the calling code's input
+    struct stat st;
+    bool path = font[0] == '@' || font[0] == '~' || strchr(font, '/') || strchr(font, '\\') || !stat(font, &st);
+    if (!path) {
+        return 0;
+    }
+    // the options of a module's own Program do not decide (module-imagemagick#8)
+    if (qore_caller_restricts_domain(QDOM_FILESYSTEM)) {
+        xsink->raiseException("PERMISSION-DENIED", "font '%s' names a file, which cannot be used: the calling code "
+            "is restricted from the FILESYSTEM functional domain", font);
+        return -1;
+    }
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
+    if (smh && !smh->checkFilesystemAccess(font[0] == '@' ? font + 1 : font, QSEC_READ, xsink)) {
+        return -1;
+    }
+    return 0;
+}
+
+int checkMagickFileName(const char* path, ExceptionSink* xsink) {
+    // a coder prefix ("png:file"), a list file ("@file") and a scene or size suffix ("file[0]") make ImageMagick
+    // open another file than the one that the policy checks (a one-letter prefix is a Windows drive)
+    const char* p = path;
+    while (*p && (isalnum(static_cast<unsigned char>(*p)) || *p == '-' || *p == '_')) {
+        ++p;
+    }
+    size_t len = strlen(path);
+    if ((*p == ':' && (p - path) > 1) || path[0] == '@' || (len && path[len - 1] == ']')) {
+        xsink->raiseException("FILESYSTEM-ACCESS-DENIED", "file name '%s' cannot be used by code that a sandbox "
+            "governs: ImageMagick would interpret its coder prefix, list file or suffix", path);
+        return -1;
+    }
+    return 0;
+}
+
+int checkReadFormat(const char* format, bool sandboxed, ExceptionSink* xsink) {
+    if (!format) {
+        return 0;
+    }
+    // formats whose data can name other files or URLs that ImageMagick reads
+    static const char* const formats[] = {
+        "MVG", "SVG", "MSVG", "RSVG", "MSL", "TEXT", "LABEL", "CAPTION", "PANGO", "EPHEMERAL", "URL", "HTTP",
+        "HTTPS", "FTP", "FILE", "INLINE",
+    };
+    bool found = false;
+    for (const char* f : formats) {
+        if (!strcasecmp(f, format)) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        return 0;
+    }
+    if (sandboxed || qore_caller_restricts_domain(QDOM_FILESYSTEM | QDOM_NETWORK)) {
+        xsink->raiseException("PERMISSION-DENIED", "image data in format '%s' cannot be read for the calling code: "
+            "the format can name other files that ImageMagick reads, and the calling code is restricted from the "
+            "FILESYSTEM or NETWORK functional domain, or a sandbox governs it", format);
+        return -1;
+    }
+    return 0;
 }

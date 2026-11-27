@@ -104,4 +104,30 @@ DLLLOCAL const char* imageTypeToString(ImageType it);
 //! Get a color string from a PixelWand
 DLLLOCAL QoreStringNode* getPixelColor(PixelWand* pw);
 
+//! Refuses a font or font family name that would break out of the quoted name in an ImageMagick drawing script
+/** @return 0 if the name can be used, -1 if \c IMAGEMAGICK-ERROR was raised
+*/
+DLLLOCAL int checkFontName(const char* font, const char* what, ExceptionSink* xsink);
+
+//! Refuses a font that names a file if the calling code may not read the file
+/** ImageMagick reads a font that names an existing file as that file, before it looks the name up among the
+    registered fonts, and \c "@" introduces a file: a font that starts with \c "@" or \c "~", contains a path
+    separator or names an existing file is the calling code's input, so it is refused if that code is restricted from
+    the \c FILESYSTEM functional domain, and it is checked with the file-system policy of a sandbox that governs the
+    code; a font with a quote, a backslash or a control character is refused for all callers (checkFontName())
+
+    @return 0 if the font can be used, -1 if an exception was raised
+*/
+DLLLOCAL int checkFontAccess(const char* font, ExceptionSink* xsink);
+
+//! Refuses, for code that a sandbox governs, a file name whose ImageMagick syntax opens another file
+/** @return 0 if the name can be used, -1 if \c FILESYSTEM-ACCESS-DENIED was raised
+*/
+DLLLOCAL int checkMagickFileName(const char* path, ExceptionSink* xsink);
+
+//! Refuses an explicit read format whose data can name other files, for restricted or sandboxed calling code
+/** @return 0 if the format can be used, -1 if \c PERMISSION-DENIED was raised
+*/
+DLLLOCAL int checkReadFormat(const char* format, bool sandboxed, ExceptionSink* xsink);
+
 #endif // _QORE_IMAGEMAGICK_HELPER_H
