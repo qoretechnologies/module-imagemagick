@@ -222,6 +222,29 @@ private:
     //! Set up progress monitor for interruptible operations
     DLLLOCAL void setupProgressMonitor();
 
+    //! Adds the images that the given wand decoded to this image (module-imagemagick#13)
+    /** @return 0 if the images were added, -1 if an exception was raised
+    */
+    DLLLOCAL int addImages(MagickWand* pw, ExceptionSink* xsink);
+
+    //! Refuses an output format that ImageMagick writes with an external program, for restricted calling code
+    /** The format is decided as ImageMagick decides it: from the file name, else from the format of the wand (set by
+        an explicit read format), else from the format of the images that are written; the lock must be held
+
+        @param path the file that the image is written to, if any
+        @param all true if all images are written
+
+        @return 0 if the format can be used, -1 if \c PERMISSION-DENIED was raised
+    */
+    DLLLOCAL int checkOutputFormat(const char* path, bool all, ExceptionSink* xsink);
+
+    //! Refuses an image with a montage directory (read from MIFF data), for restricted calling code
+    /** The lock must be held
+
+        @return 0 if no image has a directory, -1 if \c PERMISSION-DENIED was raised
+    */
+    DLLLOCAL int checkNoDirectory(ExceptionSink* xsink);
+
     //! Progress monitor callback - checks for sandbox interrupt
     static MagickBooleanType progressMonitor(const char* tag, const MagickOffsetType offset,
                                               const MagickSizeType size, void* client_data);

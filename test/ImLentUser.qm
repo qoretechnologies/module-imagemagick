@@ -67,6 +67,26 @@ public class ImageUser {
         MagickImage i(data, format);
     }
 
+    #! creates an image from data in the format that ImageMagick detects
+    newFromAutoData(binary data) {
+        MagickImage i(data);
+    }
+
+    #! reads the given data into the image
+    readData(binary data) {
+        img.readData(data);
+    }
+
+    #! pings the given data
+    hash<auto> pingData(binary data) {
+        return img.pingData(data);
+    }
+
+    #! returns the image's data in the given format
+    binary toDataInFormat(string format) {
+        return img.toData(format);
+    }
+
     #! reads the given file
     readFile(string path) {
         img.readFile(path);

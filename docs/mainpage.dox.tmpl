@@ -46,7 +46,8 @@
     "MagickImage::annotate()", @ref Qore::ImageMagick::MagickDrawing::setFont() "MagickDrawing::setFont()") and image
     data in a format whose data can name other files refuse it with \c PERMISSION-DENIED before anything is read or
     written if the code that gives it is restricted from the \c FILESYSTEM functional domain (for example with
-    \c PO_NO_FILESYSTEM; for such formats, also from the \c NETWORK functional domain).  The methods with the
+    \c PO_NO_FILESYSTEM; for such formats, also from the \c NETWORK, \c EXTERNAL_PROCESS or \c PROCESS_CONTROL
+    functional domain, see @ref imagemagickrestrictedformats).  The methods with the
     \c FILESYSTEM functional domain cannot be called by such code at all; a method of an object of a module class that
     the host created and gave to restricted code, however, runs with the file system lent, so the paths, fonts and
     data that such a method gives these classes are decided with the code that the object was given to (with a %Qore
@@ -60,6 +61,47 @@
     %Program: a user module that restricted code calls (with or without a lent object) is refused the paths that it
     gives these classes for that code, also paths of its own (such as bundled images); module code that serves
     restricted code uses the methods that take and return data.
+
+    @subsection imagemagickrestrictedformats Formats Refused for Restricted Code
+
+    ImageMagick decodes some formats with an external program (a delegate): PostScript and PDF (\c PS, \c EPS,
+    \c EPI, \c EPSF, \c EPSI, \c EPT, \c PDF, \c PDFA, \c AI), \c XPS and \c PCL with Ghostscript, which can
+    read other files, and others such as video formats with \c ffmpeg; and the data of formats such as \c MVG,
+    \c MSL, \c SVG and \c TEXT names other files or URLs that ImageMagick reads, or embeds data that ImageMagick
+    decodes in a format that it detects (such as \c WPG).  For code that a sandbox governs and for code restricted from
+    the \c FILESYSTEM, \c NETWORK, \c EXTERNAL_PROCESS or \c PROCESS_CONTROL functional domain (also the code that a
+    host-created object of a module class was lent to, as above), the methods that decode image data refuse such data
+    with \c PERMISSION-DENIED before it is decoded:
+    - the format is decided first, on the bytes that are then decoded: data given to a method is detected as
+      ImageMagick detects it, and a file is read into memory and detected from its data and its name's extension; the
+      data is then decoded in the format that was decided, so ImageMagick does not detect it again; an explicit format
+      is used as it is, and one that ImageMagick does not know is ignored, as ImageMagick ignores it
+    - a format is refused if ImageMagick has no decoder of its own for it (it would decode it with a delegate), if a
+      delegate is configured for its coder in ImageMagick's delegate configuration, if it or its coder is one of the
+      formats that are decoded by Ghostscript or another external program, or if its data names other files or embeds
+      data in a detected format; data whose format cannot be determined is refused with \c IMAGEMAGICK-ERROR
+    - the data is decoded with a file name that no file can have, so that ImageMagick takes the format prefix that it
+      adds as one also when a file named as the prefix (such as \c "PNG:") exists, and the montage directory of MIFF
+      data, which names images that ImageMagick reads when it identifies the image or writes it as JSON, is removed;
+      an image with such a directory (from unrestricted code) is not identified or written for such code
+    - file names with ImageMagick syntax that selects a format or opens another file (a coder prefix such as
+      \c "ps:" or \c "r:", a list file \c "@file", a \c "[...]" suffix or a \c "%" escape) are refused with
+      \c FILESYSTEM-ACCESS-DENIED, and such code reads images only from regular files that the ImageMagick path
+      policy allows
+    - images are not written (@ref Qore::ImageMagick::MagickImage::writeFile() "MagickImage::writeFile()",
+      @ref Qore::ImageMagick::MagickImage::writeFiles() "MagickImage::writeFiles()",
+      @ref Qore::ImageMagick::MagickImage::toData() "MagickImage::toData()") in a format that ImageMagick writes with
+      an external program (such as video formats, or a name that it gives to a delegate such as \c print:) or shows
+      on a display (\c X)
+    - fonts whose names start with \c "^" (ImageMagick renders them with Ghostscript) or \c "-" (X server fonts) are
+      refused, also as the font of a drawing that is drawn, and text is not rendered if ImageMagick was built without
+      FreeType (it then renders text with Ghostscript)
+
+    This applies to the methods of @ref Qore::ImageMagick::MagickImage "MagickImage" that read or ping files and
+    data, to the fonts of @ref Qore::ImageMagick::MagickImage::annotate() "MagickImage::annotate()" and
+    @ref Qore::ImageMagick::MagickDrawing::setFont() "MagickDrawing::setFont()", and so to the actions of the
+    @ref imagemagickdataproviderintro "ImageMagickDataProvider" module.  Unrestricted code decodes all formats as
+    ImageMagick does, which the ImageMagick security policy (\c policy.xml) can restrict for all code.
 
     @section imagemagickqlibmodules Qore User Modules
 

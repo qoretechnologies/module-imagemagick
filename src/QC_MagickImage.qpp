@@ -283,11 +283,15 @@ qclass MagickImage [arg=QoreMagickImage* img; ns=Qore::ImageMagick];
 /** @param path the path to the image file
 
     @throw IMAGEMAGICK-ERROR error reading the image file
-    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
-    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
-    \c "[...]" suffix)
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file; for code that
+    a sandbox governs or that is restricted from formats (see @ref imagemagickrestrictedformats), the name has
+    ImageMagick syntax that selects a format or opens another file (a coder prefix such as \c "png:" or \c "r:", a
+    list file \c "@file", a \c "[...]" suffix or a \c "%" escape)
     @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
     gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would decode the data in a format that it decodes with an external program (such as PostScript or PDF
+    with Ghostscript) or whose data names other files (such as \c MVG, \c SVG, \c MSL or \c TEXT)
 */
 MagickImage::constructor(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(path->c_str(), xsink), xsink);
@@ -301,6 +305,9 @@ MagickImage::constructor(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
 /** @param data binary data containing an image
 
     @throw IMAGEMAGICK-ERROR error reading the image data
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would decode the data in a format that it decodes with an external program (such as PostScript or PDF
+    with Ghostscript) or whose data names other files (such as \c MVG, \c SVG, \c MSL or \c TEXT)
 */
 MagickImage::constructor(binary data) [flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(data, xsink), xsink);
@@ -315,10 +322,11 @@ MagickImage::constructor(binary data) [flags=NAMED_ARGS] {
     @param format the image format (e.g. "PNG", "JPEG")
 
     @throw IMAGEMAGICK-ERROR error reading the image data
-    @throw PERMISSION-DENIED the format's data can name other files that ImageMagick reads (such as \c MVG, \c SVG,
-    \c MSL or \c TEXT), and the calling code is restricted from the \c FILESYSTEM or \c NETWORK functional domain
-    (also the code that a host-created object of a module class that gives the data was lent to; see
-    @ref imagemagickcallerpaths) or a sandbox governs it
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    the format is one that ImageMagick decodes with an external program (such as \c PS, \c EPS or \c PDF with
+    Ghostscript) or whose data names other files (such as \c MVG, \c SVG, \c MSL or \c TEXT); a format that
+    ImageMagick does not know is ignored, as ImageMagick ignores it, and the format that it detects in the data is
+    refused in the same way
 */
 MagickImage::constructor(binary data, string format) [flags=NAMED_ARGS] {
     ReferenceHolder<QoreMagickImage> holder(new QoreMagickImage(data, format->c_str(), xsink), xsink);
@@ -371,11 +379,15 @@ MagickImage::destructor() {
 /** @param path the path to the image file
 
     @throw IMAGEMAGICK-ERROR error reading the image file
-    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
-    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
-    \c "[...]" suffix)
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file; for code that
+    a sandbox governs or that is restricted from formats (see @ref imagemagickrestrictedformats), the name has
+    ImageMagick syntax that selects a format or opens another file (a coder prefix such as \c "png:" or \c "r:", a
+    list file \c "@file", a \c "[...]" suffix or a \c "%" escape)
     @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
     gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would decode the data in a format that it decodes with an external program (such as PostScript or PDF
+    with Ghostscript) or whose data names other files (such as \c MVG, \c SVG, \c MSL or \c TEXT)
 */
 nothing MagickImage::readFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->readFile(path->c_str(), xsink);
@@ -385,6 +397,9 @@ nothing MagickImage::readFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
 /** @param data binary data containing an image
 
     @throw IMAGEMAGICK-ERROR error reading the image data
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would decode the data in a format that it decodes with an external program (such as PostScript or PDF
+    with Ghostscript) or whose data names other files (such as \c MVG, \c SVG, \c MSL or \c TEXT)
 */
 nothing MagickImage::readData(binary data) [flags=NAMED_ARGS] {
     img->readData(data, xsink);
@@ -396,11 +411,15 @@ nothing MagickImage::readData(binary data) [flags=NAMED_ARGS] {
     @return an @ref Qore::ImageMagick::ImageInfo hash with image metadata
 
     @throw IMAGEMAGICK-ERROR error pinging the image file
-    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
-    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
-    \c "[...]" suffix)
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file; for code that
+    a sandbox governs or that is restricted from formats (see @ref imagemagickrestrictedformats), the name has
+    ImageMagick syntax that selects a format or opens another file (a coder prefix such as \c "png:" or \c "r:", a
+    list file \c "@file", a \c "[...]" suffix or a \c "%" escape)
     @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
     gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would decode the data in a format that it decodes with an external program (such as PostScript or PDF
+    with Ghostscript) or whose data names other files (such as \c MVG, \c SVG, \c MSL or \c TEXT)
 */
 hash<ImageInfo> MagickImage::pingFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     return img->pingFile(path->c_str(), xsink);
@@ -412,6 +431,9 @@ hash<ImageInfo> MagickImage::pingFile(string path) [dom=FILESYSTEM;flags=NAMED_A
     @return an @ref Qore::ImageMagick::ImageInfo hash with image metadata
 
     @throw IMAGEMAGICK-ERROR error pinging the image data
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would decode the data in a format that it decodes with an external program (such as PostScript or PDF
+    with Ghostscript) or whose data names other files (such as \c MVG, \c SVG, \c MSL or \c TEXT)
 */
 hash<ImageInfo> MagickImage::pingData(binary data) [flags=NAMED_ARGS] {
     return img->pingData(data, xsink);
@@ -421,11 +443,15 @@ hash<ImageInfo> MagickImage::pingData(binary data) [flags=NAMED_ARGS] {
 /** @param path the output file path; the format is determined by the file extension
 
     @throw IMAGEMAGICK-ERROR error writing the image file
-    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
-    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
-    \c "[...]" suffix)
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file; for code that
+    a sandbox governs or that is restricted from formats (see @ref imagemagickrestrictedformats), the name has
+    ImageMagick syntax that selects a format or opens another file (a coder prefix such as \c "png:" or \c "r:", a
+    list file \c "@file", a \c "[...]" suffix or a \c "%" escape)
     @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
     gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would write the image in a format that it writes with an external program or shows on a display, or
+    an image has a montage directory
 */
 nothing MagickImage::writeFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->writeFile(path->c_str(), xsink);
@@ -436,11 +462,15 @@ nothing MagickImage::writeFile(string path) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     @param adjoin if True, join all images into a single multi-image file
 
     @throw IMAGEMAGICK-ERROR error writing the image files
-    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file, or the name
-    has ImageMagick syntax that opens another file (a coder prefix such as \c "png:", a list file \c "@file" or a
-    \c "[...]" suffix)
+    @throw FILESYSTEM-ACCESS-DENIED for code that a sandbox governs, the policy does not allow the file; for code that
+    a sandbox governs or that is restricted from formats (see @ref imagemagickrestrictedformats), the name has
+    ImageMagick syntax that selects a format or opens another file (a coder prefix such as \c "png:" or \c "r:", a
+    list file \c "@file", a \c "[...]" suffix or a \c "%" escape)
     @throw PERMISSION-DENIED the path is given by a method of an object of a module class that the host created and
     gave to code restricted from the \c FILESYSTEM functional domain (see @ref imagemagickcallerpaths)
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would write the image in a format that it writes with an external program or shows on a display, or
+    an image has a montage directory
 */
 nothing MagickImage::writeFiles(string path, bool adjoin = True) [dom=FILESYSTEM;flags=NAMED_ARGS] {
     img->writeFiles(path->c_str(), adjoin, xsink);
@@ -450,6 +480,9 @@ nothing MagickImage::writeFiles(string path, bool adjoin = True) [dom=FILESYSTEM
 /** @return the image data as binary
 
     @throw IMAGEMAGICK-ERROR error getting the image data
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would write the image in a format that it writes with an external program or shows on a display, or
+    an image has a montage directory
 */
 binary MagickImage::toData() {
     return img->toData(xsink);
@@ -461,6 +494,9 @@ binary MagickImage::toData() {
     @return the image data as binary in the specified format
 
     @throw IMAGEMAGICK-ERROR error getting the image data
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    ImageMagick would write the image in a format that it writes with an external program or shows on a display, or
+    an image has a montage directory
 */
 binary MagickImage::toData(string format) [flags=NAMED_ARGS] {
     return img->toDataWithFormat(format->c_str(), xsink);
@@ -579,6 +615,9 @@ string MagickImage::signature() {
 
 //! Returns a verbose description of the image
 /** @return a string with detailed image information
+
+    @throw PERMISSION-DENIED the calling code is restricted from formats (see @ref imagemagickrestrictedformats) and
+    an image has a montage directory, which names images that ImageMagick reads to describe them
 */
 string MagickImage::identify() {
     return img->identify(xsink);
@@ -1362,6 +1401,8 @@ nothing MagickImage::compositeGravity(MagickImage[QoreMagickImage] source, strin
     @throw IMAGEMAGICK-ERROR the font contains a quote, a backslash or a control character
     @throw FILESYSTEM-ACCESS-DENIED the font names a file that the file-system policy of a sandbox that governs the
     calling code does not allow to read
+    @throw PERMISSION-DENIED the font starts with \c "^" (ImageMagick renders it with Ghostscript) or \c "-" (an X
+    server font) and the calling code is restricted from formats (see @ref imagemagickrestrictedformats)
 */
 nothing MagickImage::annotate(string text, float x, float y, float angle = 0.0,
                               string font = "", float font_size = 0.0,

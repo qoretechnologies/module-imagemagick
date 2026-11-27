@@ -86,6 +86,8 @@ MagickDrawing::destructor() {
     @throw IMAGEMAGICK-ERROR the font contains a quote, a backslash or a control character
     @throw FILESYSTEM-ACCESS-DENIED the font names a file that the file-system policy of a sandbox that governs the
     calling code does not allow to read
+    @throw PERMISSION-DENIED the font starts with \c "^" (ImageMagick renders it with Ghostscript) or \c "-" (an X
+    server font) and the calling code is restricted from formats (see @ref imagemagickrestrictedformats)
 */
 nothing MagickDrawing::setFont(string font) [flags=NAMED_ARGS] {
     dw->setFont(font->c_str(), xsink);

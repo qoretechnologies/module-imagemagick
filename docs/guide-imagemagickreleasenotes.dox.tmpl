@@ -28,4 +28,10 @@
       sandbox that governs the code that calls them; they checked that of the code that created the image, so an
       image that the host created read and wrote any file for sandboxed code
       (<a href="https://github.com/qoretechnologies/module-imagemagick/issues/11">issue 11</a>)
+    - image data and files in formats that ImageMagick decodes with an external program (such as PostScript and PDF
+      with Ghostscript) or whose data names other files (such as MVG, MSL, SVG and TEXT) are refused for restricted
+      and sandboxed code and the restricted code that a host-created object was lent to, whether the format is given
+      or detected from the data or the file name, as are output formats written by external programs and fonts
+      rendered with Ghostscript (see @ref imagemagickrestrictedformats,
+      <a href="https://github.com/qoretechnologies/module-imagemagick/issues/13">issue 13</a>)
 */
