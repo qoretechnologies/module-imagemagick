@@ -53,20 +53,202 @@ bool QoreMagickImage::checkInterrupted(ExceptionSink* xsink) {
     return false;
 }
 
-QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(NewMagickWand()) {
-    setupProgressMonitor();
+//! returns a new wand with the data decoded for restricted calling code, or nullptr if an exception was raised
+/** The format that ImageMagick would decode the data in is decided on the data first (getDecodeFormat()) and checked
+    (checkDecodeFormat()), and the data is then decoded in that format: ImageMagick does not detect it again, so it
+    decodes the bytes that were checked in the format that was checked (module-imagemagick#13)
+
+    @param data the data
+    @param len the size of the data
+    @param format the explicit format, if any
+    @param path the path of the file that the data was read from, if any; the images get it as their file name
+    @param ping true to ping the data instead of decoding it
+*/
+static MagickWand* decodeForRestricted(const void* data, size_t len, const char* format, const char* path,
+        bool ping, ExceptionSink* xsink) {
+    if (!len) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "the image data is empty");
+        return nullptr;
+    }
+    std::string magick = getDecodeFormat(data, len, format, path);
+    if (checkDecodeFormat(magick.c_str(), xsink)) {
+        return nullptr;
+    }
+    MagickWandHolder pw(NewMagickWand(), DestroyMagickWand);
+    if (!pw) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "cannot allocate a wand to read the image data");
+        return nullptr;
+    }
+    // the data is decoded in the format that was checked: BlobToImage() and PingBlob() read it with the format as a
+    // prefix, which ImageMagick does not override with the format that it detects
+    if (MagickSetFormat(pw.get(), magick.c_str()) == MagickFalse) {
+        if (!checkMagickError(pw.get(), "error setting the format of the image data", xsink)) {
+            xsink->raiseException("IMAGEMAGICK-ERROR", "error setting the format '%s' of the image data",
+                magick.c_str());
+        }
+        return nullptr;
+    }
+    MagickBooleanType ok = ping ? MagickPingImageBlob(pw.get(), data, len) : MagickReadImageBlob(pw.get(), data, len);
+    if (ok == MagickFalse) {
+        const char* what = ping ? "error pinging image data" : "error reading image data";
+        if (!checkMagickError(pw.get(), what, xsink)) {
+            xsink->raiseException("IMAGEMAGICK-ERROR", "%s", what);
+        }
+        return nullptr;
+    }
+    if (path) {
+        MagickResetIterator(pw.get());
+        while (MagickNextImage(pw.get()) != MagickFalse) {
+            MagickSetImageFilename(pw.get(), path);
+        }
+        MagickResetIterator(pw.get());
+    }
+    return pw.release();
+}
+
+//! returns a new wand with the file decoded for restricted calling code, or nullptr if an exception was raised
+/** The file is read into memory first, so its format is decided on the bytes that are decoded
+*/
+static MagickWand* readPathForRestricted(const char* path, bool ping, ExceptionSink* xsink) {
+    std::vector<unsigned char> buf;
+    if (readRegularFile(path, buf, xsink)) {
+        return nullptr;
+    }
+    return decodeForRestricted(buf.data(), buf.size(), nullptr, path, ping, xsink);
+}
+
+//! returns the information of the image in the given wand
+static QoreHashNode* makeImageInfo(MagickWand* pw, ExceptionSink* xsink) {
+    ReferenceHolder<QoreHashNode> h(new QoreHashNode(hashdeclImageInfo, xsink), xsink);
+    h->setKeyValue("width", static_cast<int64>(MagickGetImageWidth(pw)), xsink);
+    h->setKeyValue("height", static_cast<int64>(MagickGetImageHeight(pw)), xsink);
+    char* fmt = MagickGetImageFormat(pw);
+    h->setKeyValue("format", new QoreStringNode(fmt ? fmt : ""), xsink);
+    if (fmt) {
+        MagickRelinquishMemory(fmt);
+    }
+    h->setKeyValue("depth", static_cast<int64>(MagickGetImageDepth(pw)), xsink);
+    h->setKeyValue("colorspace", new QoreStringNode(colorspaceTypeToString(MagickGetImageColorspace(pw))), xsink);
+    h->setKeyValue("image_type", new QoreStringNode(imageTypeToString(MagickGetImageType(pw))), xsink);
+    double x_res, y_res;
+    MagickGetImageResolution(pw, &x_res, &y_res);
+    ReferenceHolder<QoreHashNode> res_h(new QoreHashNode(hashdeclImageResolutionInfo, xsink), xsink);
+    res_h->setKeyValue("x", x_res, xsink);
+    res_h->setKeyValue("y", y_res, xsink);
+    h->setKeyValue("resolution", res_h.release(), xsink);
+    h->setKeyValue("compression_quality", static_cast<int64>(MagickGetImageCompressionQuality(pw)), xsink);
+    h->setKeyValue("number_images", static_cast<int64>(MagickGetNumberImages(pw)), xsink);
+    h->setKeyValue("colors", static_cast<int64>(MagickGetImageColors(pw)), xsink);
+    char* sig = MagickGetImageSignature(pw);
+    h->setKeyValue("signature", new QoreStringNode(sig ? sig : ""), xsink);
+    if (sig) {
+        MagickRelinquishMemory(sig);
+    }
+    return h.release();
+}
+
+//! checks a path that a method reads or writes; returns 0 if it can be used, -1 if an exception was raised
+/** @param restricted set to true if the calling code is restricted from formats (callerRestrictsFormats())
+*/
+static int checkPath(const char* path, int access, bool& restricted, ExceptionSink* xsink) {
     // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
     if (checkCallerPath(path, xsink)) {
-        return;
+        return -1;
     }
-    // Check filesystem sandbox access
     // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
     QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
-    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
+    restricted = callerRestrictsFormats(static_cast<bool>(smh));
+    // ImageMagick file name syntax selects a format or opens another file (module-imagemagick#13)
+    if (restricted && checkMagickFileName(path, xsink)) {
+        return -1;
+    }
+    if (smh && !smh->checkFilesystemAccess(path, access, xsink)) {
+        return -1;
+    }
+    return 0;
+}
+
+//! returns true if the calling code is restricted from formats (callerRestrictsFormats())
+static bool restrictedCaller() {
+    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
+    return callerRestrictsFormats(static_cast<bool>(smh));
+}
+
+int QoreMagickImage::addImages(MagickWand* pw, ExceptionSink* xsink) {
+    QoreAutoRWWriteLocker al(rwlock);
+    if (MagickAddImage(wand, pw) == MagickFalse) {
+        if (!checkMagickError(wand, "error adding the images read", xsink)) {
+            xsink->raiseException("IMAGEMAGICK-ERROR", "error adding the images read");
+        }
+        return -1;
+    }
+    return 0;
+}
+
+int QoreMagickImage::checkOutputFormat(const char* path, bool all, ExceptionSink* xsink) {
+    // the format that ImageMagick writes in: from the file name, else the wand's format (WriteImage(),
+    // ImageToBlob())
+    std::string magick;
+    {
+        ImageInfo* info = AcquireImageInfo();
+        ExceptionInfo* ex = AcquireExceptionInfo();
+        if (!info || !ex) {
+            if (info) {
+                DestroyImageInfo(info);
+            }
+            if (ex) {
+                DestroyExceptionInfo(ex);
+            }
+            xsink->outOfMemory();
+            return -1;
+        }
+        char* wf = MagickGetFormat(wand);
+        if (wf) {
+            CopyMagickString(info->magick, wf, MagickPathExtent);
+            MagickRelinquishMemory(wf);
+        }
+        if (path) {
+            CopyMagickString(info->filename, path, MagickPathExtent);
+        }
+        size_t frames = all ? MagickGetNumberImages(wand) : 1;
+        SetImageInfo(info, frames ? frames : 1, ex);
+        magick = info->magick;
+        DestroyImageInfo(info);
+        DestroyExceptionInfo(ex);
+    }
+    if (checkEncodeFormat(magick.c_str(), xsink)) {
+        return -1;
+    }
+    // ImageMagick falls back to the format of an image whose output format has no encoder, and writes each image in
+    // its own format if the file name and the wand give none
+    Image* image = GetImageFromMagickWand(wand);
+    if (image && all) {
+        image = GetFirstImageInList(image);
+    }
+    for (; image; image = all ? GetNextImageInList(image) : nullptr) {
+        if (checkEncodeFormat(image->magick, xsink)) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+QoreMagickImage::QoreMagickImage(const char* path, ExceptionSink* xsink) : wand(NewMagickWand()) {
+    setupProgressMonitor();
+    bool restricted;
+    if (checkPath(path, QSEC_READ, restricted, xsink)) {
         return;
     }
     // Check for I/O interrupt before file operation
     if (qore_check_cancel(xsink, "reading image file")) {
+        return;
+    }
+    if (restricted) {
+        // the format is decided on the file's data before it is decoded (module-imagemagick#13)
+        MagickWandHolder pw(readPathForRestricted(path, false, xsink), DestroyMagickWand);
+        if (pw) {
+            addImages(pw.get(), xsink);
+        }
         return;
     }
     if (MagickReadImage(wand, path) == MagickFalse) {
@@ -80,6 +262,15 @@ QoreMagickImage::QoreMagickImage(const BinaryNode* data, ExceptionSink* xsink) :
     setupProgressMonitor();
     // Check for I/O interrupt before blob read operation
     if (qore_check_cancel(xsink, "reading image from binary data")) {
+        return;
+    }
+    if (restrictedCaller()) {
+        // the format is decided on the data before it is decoded (module-imagemagick#13)
+        MagickWandHolder pw(decodeForRestricted(data->getPtr(), data->size(), nullptr, nullptr, false, xsink),
+            DestroyMagickWand);
+        if (pw) {
+            addImages(pw.get(), xsink);
+        }
         return;
     }
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
@@ -96,9 +287,14 @@ QoreMagickImage::QoreMagickImage(const BinaryNode* data, const char* format,
     if (qore_check_cancel(xsink, "reading image from binary data with format")) {
         return;
     }
-    // a format whose data names other files is refused for restricted or sandboxed calling code
-    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
-    if (checkReadFormat(format, static_cast<bool>(smh), xsink)) {
+    if (restrictedCaller()) {
+        // a format that ImageMagick decodes with an external program or whose data names other files is refused
+        // (module-imagemagick#8, #13)
+        MagickWandHolder pw(decodeForRestricted(data->getPtr(), data->size(), format, nullptr, false, xsink),
+            DestroyMagickWand);
+        if (pw) {
+            addImages(pw.get(), xsink);
+        }
         return;
     }
     MagickSetFormat(wand, format);
@@ -136,18 +332,20 @@ QoreMagickImage::~QoreMagickImage() {
 // --- I/O ---
 
 void QoreMagickImage::readFile(const char* path, ExceptionSink* xsink) {
-    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
-    if (checkCallerPath(path, xsink)) {
-        return;
-    }
-    // Check filesystem sandbox access
-    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
-    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
-    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
+    bool restricted;
+    if (checkPath(path, QSEC_READ, restricted, xsink)) {
         return;
     }
     // Check for I/O interrupt before file operation
     if (qore_check_cancel(xsink, "reading image file")) {
+        return;
+    }
+    if (restricted) {
+        // the format is decided on the file's data before it is decoded (module-imagemagick#13)
+        MagickWandHolder pw(readPathForRestricted(path, false, xsink), DestroyMagickWand);
+        if (pw) {
+            addImages(pw.get(), xsink);
+        }
         return;
     }
     QoreAutoRWWriteLocker al(rwlock);
@@ -163,23 +361,31 @@ void QoreMagickImage::readData(const BinaryNode* data, ExceptionSink* xsink) {
     if (qore_check_cancel(xsink, "reading image from binary data")) {
         return;
     }
+    if (restrictedCaller()) {
+        // the format is decided on the data before it is decoded (module-imagemagick#13)
+        MagickWandHolder pw(decodeForRestricted(data->getPtr(), data->size(), nullptr, nullptr, false, xsink),
+            DestroyMagickWand);
+        if (pw) {
+            addImages(pw.get(), xsink);
+        }
+        return;
+    }
     // the data is decoded in a new wand and its images are added: a wand keeps the format of the data that it read
     // last, so data read into this wand after data in a format that names other files (such as MVG) would be decoded
     // in that format and read the files that it names (module-imagemagick#10)
-    MagickWand* pw = NewMagickWand();
+    MagickWandHolder pw(NewMagickWand(), DestroyMagickWand);
     if (!pw) {
         xsink->raiseException("IMAGEMAGICK-ERROR", "cannot allocate a wand to read the image data");
         return;
     }
-    ON_BLOCK_EXIT(DestroyMagickWand, pw);
-    if (MagickReadImageBlob(pw, data->getPtr(), data->size()) == MagickFalse) {
-        if (!checkMagickError(pw, "error reading image from binary data", xsink)) {
+    if (MagickReadImageBlob(pw.get(), data->getPtr(), data->size()) == MagickFalse) {
+        if (!checkMagickError(pw.get(), "error reading image from binary data", xsink)) {
             xsink->raiseException("IMAGEMAGICK-ERROR", "error reading image from binary data");
         }
         return;
     }
     QoreAutoRWWriteLocker al(rwlock);
-    if (MagickAddImage(wand, pw) == MagickFalse) {
+    if (MagickAddImage(wand, pw.get()) == MagickFalse) {
         checkMagickError(wand, "error adding the images read from binary data", xsink);
     }
 }
@@ -190,12 +396,17 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
     if (qore_check_cancel(xsink, "reading image from binary data with format")) {
         return;
     }
-    QoreAutoRWWriteLocker al(rwlock);
-    // a format whose data names other files is refused for restricted or sandboxed calling code
-    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
-    if (checkReadFormat(format, static_cast<bool>(smh), xsink)) {
+    if (restrictedCaller()) {
+        // a format that ImageMagick decodes with an external program or whose data names other files is refused
+        // (module-imagemagick#8, #13)
+        MagickWandHolder pw(decodeForRestricted(data->getPtr(), data->size(), format, nullptr, false, xsink),
+            DestroyMagickWand);
+        if (pw) {
+            addImages(pw.get(), xsink);
+        }
         return;
     }
+    QoreAutoRWWriteLocker al(rwlock);
     MagickSetFormat(wand, format);
     if (MagickReadImageBlob(wand, data->getPtr(), data->size()) == MagickFalse) {
         if (!checkInterrupted(xsink)) {
@@ -205,102 +416,55 @@ void QoreMagickImage::readDataWithFormat(const BinaryNode* data, const char* for
 }
 
 QoreHashNode* QoreMagickImage::pingFile(const char* path, ExceptionSink* xsink) {
-    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
-    if (checkCallerPath(path, xsink)) {
-        return nullptr;
-    }
-    // Check filesystem sandbox access
-    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
-    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
-    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_READ, xsink))) {
+    bool restricted;
+    if (checkPath(path, QSEC_READ, restricted, xsink)) {
         return nullptr;
     }
     // Check for I/O interrupt before file operation
     if (qore_check_cancel(xsink, "pinging image file")) {
         return nullptr;
     }
+    if (restricted) {
+        // the format is decided on the file's data before it is pinged (module-imagemagick#13)
+        MagickWandHolder pw(readPathForRestricted(path, true, xsink), DestroyMagickWand);
+        return pw ? makeImageInfo(pw.get(), xsink) : nullptr;
+    }
     QoreAutoRWWriteLocker al(rwlock);
-    MagickWand* pw = NewMagickWand();
-    if (MagickPingImage(pw, path) == MagickFalse) {
-        checkMagickError(pw, "error pinging image file", xsink);
-        DestroyMagickWand(pw);
+    MagickWandHolder pw(NewMagickWand(), DestroyMagickWand);
+    if (!pw) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "cannot allocate a wand to ping the image file");
         return nullptr;
     }
-    ReferenceHolder<QoreHashNode> h(new QoreHashNode(hashdeclImageInfo, xsink), xsink);
-    h->setKeyValue("width", static_cast<int64>(MagickGetImageWidth(pw)), xsink);
-    h->setKeyValue("height", static_cast<int64>(MagickGetImageHeight(pw)), xsink);
-    char* fmt = MagickGetImageFormat(pw);
-    h->setKeyValue("format", new QoreStringNode(fmt ? fmt : ""), xsink);
-    if (fmt) {
-        MagickRelinquishMemory(fmt);
+    if (MagickPingImage(pw.get(), path) == MagickFalse) {
+        checkMagickError(pw.get(), "error pinging image file", xsink);
+        return nullptr;
     }
-    h->setKeyValue("depth", static_cast<int64>(MagickGetImageDepth(pw)), xsink);
-    h->setKeyValue("colorspace", new QoreStringNode(colorspaceTypeToString(MagickGetImageColorspace(pw))), xsink);
-    h->setKeyValue("image_type", new QoreStringNode(imageTypeToString(MagickGetImageType(pw))), xsink);
-    double x_res, y_res;
-    MagickGetImageResolution(pw, &x_res, &y_res);
-    ReferenceHolder<QoreHashNode> res_h(new QoreHashNode(hashdeclImageResolutionInfo, xsink), xsink);
-    res_h->setKeyValue("x", x_res, xsink);
-    res_h->setKeyValue("y", y_res, xsink);
-    h->setKeyValue("resolution", res_h.release(), xsink);
-    h->setKeyValue("compression_quality", static_cast<int64>(MagickGetImageCompressionQuality(pw)), xsink);
-    h->setKeyValue("number_images", static_cast<int64>(MagickGetNumberImages(pw)), xsink);
-    h->setKeyValue("colors", static_cast<int64>(MagickGetImageColors(pw)), xsink);
-    char* sig = MagickGetImageSignature(pw);
-    h->setKeyValue("signature", new QoreStringNode(sig ? sig : ""), xsink);
-    if (sig) {
-        MagickRelinquishMemory(sig);
-    }
-    DestroyMagickWand(pw);
-    return h.release();
+    return makeImageInfo(pw.get(), xsink);
 }
 
 QoreHashNode* QoreMagickImage::pingData(const BinaryNode* data, ExceptionSink* xsink) {
+    if (restrictedCaller()) {
+        // the format is decided on the data before it is pinged (module-imagemagick#13)
+        MagickWandHolder pw(decodeForRestricted(data->getPtr(), data->size(), nullptr, nullptr, true, xsink),
+            DestroyMagickWand);
+        return pw ? makeImageInfo(pw.get(), xsink) : nullptr;
+    }
     QoreAutoRWWriteLocker al(rwlock);
-    MagickWand* pw = NewMagickWand();
-    if (MagickPingImageBlob(pw, data->getPtr(), data->size()) == MagickFalse) {
-        checkMagickError(pw, "error pinging image data", xsink);
-        DestroyMagickWand(pw);
+    MagickWandHolder pw(NewMagickWand(), DestroyMagickWand);
+    if (!pw) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "cannot allocate a wand to ping the image data");
         return nullptr;
     }
-    ReferenceHolder<QoreHashNode> h(new QoreHashNode(hashdeclImageInfo, xsink), xsink);
-    h->setKeyValue("width", static_cast<int64>(MagickGetImageWidth(pw)), xsink);
-    h->setKeyValue("height", static_cast<int64>(MagickGetImageHeight(pw)), xsink);
-    char* fmt = MagickGetImageFormat(pw);
-    h->setKeyValue("format", new QoreStringNode(fmt ? fmt : ""), xsink);
-    if (fmt) {
-        MagickRelinquishMemory(fmt);
+    if (MagickPingImageBlob(pw.get(), data->getPtr(), data->size()) == MagickFalse) {
+        checkMagickError(pw.get(), "error pinging image data", xsink);
+        return nullptr;
     }
-    h->setKeyValue("depth", static_cast<int64>(MagickGetImageDepth(pw)), xsink);
-    h->setKeyValue("colorspace", new QoreStringNode(colorspaceTypeToString(MagickGetImageColorspace(pw))), xsink);
-    h->setKeyValue("image_type", new QoreStringNode(imageTypeToString(MagickGetImageType(pw))), xsink);
-    double x_res, y_res;
-    MagickGetImageResolution(pw, &x_res, &y_res);
-    ReferenceHolder<QoreHashNode> res_h(new QoreHashNode(hashdeclImageResolutionInfo, xsink), xsink);
-    res_h->setKeyValue("x", x_res, xsink);
-    res_h->setKeyValue("y", y_res, xsink);
-    h->setKeyValue("resolution", res_h.release(), xsink);
-    h->setKeyValue("compression_quality", static_cast<int64>(MagickGetImageCompressionQuality(pw)), xsink);
-    h->setKeyValue("number_images", static_cast<int64>(MagickGetNumberImages(pw)), xsink);
-    h->setKeyValue("colors", static_cast<int64>(MagickGetImageColors(pw)), xsink);
-    char* sig = MagickGetImageSignature(pw);
-    h->setKeyValue("signature", new QoreStringNode(sig ? sig : ""), xsink);
-    if (sig) {
-        MagickRelinquishMemory(sig);
-    }
-    DestroyMagickWand(pw);
-    return h.release();
+    return makeImageInfo(pw.get(), xsink);
 }
 
 void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
-    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
-    if (checkCallerPath(path, xsink)) {
-        return;
-    }
-    // Check filesystem sandbox access
-    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
-    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
-    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
+    bool restricted;
+    if (checkPath(path, QSEC_WRITE | QSEC_CREATE, restricted, xsink)) {
         return;
     }
     // Check for I/O interrupt before file operation
@@ -308,6 +472,10 @@ void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
         return;
     }
     QoreAutoRWReadLocker al(rwlock);
+    // an output format that ImageMagick writes with an external program (module-imagemagick#13)
+    if (restricted && checkOutputFormat(path, false, xsink)) {
+        return;
+    }
     if (MagickWriteImage(wand, path) == MagickFalse) {
         if (!checkInterrupted(xsink)) {
             checkMagickError(wand, "error writing image file", xsink);
@@ -316,14 +484,8 @@ void QoreMagickImage::writeFile(const char* path, ExceptionSink* xsink) {
 }
 
 void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* xsink) {
-    // a path of the calling code (also of the code that a host-created object was lent to; module-imagemagick#10)
-    if (checkCallerPath(path, xsink)) {
-        return;
-    }
-    // Check filesystem sandbox access
-    // the policy of the sandbox that governs the code that calls the method (module-imagemagick#11)
-    QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
-    if (smh && (checkMagickFileName(path, xsink) || !smh->checkFilesystemAccess(path, QSEC_WRITE | QSEC_CREATE, xsink))) {
+    bool restricted;
+    if (checkPath(path, QSEC_WRITE | QSEC_CREATE, restricted, xsink)) {
         return;
     }
     // Check for I/O interrupt before file operation
@@ -331,6 +493,10 @@ void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* x
         return;
     }
     QoreAutoRWReadLocker al(rwlock);
+    // an output format that ImageMagick writes with an external program (module-imagemagick#13)
+    if (restricted && checkOutputFormat(path, true, xsink)) {
+        return;
+    }
     if (MagickWriteImages(wand, path, adjoin ? MagickTrue : MagickFalse) == MagickFalse) {
         if (!checkInterrupted(xsink)) {
             checkMagickError(wand, "error writing image files", xsink);
@@ -340,6 +506,10 @@ void QoreMagickImage::writeFiles(const char* path, bool adjoin, ExceptionSink* x
 
 BinaryNode* QoreMagickImage::toData(ExceptionSink* xsink) {
     QoreAutoRWReadLocker al(rwlock);
+    // an output format that ImageMagick writes with an external program (module-imagemagick#13)
+    if (restrictedCaller() && checkOutputFormat(nullptr, false, xsink)) {
+        return nullptr;
+    }
     size_t length;
     unsigned char* data = MagickGetImageBlob(wand, &length);
     if (!data) {
@@ -358,14 +528,19 @@ BinaryNode* QoreMagickImage::toDataWithFormat(const char* format, ExceptionSink*
     char* old_format = MagickGetImageFormat(wand);
     MagickSetImageFormat(wand, format);
     size_t length;
-    unsigned char* data = MagickGetImageBlob(wand, &length);
+    // an output format that ImageMagick writes with an external program (module-imagemagick#13)
+    unsigned char* data = restrictedCaller() && checkOutputFormat(nullptr, false, xsink)
+        ? nullptr
+        : MagickGetImageBlob(wand, &length);
     // Restore format
     if (old_format) {
         MagickSetImageFormat(wand, old_format);
         MagickRelinquishMemory(old_format);
     }
     if (!data) {
-        checkMagickError(wand, "error getting image data in format", xsink);
+        if (!*xsink) {
+            checkMagickError(wand, "error getting image data in format", xsink);
+        }
         return nullptr;
     }
     SimpleRefHolder<BinaryNode> rv(new BinaryNode());

@@ -29,6 +29,10 @@
 
 #include "imagemagick-module.h"
 
+#include <memory>
+#include <string>
+#include <vector>
+
 //! RAII wrapper for temporary PixelWand objects
 class PixelWandHelper {
 public:
@@ -148,14 +152,69 @@ DLLLOCAL int checkFontName(const char* font, const char* what, ExceptionSink* xs
 */
 DLLLOCAL int checkFontAccess(const char* font, ExceptionSink* xsink);
 
-//! Refuses, for code that a sandbox governs, a file name whose ImageMagick syntax opens another file
-/** @return 0 if the name can be used, -1 if \c FILESYSTEM-ACCESS-DENIED was raised
+//! Refuses, for restricted calling code, a file name whose ImageMagick syntax selects a format or opens another file
+/** Called for code that a sandbox governs or that is restricted from formats (callerRestrictsFormats()): a coder
+    prefix (\c "png:file"), a list file (\c "@file") and a scene or size suffix (\c "file[0]")
+
+    @return 0 if the name can be used, -1 if \c FILESYSTEM-ACCESS-DENIED was raised
 */
 DLLLOCAL int checkMagickFileName(const char* path, ExceptionSink* xsink);
 
-//! Refuses an explicit read format whose data can name other files, for restricted or sandboxed calling code
-/** @return 0 if the format can be used, -1 if \c PERMISSION-DENIED was raised
+//! the functional domains whose restriction makes the calling code restricted from formats that ImageMagick decodes
+//! with external programs or whose data names other files (module-imagemagick#13)
+#define IM_DECODE_RESTRICTED_DOMAINS (QDOM_FILESYSTEM | QDOM_NETWORK | QDOM_EXTERNAL_PROCESS | QDOM_PROCESS)
+
+//! Returns true if the calling code may not use formats that ImageMagick decodes or encodes with an external program
+//! or whose data names other files
+/** True if a sandbox governs the calling code or if that code (also the code that a host-created object was lent
+    to; see callerRestricts()) is restricted from the \c FILESYSTEM, \c NETWORK, \c EXTERNAL_PROCESS or
+    \c PROCESS_CONTROL functional domain
+
+    @param sandboxed true if a sandbox governs the calling code
 */
-DLLLOCAL int checkReadFormat(const char* format, bool sandboxed, ExceptionSink* xsink);
+DLLLOCAL bool callerRestrictsFormats(bool sandboxed);
+
+//! Returns the format that ImageMagick decodes the given data in
+/** The format is decided as ImageMagick decides it: an explicit format that ImageMagick knows is used as it is;
+    without one, or with one that it does not know (which ImageMagick ignores), the format is detected from the data
+    and, for data read from a file, from the file name's extension (SetImageInfo())
+
+    @param data the data, which must not be empty
+    @param len the size of the data
+    @param format the explicit format, if any
+    @param path the path of the file that the data was read from, if any; it must have no ImageMagick file name
+    syntax (checkMagickFileName())
+
+    @return the name of the format, or an empty string if it cannot be determined
+*/
+DLLLOCAL std::string getDecodeFormat(const void* data, size_t len, const char* format, const char* path);
+
+//! Refuses, for restricted calling code, a format that ImageMagick decodes with an external program or whose data
+//! names other files
+/** A format is refused if ImageMagick has no decoder of its own for it (it would decode it with a delegate), if a
+    delegate is configured for its coder (such as Ghostscript for PostScript and PDF), if it or its coder is one of the
+    formats decoded by Ghostscript or another external program, or if its data names other files or URLs that
+    ImageMagick reads, or embeds data in a format that ImageMagick detects (such as MVG, MSL, SVG, TEXT or WPG)
+
+    @param magick the format, as returned by getDecodeFormat()
+
+    @return 0 if the format can be decoded, -1 if \c PERMISSION-DENIED or \c IMAGEMAGICK-ERROR (no format) was raised
+*/
+DLLLOCAL int checkDecodeFormat(const char* magick, ExceptionSink* xsink);
+
+//! Refuses, for restricted calling code, an output format that ImageMagick encodes with an external program
+/** @param magick the format; an empty format is not checked
+
+    @return 0 if the format can be used, -1 if \c PERMISSION-DENIED was raised
+*/
+DLLLOCAL int checkEncodeFormat(const char* magick, ExceptionSink* xsink);
+
+//! Reads a regular file into memory
+/** @return 0 if the file was read, -1 if an exception was raised
+*/
+DLLLOCAL int readRegularFile(const char* path, std::vector<unsigned char>& buf, ExceptionSink* xsink);
+
+//! Destroys a MagickWand when it goes out of scope
+typedef std::unique_ptr<MagickWand, MagickWand* (*)(MagickWand*)> MagickWandHolder;
 
 #endif // _QORE_IMAGEMAGICK_HELPER_H

@@ -30,6 +30,9 @@
 #include <strings.h>
 #include <sys/stat.h>
 #include <cctype>
+#include <cerrno>
+#include <fcntl.h>
+#include <unistd.h>
 
 bool checkMagickError(MagickWand* wand, const char* context, ExceptionSink* xsink) {
     ExceptionType severity;
@@ -392,6 +395,19 @@ int checkFontAccess(const char* font, ExceptionSink* xsink) {
     if (checkFontName(font, "font", xsink)) {
         return -1;
     }
+    // ImageMagick renders a font that starts with "^" with Ghostscript (a PostScript program that it decodes) and
+    // one that starts with "-" with an X server (module-imagemagick#13)
+    if (font[0] == '^' || font[0] == '-') {
+        QoreSandboxManagerHelper smh(QoreSandboxManagerHelper::Policy);
+        if (callerRestrictsFormats(static_cast<bool>(smh))) {
+            xsink->raiseException("PERMISSION-DENIED", "font '%s' cannot be used: ImageMagick renders a font whose "
+                "name starts with '^' with Ghostscript and one whose name starts with '-' with an X server, and the "
+                "calling code (also the code that a host-created object was lent to) is restricted from the "
+                "FILESYSTEM, NETWORK, EXTERNAL_PROCESS or PROCESS_CONTROL functional domain, or a sandbox governs "
+                "it", font);
+            return -1;
+        }
+    }
     // ImageMagick reads a font that names an existing file (before it looks the name up among the registered
     // fonts), and "@" introduces a file: such a font is the calling code's input
     struct stat st;
@@ -424,36 +440,285 @@ int checkMagickFileName(const char* path, ExceptionSink* xsink) {
     size_t len = strlen(path);
     if ((*p == ':' && (p - path) > 1) || path[0] == '@' || (len && path[len - 1] == ']')) {
         xsink->raiseException("FILESYSTEM-ACCESS-DENIED", "file name '%s' cannot be used by code that a sandbox "
-            "governs: ImageMagick would interpret its coder prefix, list file or suffix", path);
+            "governs or that is restricted from the FILESYSTEM, NETWORK, EXTERNAL_PROCESS or PROCESS_CONTROL "
+            "functional domain: ImageMagick would interpret its coder prefix, list file or suffix", path);
         return -1;
     }
     return 0;
 }
 
-int checkReadFormat(const char* format, bool sandboxed, ExceptionSink* xsink) {
-    if (!format) {
-        return 0;
+bool callerRestrictsFormats(bool sandboxed) {
+    // the options of a module's own Program do not decide; the code that a host-created object was lent to does
+    return sandboxed || callerRestricts(IM_DECODE_RESTRICTED_DOMAINS, true);
+}
+
+//! returns true if the name is in the list (case-insensitive)
+static bool inList(const char* name, const char* const* list, size_t count) {
+    if (!name || !*name) {
+        return false;
     }
-    // formats whose data can name other files or URLs that ImageMagick reads
-    static const char* const formats[] = {
-        "MVG", "SVG", "SVGZ", "MSVG", "MSVGZ", "RSVG", "MSL", "TEXT", "LABEL", "CAPTION", "PANGO", "EPHEMERAL",
-        "URL", "HTTP", "HTTPS", "FTP", "FILE", "INLINE", "VID", "SCREENSHOT", "X", "MPR", "MPRI",
-    };
-    bool found = false;
-    for (const char* f : formats) {
-        if (!strcasecmp(f, format)) {
-            found = true;
-            break;
+    for (size_t i = 0; i < count; ++i) {
+        if (!strcasecmp(list[i], name)) {
+            return true;
         }
     }
-    if (!found) {
+    return false;
+}
+
+//! returns true if the name is a valid format name: an explicit format with other characters is not looked up
+static bool isFormatName(const char* name) {
+    if (!name || !*name) {
+        return false;
+    }
+    for (const unsigned char* p = reinterpret_cast<const unsigned char*>(name); *p; ++p) {
+        if (!isalnum(*p) && *p != '-' && *p != '_') {
+            return false;
+        }
+    }
+    return true;
+}
+
+//! RAII holders for ImageMagick structures
+namespace {
+class ImageInfoHolder {
+public:
+    DLLLOCAL ImageInfoHolder() : info(AcquireImageInfo()) {
+    }
+
+    DLLLOCAL ~ImageInfoHolder() {
+        if (info) {
+            // the blob is the caller's
+            SetImageInfoBlob(info, nullptr, 0);
+            DestroyImageInfo(info);
+        }
+    }
+
+    DLLLOCAL ImageInfo* operator->() const {
+        return info;
+    }
+
+    DLLLOCAL ImageInfo* get() const {
+        return info;
+    }
+
+    ImageInfoHolder(const ImageInfoHolder&) = delete;
+    ImageInfoHolder& operator=(const ImageInfoHolder&) = delete;
+
+private:
+    ImageInfo* info;
+};
+
+class ExceptionInfoHolder {
+public:
+    DLLLOCAL ExceptionInfoHolder() : ex(AcquireExceptionInfo()) {
+    }
+
+    DLLLOCAL ~ExceptionInfoHolder() {
+        if (ex) {
+            DestroyExceptionInfo(ex);
+        }
+    }
+
+    DLLLOCAL ExceptionInfo* get() const {
+        return ex;
+    }
+
+    ExceptionInfoHolder(const ExceptionInfoHolder&) = delete;
+    ExceptionInfoHolder& operator=(const ExceptionInfoHolder&) = delete;
+
+private:
+    ExceptionInfo* ex;
+};
+}
+
+std::string getDecodeFormat(const void* data, size_t len, const char* format, const char* path) {
+    assert(data && len);
+    ExceptionInfoHolder ex;
+    if (!ex.get()) {
+        return std::string();
+    }
+    // an explicit format that ImageMagick knows is used as it is (MagickSetFormat() ignores one that it does not
+    // know, and ImageMagick then detects the format)
+    if (isFormatName(format)) {
+        const MagickInfo* mi = GetMagickInfo(format, ex.get());
+        if (mi && mi->name) {
+            return mi->name;
+        }
+    }
+    // the format is detected as ImageMagick detects it when it decodes the data (BlobToImage(), ReadImage()): from
+    // the file name's extension, then from the data's magic bytes, which take precedence unless the extension names
+    // an explicit format
+    ImageInfoHolder info;
+    if (!info.get()) {
+        return std::string();
+    }
+    if (path) {
+        CopyMagickString(info->filename, path, MagickPathExtent);
+    }
+    // the data is detected in memory; ImageMagick never opens the file again
+    SetImageInfoBlob(info.get(), data, len);
+    SetImageInfo(info.get(), 0, ex.get());
+    return info->magick;
+}
+
+// formats that ImageMagick decodes with Ghostscript or another external program (delegate), as format or coder
+// (module) names; a format with no decoder of its own and the coders that a delegate is configured for are refused
+// too (see hasDecodeDelegate())
+static const char* const delegate_formats[] = {
+    // Ghostscript
+    "PS", "PS2", "PS3", "EPS", "EPS2", "EPS3", "EPI", "EPSF", "EPSI", "EPT", "EPT2", "EPT3", "PDF", "PDFA", "EPDF",
+    "AI", "XPS", "OXPS", "PCL",
+    // other delegates
+    "DNG", "VIDEO", "MPEG", "HTML", "HTM", "SHTML", "DOT", "GV", "DVI", "HPGL", "HPG", "JXR", "WDP", "BPG", "LEP",
+    "ILBM", "SID", "EMF", "DOC", "DOCX", "ODT", "ODG", "PPT", "PPTX", "XLS", "XLSX", "VSD", "VSDX", "EPUB",
+    "BLENDER", "CLIPBOARD",
+};
+
+// formats whose data names other files, URLs or devices that ImageMagick reads, or that embed data that ImageMagick
+// decodes in a format that it detects, as format or coder (module) names
+static const char* const indirection_formats[] = {
+    "MVG", "SVG", "SVGZ", "MSVG", "MSVGZ", "RSVG", "MSL", "TEXT", "TXT", "SPARSE-COLOR", "LABEL", "CAPTION", "PANGO",
+    "EPHEMERAL", "URL", "HTTP", "HTTPS", "FTP", "FILE", "INLINE", "DATA", "VID", "SCREENSHOT", "X", "MPR", "MPRI",
+    "MPC", "CACHE", "TILE", "STEGANO", "CLIP", "MASK", "WPG", "SFW", "PWP", "PES", "WMF",
+};
+
+//! returns true if a delegate (an external program) is configured for the coder's own decoding
+/** Coders such as PS, PDF, XPS, PCL, SVG, DNG and VIDEO run the delegates named \c "<coder>:<variant>"
+*/
+static bool hasDecodeDelegate(const char* name, ExceptionInfo* ex) {
+    if (!name || !*name) {
+        return false;
+    }
+    static const char* const variants[] = {"decode", "alpha", "cmyk", "color", "gray", "mono"};
+    std::string lname(name);
+    for (char& c : lname) {
+        c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+    }
+    for (const char* v : variants) {
+        std::string d = lname + ":" + v;
+        if (GetDelegateInfo(d.c_str(), nullptr, ex)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int checkDecodeFormat(const char* magick, ExceptionSink* xsink) {
+    if (!magick || !*magick) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "the format of the image data cannot be determined");
+        return -1;
+    }
+    ExceptionInfoHolder ex;
+    if (!ex.get()) {
+        xsink->outOfMemory();
+        return -1;
+    }
+    const MagickInfo* mi = GetMagickInfo(magick, ex.get());
+    const char* module = mi ? GetMagickModuleName(mi) : nullptr;
+    const char* why = nullptr;
+    if (!mi || !GetImageDecoder(mi)) {
+        why = "ImageMagick has no decoder of its own for this format and decodes it with an external program (a "
+            "delegate)";
+    } else if (inList(magick, indirection_formats, sizeof(indirection_formats) / sizeof(indirection_formats[0]))
+        || inList(module, indirection_formats, sizeof(indirection_formats) / sizeof(indirection_formats[0]))) {
+        why = "data in this format can name other files or URLs that ImageMagick reads, or embeds data that "
+            "ImageMagick decodes in a format that it detects";
+    } else if (inList(magick, delegate_formats, sizeof(delegate_formats) / sizeof(delegate_formats[0]))
+        || inList(module, delegate_formats, sizeof(delegate_formats) / sizeof(delegate_formats[0]))
+        || hasDecodeDelegate(magick, ex.get()) || hasDecodeDelegate(module, ex.get())) {
+        why = "ImageMagick decodes data in this format with an external program (a delegate such as Ghostscript)";
+    }
+    if (!why) {
         return 0;
     }
-    if (sandboxed || callerRestricts(QDOM_FILESYSTEM | QDOM_NETWORK, true)) {
-        xsink->raiseException("PERMISSION-DENIED", "image data in format '%s' cannot be read for the calling code: "
-            "the format can name other files that ImageMagick reads, and the calling code (also the code that a "
-            "host-created object was lent to) is restricted from the FILESYSTEM or NETWORK functional domain, or a "
-            "sandbox governs it", format);
+    xsink->raiseException("PERMISSION-DENIED", "image data in format '%s' cannot be decoded for the calling code: "
+        "%s, and the calling code (also the code that a host-created object was lent to) is restricted from the "
+        "FILESYSTEM, NETWORK, EXTERNAL_PROCESS or PROCESS_CONTROL functional domain, or a sandbox governs it",
+        magick, why);
+    return -1;
+}
+
+// output formats that ImageMagick encodes with an external program or shows on a display, as format or coder
+// (module) names
+static const char* const encode_delegate_formats[] = {
+    "VIDEO", "X", "SHOW", "WIN", "PRINT", "BROWSE", "EDIT", "LAUNCH", "OPEN", "CLIPBOARD", "SCAN", "TRACE", "BPG",
+    "JXR", "WDP", "LEP", "ILBM",
+};
+
+int checkEncodeFormat(const char* magick, ExceptionSink* xsink) {
+    if (!magick || !*magick) {
+        return 0;
+    }
+    ExceptionInfoHolder ex;
+    if (!ex.get()) {
+        xsink->outOfMemory();
+        return -1;
+    }
+    const MagickInfo* mi = isFormatName(magick) ? GetMagickInfo(magick, ex.get()) : nullptr;
+    const char* module = mi ? GetMagickModuleName(mi) : nullptr;
+    bool refused;
+    if (!mi || !GetImageEncoder(mi)) {
+        // ImageMagick writes a format with no encoder of its own with a delegate if one is configured (WriteImage())
+        refused = GetDelegateInfo(nullptr, magick, ex.get()) || GetDelegateInfo("*", magick, ex.get())
+            || inList(magick, encode_delegate_formats,
+                sizeof(encode_delegate_formats) / sizeof(encode_delegate_formats[0]));
+    } else {
+        refused = inList(magick, encode_delegate_formats,
+                sizeof(encode_delegate_formats) / sizeof(encode_delegate_formats[0]))
+            || inList(module, encode_delegate_formats,
+                sizeof(encode_delegate_formats) / sizeof(encode_delegate_formats[0]));
+    }
+    if (!refused) {
+        return 0;
+    }
+    xsink->raiseException("PERMISSION-DENIED", "images cannot be written in format '%s' for the calling code: "
+        "ImageMagick writes this format with an external program (a delegate) or shows it on a display, and the "
+        "calling code (also the code that a host-created object was lent to) is restricted from the FILESYSTEM, "
+        "NETWORK, EXTERNAL_PROCESS or PROCESS_CONTROL functional domain, or a sandbox governs it", magick);
+    return -1;
+}
+
+int readRegularFile(const char* path, std::vector<unsigned char>& buf, ExceptionSink* xsink) {
+    // O_NONBLOCK: opening a FIFO does not wait for a writer
+    int fd = open(path, O_RDONLY | O_CLOEXEC | O_NOCTTY | O_NONBLOCK);
+    if (fd < 0) {
+        xsink->raiseErrnoException("IMAGEMAGICK-ERROR", errno, "error reading image file '%s'", path);
+        return -1;
+    }
+    ON_BLOCK_EXIT(close, fd);
+    struct stat st;
+    if (fstat(fd, &st)) {
+        xsink->raiseErrnoException("IMAGEMAGICK-ERROR", errno, "error reading image file '%s'", path);
+        return -1;
+    }
+    if (!S_ISREG(st.st_mode)) {
+        xsink->raiseException("IMAGEMAGICK-ERROR", "error reading image file '%s': for restricted calling code, "
+            "images are read only from regular files", path);
+        return -1;
+    }
+    try {
+        buf.clear();
+        buf.reserve(static_cast<size_t>(st.st_size));
+        unsigned char chunk[65536];
+        while (true) {
+            if (qore_check_cancel(xsink, "reading image file")) {
+                return -1;
+            }
+            ssize_t rc = read(fd, chunk, sizeof(chunk));
+            if (rc < 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+                xsink->raiseErrnoException("IMAGEMAGICK-ERROR", errno, "error reading image file '%s'", path);
+                return -1;
+            }
+            if (!rc) {
+                break;
+            }
+            buf.insert(buf.end(), chunk, chunk + rc);
+        }
+    } catch (std::bad_alloc&) {
+        xsink->outOfMemory();
         return -1;
     }
     return 0;

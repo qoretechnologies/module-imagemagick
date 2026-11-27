@@ -1,0 +1,589 @@
+#!/usr/bin/env qore
+# -*- mode: qore; indent-tabs-mode: nil -*-
+
+/*
+    Qore imagemagick delegate and indirection format test
+
+    Copyright (C) 2026 Qore Technologies, s.r.o.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+*/
+
+%modern
+%prepend-module-path "${SCRIPT_DIR}/../qlib"
+# the test module whose objects the host lends
+%prepend-module-path "${SCRIPT_DIR}"
+
+%requires QUnit
+%requires Util
+%requires FsUtil
+%requires DataProvider
+%requires imagemagick
+%requires ImageMagickDataProvider
+%requires ImLentUser
+
+%exec-class DelegateFormatsTest
+
+#! Tests that formats decoded by external programs or naming other files are refused for restricted code
+/** ImageMagick decodes PostScript, PDF, XPS, PCL and similar formats with an external program (Ghostscript or
+    another delegate), and the data of formats such as MVG, MSL, SVG and TEXT names other files that it reads: for
+    code restricted from the \c FILESYSTEM, \c NETWORK, \c EXTERNAL_PROCESS or \c PROCESS_CONTROL functional domain,
+    for code that a sandbox governs, and for the restricted code that a host-created object was lent to, such data is
+    refused with \c PERMISSION-DENIED before it is decoded, whether the format is given explicitly or ImageMagick would
+    detect it from the data or the file name (module-imagemagick#13).  Unrestricted code keeps decoding them.
+*/
+class DelegateFormatsTest inherits QUnit::Test {
+    private {
+        const Modes = {"ast": EM_AST, "ir": EM_IR, "jit": EM_JIT, "tiered": EM_TIERED};
+
+        #! the functions of the test Programs that do not use the file system
+        const DataSource = "%modern
+%requires DataProvider
+%requires imagemagick
+%requires ImageMagickDataProvider
+
+# runs the given use and returns \"ok\" or the error and its description
+string sub run(code c) {
+    try {
+        c();
+        return \"ok\";
+    } catch (hash<ExceptionInfo> ex) {
+        return ex.err + \": \" + ex.desc;
+    }
+}
+
+# decodes the data with the given operation, in the given format if any
+string sub data_op(string op, binary data, *string format) {
+    return run(sub () {
+        switch (op) {
+            case \"ctor\":
+                if (exists format) {
+                    MagickImage img(data, format);
+                } else {
+                    MagickImage img(data);
+                }
+                break;
+            case \"read\": {
+                MagickImage img(4, 4, \"red\");
+                img.readData(data);
+                break;
+            }
+            case \"ping\":
+                new MagickImage(4, 4, \"red\").pingData(data);
+                break;
+            default:
+                throw \"TEST-ERROR\", op;
+        }
+    });
+}
+
+# returns the provider at the given path below the given provider
+AbstractDataProvider sub get_child(AbstractDataProvider dp, string path) {
+    foreach string seg in (path.split(\"/\")) {
+        dp = dp.getChildProviderEx(seg);
+    }
+    return dp;
+}
+
+# makes a request with a provider that this Program creates
+string sub request(string path, hash<auto> req) {
+    return run(sub () { get_child(new ImageMagickDataProvider(), path).doRequest(req); });
+}
+
+# makes a request with a provider that the host created
+string sub lent_request(AbstractDataProvider dp, hash<auto> req) {
+    return run(sub () { dp.doRequest(req); });
+}
+
+# uses the given font
+string sub font_op(string op, string font) {
+    return run(sub () {
+        switch (op) {
+            case \"annotate\":
+                new MagickImage(8, 8, \"white\").annotate(\"x\", 1.0, 5.0, 0.0, font);
+                break;
+            case \"set-font\": {
+                MagickDrawing dw();
+                dw.setFont(font);
+                break;
+            }
+            default:
+                throw \"TEST-ERROR\", op;
+        }
+    });
+}
+
+# returns a new image's data in the given format
+string sub to_data(string format) {
+    return run(sub () { new MagickImage(4, 4, \"red\").toData(format); });
+}
+
+# calls a method of an object that the host created
+string sub lent_call(object obj, string method, softlist<auto> args) {
+    return run(sub () { call_object_method_args(obj, method, args); });
+}
+";
+
+        #! the functions of the test Programs that use the file system
+        const FileSource = "
+# decodes the file with the given operation
+string sub file_op(string op, string path) {
+    return run(sub () {
+        switch (op) {
+            case \"ctor\":
+                MagickImage img(path);
+                break;
+            case \"read\": {
+                MagickImage img(4, 4, \"red\");
+                img.readFile(path);
+                break;
+            }
+            case \"ping\":
+                new MagickImage(4, 4, \"red\").pingFile(path);
+                break;
+            default:
+                throw \"TEST-ERROR\", op;
+        }
+    });
+}
+
+# writes a new image to the given file
+string sub write_file(string op, string path) {
+    return run(sub () {
+        MagickImage img(4, 4, \"red\");
+        if (op == \"writeFiles\") {
+            img.writeFiles(path);
+        } else {
+            img.writeFile(path);
+        }
+    });
+}
+";
+
+        #! a PostScript document
+        const PsData = "%!PS-Adobe-3.0\n%%BoundingBox: 0 0 8 8\nnewpath 0 0 moveto 8 0 lineto 8 8 lineto 0 8 lineto "
+            "closepath fill\nshowpage\n";
+
+        #! an encapsulated PostScript document
+        const EpsData = "%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 8 8\nnewpath 0 0 moveto 8 0 lineto 8 8 lineto "
+            "0 8 lineto closepath fill\n";
+
+        #! the restricted kinds of callers
+        const RestrictedKinds = ("nofs", "noext", "noproc", "sandbox");
+
+        #! the restricted kinds of callers that can read files that the test creates
+        const FileKinds = ("noext", "noproc", "sandbox-dir");
+
+        #! the explicit formats that restricted callers are refused
+        const RefusedFormats = (
+            # Ghostscript
+            "PS", "ps", "EPS", "EPI", "EPSF", "EPSI", "EPT", "PDF", "Pdf", "PDFA", "EPDF", "AI", "XPS", "PCL",
+            # other delegates
+            "MP4", "MPEG", "DNG",
+            # formats that name other files or decode embedded data in a format that they detect
+            "MVG", "MSL", "SVG", "TEXT", "TXT", "INLINE", "DATA", "WPG", "TILE", "STEGANO", "SFW", "PWP", "PES",
+            "WMF", "CLIP", "MASK",
+        );
+    }
+
+    private {
+        #! the directory of the test
+        string dir;
+        #! a PNG image's data
+        binary png_data;
+        #! a PDF document
+        binary pdf_data;
+        #! the files and the data that restricted callers are refused: description -> path or data
+        hash<string, string> refused_files;
+        #! data that restricted callers are refused: description -> data
+        hash<string, binary> refused_data;
+        #! a PNG file
+        string png_file;
+        #! a PostScript file with a misleading extension
+        string ps_png_file;
+        #! an MVG file
+        string mvg_file;
+        #! true if Ghostscript is installed
+        bool have_gs;
+        #! the formats that ImageMagick provides
+        hash<string, bool> known_formats;
+    }
+
+    constructor() : QUnit::Test("DelegateFormats", "1.0", \ARGV) {
+        dir = make_tmp_dir("imagemagick-delegate-formats-");
+        MagickImage img(8, 8, "red");
+        png_data = img.toData("PNG");
+        pdf_data = img.toData("PDF");
+        png_file = writeTestFile("image.png", png_data);
+        ps_png_file = writeTestFile("ps.png", binary(PsData));
+        mvg_file = writeTestFile("draw.mvg", binary("viewbox 0 0 4 4 image over 0,0 4,4 '" + png_file + "'"));
+        refused_data = {
+            "PS": binary(PsData),
+            "EPS": binary(EpsData),
+            "PDF": pdf_data,
+            "EPT header": <c5d0d3c6> + binary("xxxxxxxxxxxxxxxxxxxxxxxxxxxx"),
+            "WPG header": <ff575043> + binary("xxxxxxxxxxxxxxxxxxxxxxxxxxxx"),
+            "SFW header": binary("SFW94xxxxxxxxxxxxxxxxxxxxxxxxxxx"),
+            "PES header": binary("#PESxxxxxxxxxxxxxxxxxxxxxxxxxxxx"),
+            "PCL": binary("\x1bE\x1b&l0O"),
+            "SVG": binary("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"4\" height=\"4\"><image href=\"file://"
+                + png_file + "\" width=\"4\" height=\"4\"/></svg>"),
+            "MSL": binary("<?xml version=\"1.0\"?>\n<image><read filename=\"" + png_file + "\"/></image>\n"),
+        };
+        refused_files = {
+            "PS named PNG": ps_png_file,
+            "PS without an extension": writeTestFile("ps", binary(PsData)),
+            "PDF named JPEG": writeTestFile("pdf.jpg", pdf_data),
+            "PS extension": writeTestFile("x.ps", binary("not PostScript")),
+            "SVG": writeTestFile("x.svg", refused_data.SVG),
+            "MSL": writeTestFile("x.msl", refused_data.MSL),
+            "TXT": writeTestFile("x.txt", binary("@" + png_file)),
+            "DOCX": writeTestFile("x.docx", binary("not a document")),
+            "MP4": writeTestFile("x.mp4", binary("not a video")),
+            "WPG": writeTestFile("x.bin", refused_data."WPG header"),
+        };
+        known_formats = map {$1: True}, MagickImage::queryFormats();
+        have_gs = False;
+        foreach string d in (ENV.PATH.split(":")) {
+            if (is_executable(d + "/gs")) {
+                have_gs = True;
+                break;
+            }
+        }
+
+        foreach string mode in (keys Modes) {
+            string m = mode;
+            addTestCase("explicit formats, " + m, sub () { testExplicitFormats(m); });
+            addTestCase("detected data formats, " + m, sub () { testDetectedData(m); });
+            addTestCase("detected file formats, " + m, sub () { testDetectedFiles(m); });
+            addTestCase("file name syntax, " + m, sub () { testFileNameSyntax(m); });
+            addTestCase("data provider, " + m, sub () { testDataProvider(m); });
+            addTestCase("fonts, " + m, sub () { testFonts(m); });
+            addTestCase("output formats, " + m, sub () { testOutputFormats(m); });
+            addTestCase("lent objects, " + m, sub () { testLentObjects(m); });
+            addTestCase("unrestricted, " + m, sub () { testUnrestricted(m); });
+        }
+        set_return_value(main());
+    }
+
+    destructor() {
+        if (dir) {
+            remove_tree(dir);
+        }
+    }
+
+    #! an explicit read format decoded by an external program or naming other files is refused before decoding
+    private testExplicitFormats(string mode) {
+        foreach string kind in (RestrictedKinds) {
+            Program p = getProgram(kind, mode);
+            foreach string format in (RefusedFormats) {
+                assertRegex("^PERMISSION-DENIED:", p.callFunction("data_op", "ctor", binary(PsData), format),
+                    sprintf("%s %s PS data %s", kind, format, mode));
+                # data that is not in the format shows that it is refused before it is decoded; a format that this
+                # ImageMagick does not provide is ignored, as ImageMagick ignores it, and the data is detected
+                string expected = known_formats{format.upr()}
+                    ? "^PERMISSION-DENIED:"
+                    : "^IMAGEMAGICK-ERROR: the format of the image data cannot be determined";
+                assertRegex(expected, p.callFunction("data_op", "ctor", binary("not an image"), format),
+                    sprintf("%s %s other data %s", kind, format, mode));
+            }
+            # an unknown format leaves the decision to the data
+            assertRegex("^PERMISSION-DENIED:", p.callFunction("data_op", "ctor", binary(PsData), "NO-SUCH-FORMAT"),
+                sprintf("%s unknown format %s", kind, mode));
+            assertEq("ok", p.callFunction("data_op", "ctor", png_data, "NO-SUCH-FORMAT"),
+                sprintf("%s unknown format PNG data %s", kind, mode));
+            # PostScript data in an explicit raster format is decoded in that format, which fails
+            assertRegex("^IMAGEMAGICK-ERROR:", p.callFunction("data_op", "ctor", binary(PsData), "PNG"),
+                sprintf("%s PS data as PNG %s", kind, mode));
+            # other formats are decoded
+            assertEq("ok", p.callFunction("data_op", "ctor", png_data, "PNG"), sprintf("%s PNG %s", kind, mode));
+            assertEq("ok", p.callFunction("data_op", "ctor", png_data, "png"), sprintf("%s png %s", kind, mode));
+        }
+    }
+
+    #! data that ImageMagick detects as a refused format is refused before decoding
+    private testDetectedData(string mode) {
+        foreach string kind in (RestrictedKinds) {
+            Program p = getProgram(kind, mode);
+            foreach string op in ("ctor", "read", "ping") {
+                foreach hash<auto> i in (refused_data.pairIterator()) {
+                    assertRegex("^PERMISSION-DENIED:", p.callFunction("data_op", op, i.value),
+                        sprintf("%s %s %s %s", kind, op, i.key, mode));
+                }
+                assertEq("ok", p.callFunction("data_op", op, png_data), sprintf("%s %s PNG %s", kind, op, mode));
+            }
+            # an image that was decoded is unchanged by a refused read
+            MagickImage img(png_data);
+            assertRegex("^PERMISSION-DENIED:", p.callFunction("lent_call", img, "readData", refused_data.PS),
+                sprintf("%s read into a host image %s", kind, mode));
+            assertEq(1, img.numberImages(), sprintf("%s no image added %s", kind, mode));
+        }
+    }
+
+    #! files that ImageMagick detects as a refused format from their data or name are refused before decoding
+    private testDetectedFiles(string mode) {
+        foreach string kind in (FileKinds) {
+            Program p = getProgram(kind, mode);
+            foreach string op in ("ctor", "read", "ping") {
+                foreach hash<auto> i in (refused_files.pairIterator()) {
+                    assertRegex("^PERMISSION-DENIED:", p.callFunction("file_op", op, i.value),
+                        sprintf("%s %s %s %s", kind, op, i.key, mode));
+                }
+                assertEq("ok", p.callFunction("file_op", op, png_file), sprintf("%s %s PNG %s", kind, op, mode));
+            }
+            # an image read into an existing image is added and keeps its own format when written
+            MagickImage img(png_data);
+            assertEq("ok", p.callFunction("lent_call", img, "readFile", png_file),
+                sprintf("%s read a file into a host image %s", kind, mode));
+            assertEq(2, img.numberImages(), sprintf("%s image added %s", kind, mode));
+            assertEq("PNG", img.format(), sprintf("%s format %s", kind, mode));
+            assertRegex("^PERMISSION-DENIED:", p.callFunction("lent_call", img, "readFile", ps_png_file),
+                sprintf("%s read PS into a host image %s", kind, mode));
+            assertEq(2, img.numberImages(), sprintf("%s no image added %s", kind, mode));
+        }
+        # the file-system policy of a sandbox that denies the file system refuses the files before anything else
+        Program p = getProgram("sandbox", mode);
+        assertRegex("^FILESYSTEM-ACCESS-DENIED:", p.callFunction("file_op", "read", ps_png_file),
+            "sandbox default deny " + mode);
+    }
+
+    #! ImageMagick file name syntax that selects a format or opens another file is refused for restricted callers
+    private testFileNameSyntax(string mode) {
+        list<string> names = ("mvg:" + mvg_file, "msl:" + refused_files.MSL, "ps:" + png_file, "text:" + png_file,
+            "label:@" + png_file, "@" + png_file, png_file + "[0]", "png:" + png_file);
+        foreach string kind in (FileKinds) {
+            Program p = getProgram(kind, mode);
+            foreach string name in (names) {
+                assertRegex("^FILESYSTEM-ACCESS-DENIED:", p.callFunction("file_op", "read", name),
+                    sprintf("%s %y %s", kind, name, mode));
+            }
+            assertRegex("^FILESYSTEM-ACCESS-DENIED:", p.callFunction("write_file", "writeFile", "png:" + dir
+                + "/out.png"), sprintf("%s output prefix %s", kind, mode));
+        }
+        # unrestricted callers use the syntax
+        Program p = getProgram("unrestricted", mode);
+        assertEq("ok", p.callFunction("file_op", "read", "png:" + png_file), "unrestricted prefix " + mode);
+        assertEq("ok", p.callFunction("file_op", "read", png_file + "[0]"), "unrestricted suffix " + mode);
+        assertFalse(exists hstat(dir + "/out.png"), "nothing written " + mode);
+    }
+
+    #! the data provider's actions refuse such data and files
+    private testDataProvider(string mode) {
+        foreach string kind in (RestrictedKinds) {
+            Program p = getProgram(kind, mode);
+            foreach string action in ("info/get", "image/resize") {
+                *hash<auto> req = action == "image/resize" ? {"width": 4, "height": 4} : NOTHING;
+                foreach string fmt in ("PS", "PDF", "SVG") {
+                    assertRegex("^PERMISSION-DENIED:", p.callFunction("request", action, req
+                        + {"data": refused_data{fmt}}), sprintf("%s %s %s %s", kind, action, fmt, mode));
+                    # built with an older Qore, the module cannot see the code that a provider was lent to
+                    if (IM_LENT_PATH_CHECKS) {
+                        assertRegex("^PERMISSION-DENIED:", p.callFunction("lent_request", getLeaf(action), req
+                            + {"data": refused_data{fmt}}), sprintf("%s lent %s %s %s", kind, action, fmt, mode));
+                    }
+                }
+                assertEq("ok", p.callFunction("request", action, req + {"data": png_data}),
+                    sprintf("%s %s PNG %s", kind, action, mode));
+            }
+        }
+        foreach string kind in (FileKinds) {
+            Program p = getProgram(kind, mode);
+            assertRegex("^PERMISSION-DENIED:", p.callFunction("request", "info/get", {"input_path": ps_png_file}),
+                sprintf("%s input_path %s", kind, mode));
+            assertRegex("^PERMISSION-DENIED:", p.callFunction("request", "info/get", {"location": "file://"
+                + ps_png_file}), sprintf("%s location %s", kind, mode));
+            assertEq("ok", p.callFunction("request", "info/get", {"input_path": png_file}),
+                sprintf("%s input_path PNG %s", kind, mode));
+        }
+    }
+
+    #! fonts that ImageMagick renders with Ghostscript or an X server are refused
+    private testFonts(string mode) {
+        foreach string kind in (RestrictedKinds) {
+            Program p = getProgram(kind, mode);
+            foreach string op in ("annotate", "set-font") {
+                foreach string font in ("^Helvetica", "-misc-fixed-medium-r-normal--13-*-*-*-*-*-*-*") {
+                    assertRegex("^PERMISSION-DENIED:", p.callFunction("font_op", op, font),
+                        sprintf("%s %s %y %s", kind, op, font, mode));
+                }
+            }
+        }
+    }
+
+    #! output formats that ImageMagick encodes with an external program are refused
+    private testOutputFormats(string mode) {
+        foreach string kind in (RestrictedKinds) {
+            Program p = getProgram(kind, mode);
+            foreach string format in ("MP4", "MPEG") {
+                assertRegex("^PERMISSION-DENIED:", p.callFunction("to_data", format),
+                    sprintf("%s to data %s %s", kind, format, mode));
+            }
+            assertEq("ok", p.callFunction("to_data", "JPEG"), sprintf("%s to JPEG data %s", kind, mode));
+        }
+        foreach string kind in (FileKinds) {
+            Program p = getProgram(kind, mode);
+            foreach string op in ("writeFile", "writeFiles") {
+                # formats with an external encoder, and names that ImageMagick gives to a delegate
+                foreach string name in ("out.mp4", "out.print", "out.bpg", "out.launch") {
+                    string path = dir + "/" + name;
+                    assertRegex("^PERMISSION-DENIED:", p.callFunction("write_file", op, path),
+                        sprintf("%s %s %s %s", kind, op, name, mode));
+                    assertFalse(exists hstat(path), sprintf("%s %s %s not written %s", kind, op, name, mode));
+                }
+                string path = dir + "/out.png";
+                assertEq("ok", p.callFunction("write_file", op, path), sprintf("%s %s PNG %s", kind, op, mode));
+                assertEq("PNG", new MagickImage(ReadOnlyFile::readBinaryFile(path)).format(),
+                    sprintf("%s %s PNG format %s", kind, op, mode));
+                unlink(path);
+            }
+        }
+    }
+
+    #! the data, files and fonts that a lent object gives are decided with the restricted code that it was lent to
+    private testLentObjects(string mode) {
+        # built with an older Qore, the module cannot see the code that an object was lent to
+        if (!IM_LENT_PATH_CHECKS) {
+            testSkip("the module was built with a Qore without qore_caller_lent_to_restricts_domain()");
+        }
+        foreach string kind in ("nofs", "noext", "noproc") {
+            Program p = getProgram(kind, mode);
+            ImageUser user(new MagickImage(png_data));
+            list<list<auto>> calls = (
+                ("newFromData", (refused_data.PS, "PS")),
+                ("newFromData", (pdf_data, "PDF")),
+                ("newFromAutoData", refused_data.PS),
+                ("readData", refused_data.PDF),
+                ("pingData", refused_data.EPS),
+                ("annotate", "^Helvetica"),
+                ("setFont", "^Helvetica"),
+                ("toDataInFormat", "MP4"),
+            );
+            if (kind != "nofs") {
+                calls += (
+                    ("readFile", ps_png_file),
+                    ("load", ps_png_file),
+                    ("pingFile", ps_png_file),
+                    ("readFile", refused_files.SVG),
+                );
+            }
+            foreach list<auto> c in (calls) {
+                assertRegex("^PERMISSION-DENIED:", p.callFunction("lent_call", user, c[0], c[1]),
+                    sprintf("%s lent %s %s", kind, c[0], mode));
+            }
+            assertEq("ok", p.callFunction("lent_call", user, "newFromAutoData", png_data),
+                sprintf("%s lent PNG data %s", kind, mode));
+            if (kind != "nofs") {
+                assertEq("ok", p.callFunction("lent_call", user, "readFile", png_file),
+                    sprintf("%s lent PNG file %s", kind, mode));
+            }
+        }
+    }
+
+    #! unrestricted code keeps decoding all formats
+    private testUnrestricted(string mode) {
+        Program p = getProgram("unrestricted", mode);
+        foreach string op in ("ctor", "read", "ping") {
+            assertEq("ok", p.callFunction("data_op", op, png_data), sprintf("unrestricted %s PNG data %s", op, mode));
+            assertEq("ok", p.callFunction("file_op", op, png_file), sprintf("unrestricted %s PNG file %s", op, mode));
+        }
+        assertEq("ok", p.callFunction("data_op", "ctor", png_data, "PNG"), "unrestricted explicit PNG " + mode);
+        # MVG data with an explicit format is decoded for unrestricted code
+        assertEq("ok", p.callFunction("data_op", "ctor", binary("viewbox 0 0 4 4 fill red rectangle 0,0 3,3"), "MVG"),
+            "unrestricted MVG " + mode);
+        assertEq("ok", p.callFunction("write_file", "writeFile", dir + "/unrestricted.png"),
+            "unrestricted write " + mode);
+        unlink(dir + "/unrestricted.png");
+        if (!have_gs) {
+            testSkip("Ghostscript is not installed");
+        }
+        list<list<auto>> cases = (
+            ("data_op", ("ctor", binary(PsData), "PS")),
+            ("data_op", ("ctor", binary(PsData))),
+            ("data_op", ("read", binary(PsData))),
+            ("data_op", ("ctor", pdf_data)),
+            ("file_op", ("ctor", ps_png_file)),
+            ("file_op", ("read", ps_png_file)),
+        );
+        foreach list<auto> c in (cases) {
+            string rv = p.callFunctionArgs(c[0], c[1]);
+            if (rv =~ /not authorized/i) {
+                testSkip("the ImageMagick security policy does not allow PostScript: " + rv);
+            }
+            assertEq("ok", rv, sprintf("unrestricted %s %y %s", c[0], c[1][0], mode));
+        }
+    }
+
+    #! returns the action's provider, created by the host: the provider that the host lends to the restricted code
+    private static AbstractDataProvider getLeaf(string path) {
+        AbstractDataProvider dp = new ImageMagickDataProvider();
+        foreach string seg in (path.split("/")) {
+            dp = dp.getChildProviderEx(seg);
+        }
+        return dp;
+    }
+
+    #! writes a file in the test directory and returns its path
+    private string writeTestFile(string name, binary data) {
+        string path = dir + "/" + name;
+        File f();
+        f.open2(path, O_CREAT | O_WRONLY | O_TRUNC);
+        f.write(data);
+        f.close();
+        return path;
+    }
+
+    #! returns a Program of the given kind
+    private Program getProgram(string kind, string mode) {
+        Program p;
+        switch (kind) {
+            case "nofs":
+                p = new Program(PO_NEW_STYLE | PO_NO_FILESYSTEM);
+                break;
+            case "noext":
+                p = new Program(PO_NEW_STYLE | PO_NO_EXTERNAL_PROCESS);
+                break;
+            case "noproc":
+                p = new Program(PO_NEW_STYLE | PO_NO_PROCESS_CONTROL);
+                break;
+            case "sandbox": {
+                SandboxManager sm();
+                sm.setFilesystemDefaultPolicy(False);
+                p = new Program(PO_NEW_STYLE);
+                p.setSandboxManager(sm);
+                break;
+            }
+            case "sandbox-dir": {
+                SandboxManager sm();
+                sm.setFilesystemDefaultPolicy(False);
+                sm.addFilesystemAllowedPath(dir, QSEC_READ | QSEC_WRITE | QSEC_CREATE);
+                p = new Program(PO_NEW_STYLE);
+                p.setSandboxManager(sm);
+                break;
+            }
+            case "unrestricted":
+                p = new Program(PO_NEW_STYLE);
+                break;
+            default:
+                throw "TEST-ERROR", kind;
+        }
+        p.setExecMode(Modes{mode});
+        p.parse(kind == "nofs" ? DataSource : DataSource + FileSource, kind);
+        return p;
+    }
+}
